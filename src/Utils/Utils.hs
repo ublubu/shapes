@@ -1,6 +1,3 @@
-{-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE FlexibleInstances #-}
-
 module Utils.Utils where
 
 import Control.Monad
@@ -16,6 +13,16 @@ import GHC.Word
 
 with2 :: (Storable a, Storable b) => a -> b -> (Ptr a -> Ptr b -> IO c) -> IO c
 with2 a b f = with a $ \a' -> with b (f a')
+
+
+with3 :: (Storable a, Storable b, Storable c) =>
+         a -> b -> c -> (Ptr a -> Ptr b -> Ptr c -> IO d) -> IO d
+with3 a b c f = with a $ \a' -> with2 b c (f a')
+
+
+with4 :: (Storable a, Storable b, Storable c, Storable d) =>
+         a -> b -> c -> d -> (Ptr a -> Ptr b -> Ptr c -> Ptr d -> IO e) -> IO e
+with4 a b c d f = with a $ \a' -> with3 b c d (f a')
 
 
 withCAString2 :: String -> String -> (CString -> CString -> IO a) -> IO a

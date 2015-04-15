@@ -6,6 +6,10 @@ import Foreign.Marshal.Alloc
 import Foreign.Marshal.Utils
 import Foreign.Storable
 
+data Key = Q | W | E | A | S | D | N
+
+type Input = Maybe SDL.T.Event
+
 handle :: IO (Maybe SDL.T.Event) -> IO Bool
 handle stream = do
     maybeEvent <- stream
@@ -17,10 +21,21 @@ handle stream = do
         _ -> return False
 
 
-pollEvent :: IO (Maybe SDL.T.Event)
+pollEvent :: IO Input
 pollEvent = alloca $ \pointer -> do
     status <- Event.pollEvent pointer
 
     if status == 1
         then maybePeek peek pointer
         else return Nothing
+
+getKey :: SDL.T.Keysym -> Key
+getKey sym = case SDL.T.keysymScancode sym of
+  20 -> Q
+  26 -> W
+  8  -> E
+  4  -> A
+  22 -> S
+  7  -> D
+  _  -> N
+
