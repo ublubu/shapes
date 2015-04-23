@@ -31,12 +31,8 @@ moveTo :: (Int, Int) -> GridZipper a -> Maybe (GridZipper a)
 moveTo t@(x', y') z@(GridZipper r i (x, y))
   | y == y' =
     if x == x' then Just z else
-      if x < x' then
-        do i' <- safeNext i
-           moveTo t $ GridZipper r i' (x + 1, y')
-        else
-        do i' <- safePrev i
-           moveTo t $ GridZipper r i' (x - 1, y')
+      if x < x' then moveTo t =<< moveRight z
+        else moveTo t =<< moveLeft z
   | y < y' =
     do r' <- safeNext r
        i' <- itemCursor r'
@@ -45,6 +41,22 @@ moveTo t@(x', y') z@(GridZipper r i (x, y))
     do r' <- safePrev r
        i' <- itemCursor r'
        moveTo t $ GridZipper r' i' (0, y - 1)
+
+moveRight :: GridZipper a -> Maybe (GridZipper a)
+moveRight (GridZipper r i (x, y)) = do
+  i' <- safeNext i
+  return $ GridZipper r i' (x + 1, y)
+
+moveLeft :: GridZipper a -> Maybe (GridZipper a)
+moveLeft (GridZipper r i (x, y)) = do
+  i' <- safePrev i
+  return $ GridZipper r i' (x - 1, y)
+
+moveDown :: GridZipper a -> Maybe (GridZipper a)
+moveDown z@(GridZipper _ _ (x, y)) = moveTo (x, y + 1) z
+
+moveUp :: GridZipper a -> Maybe (GridZipper a)
+moveUp z@(GridZipper _ _ (x, y)) = moveTo (x, y - 1) z
 
 item :: GridZipper a -> a
 item (GridZipper _ iz _) = cursor iz
