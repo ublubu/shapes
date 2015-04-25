@@ -13,34 +13,34 @@ import Utils.Utils
 
 data Colour = White | Red | Blue | Green | Yellow
 
-draw :: SDL.T.Renderer -> SDL.T.Texture -> IO ()
-draw renderer texture = do
-    _ <- SDL.V.renderClear renderer
-    _ <- SDL.V.renderCopy renderer texture nullPtr nullPtr
-    SDL.V.renderPresent renderer
+drawTextureStretch :: SDL.T.Renderer -> SDL.T.Texture -> IO ()
+drawTextureStretch renderer texture = do
+  clearScreen renderer
+  SDL.V.renderCopy renderer texture nullPtr nullPtr >>=
+    catchErrorCode "failed to copy texture to target"
+  SDL.V.renderPresent renderer
 
-
-clearScreen :: SDL.T.Renderer -> IO CInt
+clearScreen :: SDL.T.Renderer -> IO ()
 clearScreen renderer = do
-    _ <- setColor renderer White
-    SDL.V.renderClear renderer
+  setColor renderer White
+  SDL.V.renderClear renderer >>= catchErrorCode "failed to clear"
 
+fillRectangle :: SDL.T.Renderer -> SDL.T.Rect -> IO ()
+fillRectangle renderer shape = catchErrorCode "failed to fill rectangle" =<<
+                               (with shape $ SDL.V.renderFillRect renderer)
 
-fillRectangle :: SDL.T.Renderer -> SDL.T.Rect -> IO CInt
-fillRectangle renderer shape = with shape $ SDL.V.renderFillRect renderer
+drawRectangle :: SDL.T.Renderer -> SDL.T.Rect -> IO ()
+drawRectangle renderer shape = catchErrorCode "failed to draw rectangle" =<<
+                               (with shape $ SDL.V.renderDrawRect renderer)
 
+drawLine :: SDL.T.Renderer -> (CInt, CInt) -> (CInt, CInt) -> IO ()
+drawLine renderer (ox, oy) (tx, ty) =
+  catchErrorCode "failed to draw rectangle" =<<
+  SDL.V.renderDrawLine renderer ox oy tx ty
 
-drawRectangle :: SDL.T.Renderer -> SDL.T.Rect -> IO CInt
-drawRectangle renderer shape = with shape $ SDL.V.renderDrawRect renderer
-
-
-drawLine :: SDL.T.Renderer -> (CInt, CInt) -> (CInt, CInt) -> IO CInt
-drawLine renderer (ox, oy) (tx, ty) = SDL.V.renderDrawLine renderer ox oy tx ty
-
-
-drawDot :: SDL.T.Renderer -> (CInt, CInt) -> IO CInt
-drawDot renderer (x, y) = SDL.V.renderDrawPoint renderer x y
-
+drawDot :: SDL.T.Renderer -> (CInt, CInt) -> IO ()
+drawDot renderer (x, y) = catchErrorCode "failed to draw dot" =<<
+                          SDL.V.renderDrawPoint renderer x y
 
 drawAsset :: SDL.T.Renderer -> Asset -> (SDL.T.Rect -> SDL.T.Rect) -> Int -> SDL.E.RendererFlip -> IO ()
 drawAsset r asset translate degrees flip = with2 mask target $ \mask' target' ->
@@ -50,18 +50,19 @@ drawAsset r asset translate degrees flip = with2 mask target $ \mask' target' ->
         target = translate mask
         degrees' = fromIntegral degrees
 
+setColorUnsafe :: SDL.T.Renderer -> Colour -> IO CInt
+setColorUnsafe renderer White  = SDL.V.setRenderDrawColor renderer 0xFF 0xFF 0xFF 0xFF
+setColorUnsafe renderer Red    = SDL.V.setRenderDrawColor renderer 0xFF 0x00 0x00 0xFF
+setColorUnsafe renderer Green  = SDL.V.setRenderDrawColor renderer 0x00 0xFF 0x00 0xFF
+setColorUnsafe renderer Blue   = SDL.V.setRenderDrawColor renderer 0x00 0x00 0xFF 0xFF
+setColorUnsafe renderer Yellow = SDL.V.setRenderDrawColor renderer 0xFF 0xFF 0x00 0xFF
 
-setColor :: SDL.T.Renderer -> Colour -> IO CInt
-setColor renderer White  = SDL.V.setRenderDrawColor renderer 0xFF 0xFF 0xFF 0xFF
-setColor renderer Red    = SDL.V.setRenderDrawColor renderer 0xFF 0x00 0x00 0xFF
-setColor renderer Green  = SDL.V.setRenderDrawColor renderer 0x00 0xFF 0x00 0xFF
-setColor renderer Blue   = SDL.V.setRenderDrawColor renderer 0x00 0x00 0xFF 0xFF
-setColor renderer Yellow = SDL.V.setRenderDrawColor renderer 0xFF 0xFF 0x00 0xFF
+setColor :: SDL.T.Renderer -> Colour -> IO ()
+setColor = (catchErrorCode "failed to set color" =<<) <. setColorUnsafe
 
-withBlankScreen :: SDL.T.Renderer -> IO a -> IO ()
+withBlankScreen :: SDL.T.Renderer -> IO () -> IO ()
 withBlankScreen r operation = do
-  setColor r White
-  SDL.V.renderClear r
+  clearScreen r
   operation
   SDL.V.renderPresent r
 

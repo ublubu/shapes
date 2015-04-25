@@ -22,6 +22,8 @@ import SDL.Init
 import SDL.Loading
 import Utils.Utils
 import Game
+import Grid
+import SlidingGrid
 
 ---- Config ----
 
@@ -42,7 +44,11 @@ fullWindow = SDL.T.Rect {
   SDL.T.rectH = screenHeight }
 
 initialState :: World
-initialState = World { gameover = False, degrees = 0, flipType = SDL.E.SDL_FLIP_NONE }
+initialState = World
+  { gameOver = False
+  , grid = fromRows [[SlidingTile (), EmptyTile, FixedTile ()]
+                    ,[SlidingTile (), SlidingTile (), SlidingTile ()]
+                    ,[SlidingTile (), SlidingTile (), SlidingTile ()]] }
 
 ---- Application ----
 

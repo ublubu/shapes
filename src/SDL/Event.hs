@@ -20,7 +20,6 @@ handle stream = do
 
         _ -> return False
 
-
 pollEvent :: IO Input
 pollEvent = alloca $ \pointer -> do
     status <- Event.pollEvent pointer

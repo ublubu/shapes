@@ -51,3 +51,14 @@ infixl 4 ~>~
 
 into :: (Monad m, MonadTrans t, MonadState b (t m)) => m a -> (a -> b -> b) -> t m b
 into source f = lift source >>= modify . f >> get
+
+infixr 9 <.
+(<.) :: (c -> d) -> (a -> b -> c) -> (a -> b -> d)
+(f <. g) x y = f (g x y)
+
+pairMap :: (a -> b) -> (a, a) -> (b, b)
+pairMap f (x, y) = (f x, f y)
+
+pairAp :: (a -> b, c -> d) -> ((a, c) -> (b, d))
+pairAp (f, g) (x, y) = (f x, g y)
+

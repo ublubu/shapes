@@ -7,20 +7,28 @@ import qualified Graphics.UI.SDL.Basic as SDL.B
 import qualified Graphics.UI.SDL.Timer as SDL.Timer
 import qualified Graphics.UI.SDL.Event as SDL.Event
 import Control.Monad
+import Foreign.C.Types
 import SDL.Draw
 import SDL.Event
 import SDL.Geometry
 import SDL.Loading
+import DrawTile
+import Grid
+import SlidingGrid
 
-data World = World { gameover :: Bool, degrees :: Int, flipType :: SDL.E.RendererFlip }
+data World = World { gameOver :: Bool
+                   , grid :: Maybe (TileZipper ()) }
+
+tileSize :: Point CInt
+tileSize = (20, 20)
 
 drawState :: SDL.T.Renderer -> SDL.T.Rect -> [Asset] -> World -> IO ()
-drawState r fullWindow assets state = withBlankScreen r $ drawAsset r asset translate (degrees state) (flipType state)
-  where asset = head assets
-        translate = (`centredOn` fullWindow)
+drawState r fullWindow assets state = case grid state of
+  Nothing -> clearScreen r
+  Just z -> withBlankScreen r $ drawTiles r tileSize (0, 0) z
 
 updateState :: Input -> World -> World
-updateState (Just (SDL.T.QuitEvent _ _)) state = state { gameover = True }
+updateState (Just (SDL.T.QuitEvent _ _)) state = state { gameOver = True }
 updateState (Just (SDL.T.KeyboardEvent evtType _ _ _ _ keysym)) state =
   if evtType == SDL.E.SDL_KEYDOWN
   then modifyState state keysym
@@ -29,13 +37,8 @@ updateState _ state = state
 
 modifyState :: World -> SDL.T.Keysym -> World
 modifyState state keysym = case getKey keysym of
-  Q -> state { flipType = SDL.E.SDL_FLIP_HORIZONTAL }
-  W -> state { flipType = SDL.E.SDL_FLIP_NONE }
-  E -> state { flipType = SDL.E.SDL_FLIP_VERTICAL }
-  A -> state { degrees = degrees state - 15 }
-  D -> state { degrees = degrees state + 15 }
   _ -> state
 
 runUntilComplete :: (Monad m) => m World -> m ()
-runUntilComplete game = game >>= \state -> unless (gameover state) $ runUntilComplete game
+runUntilComplete game = game >>= \state -> unless (gameOver state) $ runUntilComplete game
 
