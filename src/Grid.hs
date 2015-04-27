@@ -5,6 +5,7 @@ import Data.Foldable
 import Data.Monoid
 import Control.Monad
 import SDL.Geometry hiding (moveTo)
+import FreezableT
 
 type RowZipper a = Zipper [a]
 
@@ -73,6 +74,9 @@ item (GridZipper _ iz _) = cursor iz
 replaceItem :: a -> GridZipper a -> GridZipper a
 replaceItem i (GridZipper rz iz t) = GridZipper rz (replace i iz) t
 
+changeItem :: (a -> a) -> GridZipper a -> GridZipper a
+changeItem f z = replaceItem (f . item $ z) z
+
 gridCoord :: GridZipper a -> (Int, Int)
 gridCoord (GridZipper _ _ coord) = coord
 
@@ -94,4 +98,30 @@ instance Foldable GridZipper where
       Nothing -> a
       Just z' -> mappend a (foldMap f z')
     where a = f $ item z
+
+type GridZipperTrans a = (GridZipper a -> Maybe (GridZipper a))
+
+data GridSequence a = GridSequence (GridZipperTrans a) (GridZipperTrans a) (GridZipper a)
+
+gridNext :: GridSequence a -> Maybe (GridSequence a)
+gridNext (GridSequence next prev z) = do
+  z' <- next z
+  return $ GridSequence next prev z'
+
+gridPrev :: GridSequence a -> Maybe (GridSequence a)
+gridPrev (GridSequence next prev z) = do
+  z' <- prev z
+  return $ GridSequence next prev z'
+
+instance Foldable GridSequence where
+  foldMap f (GridSequence next prev z) = case next z of
+    Just z' -> mappend a (foldMap f (GridSequence next prev z'))
+    Nothing -> a
+    where a = f $ item z
+
+applyChanges :: [a -> a] -> GridSequence a -> Maybe (GridSequence a)
+applyChanges [] s = Just s
+applyChanges (f:fs) (GridSequence next prev z) = do
+  zz <- next $ changeItem f z
+  gridPrev =<< applyChanges fs (GridSequence next prev zz)
 

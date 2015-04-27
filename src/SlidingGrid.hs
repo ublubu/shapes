@@ -1,6 +1,7 @@
 module SlidingGrid where
 
 import Grid
+import FreezableT (foldMapUntil)
 
 data Tile a = EmptyTile | FixedTile a | SlidingTile a
 
@@ -38,4 +39,11 @@ slideUpInto = slideInto moveUp moveDown
 
 class Connectable c where
   connected :: c -> c -> Bool
+
+pushWith :: (Tile b -> Tile b) -> GridSequence (Tile b) -> Maybe (GridSequence (Tile b))
+pushWith f gs = applyChanges (foldMapUntil test f' gs) gs
+  where f' _ = [f]
+        test x = case x of
+          EmptyTile -> False
+          _ -> True
 
