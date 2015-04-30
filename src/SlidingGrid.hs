@@ -15,6 +15,9 @@ instance Functor Tile where
 type TileZipper a = GridZipper (Tile a)
 type TileZipperTrans a = GridZipperTrans (Tile a)
 
+tilesMap :: (a -> b) -> TileZipper a -> TileZipper b
+tilesMap f = gridMap . fmap $ f
+
 rowToString :: Show a => [Tile a] -> String
 rowToString = foldl f ""
   where f accum t = case t of
@@ -23,7 +26,7 @@ rowToString = foldl f ""
           SlidingTile x -> accum ++ "Slide (" ++ show x ++ ") "
 
 tilesToString :: Show a => TileZipper a -> String
-tilesToString z = show (gridCoord z) ++ " " ++ show (item z) ++ gridString
+tilesToString z = show (gridCoord z) ++ " " ++ show (gridItem z) ++ gridString
   where f accum row = accum ++ "\n" ++ rowToString row
         gridString = foldl f "" (toRowsFrom z)
 
@@ -57,7 +60,7 @@ upSliding :: SlideDirection a
 upSliding = SlideDirection moveUp moveDown
 
 slide :: TileZipperTrans a -> TileZipperTrans a -> TileZipper a -> Maybe (TileZipper a)
-slide next prev z@(GridZipper _ _ coord) = moveTo coord =<< foldlUntil test accum pushEmpty s z
+slide next prev z = moveTo coord =<< foldlUntil test accum pushEmpty s z
   where s = GridSequence next prev z
         test _ t = case t of
           EmptyTile -> False
@@ -66,10 +69,11 @@ slide next prev z@(GridZipper _ _ coord) = moveTo coord =<< foldlUntil test accu
         accum f x z' = do
           zz' <- f z'
           z'' <- next zz'
-          case item z'' of
+          case gridItem z'' of
             FixedTile _ -> Nothing
             _ -> return $ replaceItem x z''
         pushEmpty = return . replaceItem EmptyTile
+        coord = gridCoord z
 
 data SlideList a = SlideList [TileZipper a] (TileZipper a) deriving Show
 
@@ -79,7 +83,7 @@ sliders (SlideList zs _) = zs
 theEmpty :: SlideList a -> TileZipper a
 theEmpty (SlideList _ e) = e
 
-slideList :: Show a => SlideDirection a -> TileZipper a -> Maybe (SlideList a)
+slideList :: SlideDirection a -> TileZipper a -> Maybe (SlideList a)
 slideList dir@(SlideDirection next _) z = case x of
   EmptyTile -> return $ SlideList [] z
   FixedTile _ -> Nothing
@@ -87,7 +91,7 @@ slideList dir@(SlideDirection next _) z = case x of
     z' <- next z
     zs' <- slideList dir z'
     return $ SlideList (z:(sliders zs')) (theEmpty zs')
-  where x = item z
+  where x = gridItem z
 
 --returns something if it was able to perform the map
 slideMap_ :: SlideDirection a -> (TileZipper a -> Tile a) -> SlideList a -> TileZipper a -> Maybe (TileZipper a)
@@ -97,7 +101,7 @@ slideMap_ dir@(SlideDirection next prev) f l@(SlideList ss e) zz = case ss of
     zz' <- slideMap_ dir f (SlideList xs e) =<< next zz
     fmap (replaceItem $ f x) (prev zz')
 
-slideMap :: Show a => SlideDirection a -> (TileZipper a -> Tile a) -> TileZipper a -> Maybe (TileZipper a)
+slideMap :: SlideDirection a -> (TileZipper a -> Tile a) -> TileZipper a -> Maybe (TileZipper a)
 slideMap dir f z = do l <- slideList dir z
                       return $ fromMaybe (error "something broke the map")
                         (slideMap_ dir f l z)
@@ -110,7 +114,7 @@ slideInto next prev x z = case x' of
     fmap (replaceItem x) (prev zz')
   EmptyTile -> Just $ replaceItem x z
   FixedTile _ -> Nothing -- can't slide into a fixed tile
-  where x' = item z
+  where x' = gridItem z
 
 slideRightInto :: Tile a -> TileZipper a -> Maybe (TileZipper a)
 slideRightInto = slideInto moveRight moveLeft

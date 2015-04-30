@@ -49,16 +49,16 @@ fullWindow = SDL.T.Rect {
 initialState :: World
 initialState = World
   { gameOver = False
-  , grid = fromRows [ [ SlidingTile (SmoothSliding zero 0)
+  , grid = fromRows [ [ SlidingTile ()
                       , EmptyTile
-                      , FixedTile (SmoothSliding zero 1) ]
-                    , [SlidingTile (SmoothSliding zero 2)
-                      , SlidingTile (SmoothSliding zero 3)
-                      , SlidingTile (SmoothSliding zero 4) ]
-                    , [SlidingTile (SmoothSliding zero 5)
-                      , SlidingTile (SmoothSliding zero 6)
-                      , SlidingTile (SmoothSliding zero 7) ] ]
-  , inputState = InputState { mouseButtonDown = False
+                      , FixedTile () ]
+                    , [SlidingTile ()
+                      , SlidingTile ()
+                      , SlidingTile () ]
+                    , [SlidingTile ()
+                      , SlidingTile ()
+                      , SlidingTile () ] ]
+  , worldInput = InputState { mouseButtonDown = Nothing
                             , mousePosition = zero }}
 
 ---- Application ----
@@ -70,40 +70,22 @@ printMaybeTiles mz = case mz of
 
 main :: IO ()
 main = do
-  print items
-  --print $ safePrev items
-  --print $ safeNext items
-  printMaybeTiles tiles
-  printMaybeTiles (moveRight =<< tiles)
-  printMaybeTiles (moveLeft =<< tiles)
-  printMaybeTiles (moveDown =<< tiles)
-  printMaybeTiles (moveUp =<< tiles)
-  printMaybeTiles (partialSlide (toGeomPointInt (10, 0)) =<< tiles)
-  printMaybeTiles (partialSlide (toGeomPointInt (-10, 0)) =<< tiles)
-  printMaybeTiles (partialSlide (toGeomPointInt (0, 10)) =<< tiles)
-  printMaybeTiles (partialSlide (toGeomPointInt (0, -10)) =<< tiles)
+  initializeSDL [SDL.E.SDL_INIT_VIDEO] >>= catchRisky
+  Image.imgInit [Image.InitPNG]
 
-  where tiles = grid initialState
-        items = fromList [1, 2, 3]
+  setHint "SDL_RENDER_SCALE_QUALITY" "1" >>= logWarning
+  window <- createWindow windowTitle screenWidth screenHeight >>= catchRisky
+  renderer <- createRenderer window (-1) [SDL.E.SDL_RENDERER_ACCELERATED] >>= catchRisky
 
-main_ :: IO ()
-main_ = do
-    initializeSDL [SDL.E.SDL_INIT_VIDEO] >>= catchRisky
-    Image.imgInit [Image.InitPNG]
+  asset <- loadTexture renderer "./assets/blop-nar.png" >>= catchRisky
 
-    setHint "SDL_RENDER_SCALE_QUALITY" "1" >>= logWarning
-    window <- createWindow windowTitle screenWidth screenHeight >>= catchRisky
-    renderer <- createRenderer window (-1) [SDL.E.SDL_RENDERER_ACCELERATED] >>= catchRisky
+  let inputSource = pollEvent `into` updateState
+  let pollDraw = inputSource ~>~ drawState renderer fullWindow [asset]
+  runStateT (runUntilComplete pollDraw) initialState
 
-    asset <- loadTexture renderer "./assets/blop-nar.png" >>= catchRisky
-
-    let inputSource = pollEvent `into` updateState
-    let pollDraw = inputSource ~>~ drawState renderer fullWindow [asset]
-    runStateT (runUntilComplete pollDraw) initialState
-
-    freeAssets [asset]
-    SDL.V.destroyRenderer renderer
-    SDL.V.destroyWindow window
-    SDL.B.quit
-    Image.imgQuit
+  freeAssets [asset]
+  SDL.V.destroyRenderer renderer
+  SDL.V.destroyWindow window
+  SDL.B.quit
+  Image.imgQuit
 

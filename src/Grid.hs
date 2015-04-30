@@ -1,92 +1,102 @@
 module Grid where
 
 import Data.List.Zipper
-import Data.Foldable
+import Data.Foldable hiding (toList)
+import qualified Data.Foldable as Fld
 import Data.Monoid
 import Control.Monad
 import SDL.Geometry hiding (moveTo)
 import FreezableT
 
-type RowZipper a = Zipper (Zipper a)
+type IndexedZipper a = (Int, Zipper a)
+type GridZipper a = IndexedZipper (IndexedZipper a)
 
-data GridZipper a = GridZipper (RowZipper a) (Zipper a) (Point Int) deriving Show
-
-safePrev :: Zipper a -> Maybe (Zipper a)
-safePrev z = do
+safePrev :: IndexedZipper a -> Maybe (IndexedZipper a)
+safePrev (i, z) = do
   guard (not $ beginp z)
-  return $ left z
+  return $ (i - 1, left z)
 
-safeNext :: Zipper a -> Maybe (Zipper a)
-safeNext z = do
+safeNext :: IndexedZipper a -> Maybe (IndexedZipper a)
+safeNext (i, z) = do
   guard (not $ endp z')
-  return z'
+  return (i + 1, z')
     where z' = right z
 
-itemCursor :: RowZipper a -> Maybe (Zipper a)
-itemCursor = safeCursor
+gridCoord :: GridZipper a -> (Int, Int)
+gridCoord z = (fst $ gridRow z, fst z)
 
-fromRows :: [[a]] -> Maybe (GridZipper a)
-fromRows rows = do
-  itemZ <- itemCursor rowZ
-  return $ GridZipper rowZ itemZ (0, 0)
-  where rowZ = fromList $ fmap fromList rows
+gridRow :: GridZipper a -> IndexedZipper a
+gridRow z = cursor (snd z)
+
+gridItem :: GridZipper a -> a
+gridItem z = cursor $ snd (gridRow z)
+
+replaceCurrent :: IndexedZipper a -> GridZipper a -> GridZipper a
+replaceCurrent r = fmap (replace r)
+
+replaceItem :: a -> GridZipper a -> GridZipper a
+replaceItem i z = replaceCurrent (fmap (replace i) (gridRow z)) z
+
+changeItem :: (a -> a) -> GridZipper a -> GridZipper a
+changeItem f z = replaceItem (f . gridItem $ z) z
+
+indexedFromList :: [a] -> IndexedZipper a
+indexedFromList xs = (0, fromList xs)
+
+indexedToList :: IndexedZipper a -> [a]
+indexedToList = toList . snd
+
+fromRows :: [[a]] -> GridZipper a
+fromRows rows = indexedFromList $ fmap indexedFromList rows
 
 toRowsFrom :: GridZipper a -> [[a]]
-toRowsFrom (GridZipper rowz _ _) =
-  fmap Data.List.Zipper.toList (Data.List.Zipper.toList rowz)
+toRowsFrom = fmap indexedToList . indexedToList
 
 moveTo :: (Int, Int) -> GridZipper a -> Maybe (GridZipper a)
-moveTo t@(x', y') z@(GridZipper r i (x, y))
+moveTo t@(x', y') z
   | y == y' =
     if x == x' then Just z else
       if x < x' then moveTo t =<< moveRight z
         else moveTo t =<< moveLeft z
-  | y < y' =
-    do r' <- safeNext r
-       i' <- itemCursor r'
-       moveTo t $ GridZipper r' i' (0, y + 1)
-  | otherwise =
-    do r' <- safePrev r
-       i' <- itemCursor r'
-       moveTo t $ GridZipper r' i' (0, y - 1)
+  | y < y' = moveTo t =<< moveDownRow z
+  | otherwise = moveTo t =<< moveUpRow z
+    where (x, y) = gridCoord z
+
+moveInRow :: (IndexedZipper a -> Maybe (IndexedZipper a)) -> GridZipper a -> Maybe (GridZipper a)
+moveInRow advanceItem z = do
+  iz <- advanceItem (gridRow z)
+  return $ replaceCurrent iz z
 
 moveRight :: GridZipper a -> Maybe (GridZipper a)
-moveRight (GridZipper r i (x, y)) = do
-  i' <- safeNext i
-  return $ GridZipper r i' (x + 1, y)
+moveRight = moveInRow safeNext
 
 moveLeft :: GridZipper a -> Maybe (GridZipper a)
-moveLeft (GridZipper r i (x, y)) = do
-  i' <- safePrev i
-  return $ GridZipper r i' (x - 1, y)
+moveLeft = moveInRow safePrev
+
+moveDownRow :: GridZipper a -> Maybe (GridZipper a)
+moveDownRow = safeNext
+
+moveUpRow :: GridZipper a -> Maybe (GridZipper a)
+moveUpRow = safePrev
 
 moveDown :: GridZipper a -> Maybe (GridZipper a)
-moveDown z@(GridZipper _ _ (x, y)) = moveTo (x, y + 1) z
+moveDown z = moveTo (x, y + 1) z
+  where (x, y) = gridCoord z
 
 moveUp :: GridZipper a -> Maybe (GridZipper a)
-moveUp z@(GridZipper _ _ (x, y)) = moveTo (x, y - 1) z
+moveUp z = moveTo (x, y - 1) z
+  where (x, y) = gridCoord z
 
 moveDownZ :: GridZipper a -> Maybe (GridZipper a)
-moveDownZ z@(GridZipper _ _ (_, y)) = moveTo (0, y + 1) z
+moveDownZ z = moveTo (0, y + 1) z
+  where (x, y) = gridCoord z
 
 moveUpZ :: GridZipper a -> Maybe (GridZipper a)
-moveUpZ z@(GridZipper _ _ (_, y)) = moveTo (0, y - 1) z
+moveUpZ z = moveTo (0, y - 1) z
+  where (x, y) = gridCoord z
 
-item :: GridZipper a -> a
-item (GridZipper _ iz _) = cursor iz
-
-replaceCurrent :: Zipper a -> GridZipper a -> GridZipper a
-replaceCurrent r (GridZipper rz iz t) = GridZipper rz' r t
-  where rz' = replace r rz
-
-replaceItem :: a -> GridZipper a -> GridZipper a
-replaceItem i z@(GridZipper _ iz _) = replaceCurrent (replace i iz) z
-
-changeItem :: (a -> a) -> GridZipper a -> GridZipper a
-changeItem f z = replaceItem (f . item $ z) z
-
-gridCoord :: GridZipper a -> (Int, Int)
-gridCoord (GridZipper _ _ coord) = coord
+gridMap :: (a -> b) -> GridZipper a -> GridZipper b
+gridMap f = fmap . fmap . fmap . fmap $ f
 
 gridFoldFrom :: (b -> GridZipper a -> b) -> b -> GridZipper a -> b
 gridFoldFrom f a z = case moveRight z of
@@ -98,14 +108,6 @@ gridFoldFrom f a z = case moveRight z of
 
 gridSequenceFrom :: Monad m => (GridZipper a -> m ()) -> GridZipper a -> m ()
 gridSequenceFrom f = gridFoldFrom (\a z' -> (f z') >> a) (return ())
-
-instance Foldable GridZipper where
-  foldMap f z = case moveRight z of
-    Just z' -> mappend a (foldMap f z')
-    Nothing -> case moveDownZ z of
-      Nothing -> a
-      Just z' -> mappend a (foldMap f z')
-    where a = f $ item z
 
 type GridZipperTrans a = (GridZipper a -> Maybe (GridZipper a))
 
@@ -125,7 +127,7 @@ instance Foldable GridSequence where
   foldMap f (GridSequence next prev z) = case next z of
     Just z' -> mappend a (foldMap f (GridSequence next prev z'))
     Nothing -> a
-    where a = f $ item z
+    where a = f $ gridItem z
 
 applyChanges :: [a -> a] -> GridSequence a -> Maybe (GridSequence a)
 applyChanges [] s = Just s

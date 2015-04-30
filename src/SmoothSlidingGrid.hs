@@ -7,9 +7,11 @@ import Grid
 import SlidingGrid
 import FreezableT
 import SDL.Geometry
-import Debug.Trace
 
 data SmoothSliding a = SmoothSliding (GeomPoint) a deriving Show
+
+toSmoothSliding :: TileZipper a -> TileZipper (SmoothSliding a)
+toSmoothSliding = tilesMap (SmoothSliding zero)
 
 changeSlideAmount :: (GeomPoint -> GeomPoint) -> SmoothSliding a -> SmoothSliding a
 changeSlideAmount f (SmoothSliding amount x) = SmoothSliding (f amount) x
@@ -27,7 +29,7 @@ toPartialSlide (x, y)
   | otherwise = if y > 0 then (downSliding, (0, y))
                 else (upSliding, (0, y))
 
-partialSlide :: Show a => GeomPoint -> TileZipper (SmoothSliding a) -> Maybe (TileZipper (SmoothSliding a))
-partialSlide x = trace "in partialSlide" $ slideMap dir (\z' -> fmap (setSlideAmount x') (item z'))
+partialSlide :: GeomPoint -> TileZipper (SmoothSliding a) -> Maybe (TileZipper (SmoothSliding a))
+partialSlide x = slideMap dir (\z' -> fmap (setSlideAmount x') (gridItem z'))
   where (dir, x') = toPartialSlide x
 

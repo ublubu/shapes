@@ -22,7 +22,7 @@ drawTile r scale@(w, h) origin t = case tile of
   EmptyTile -> return ()
   SlidingTile x -> f x
   FixedTile x -> f x
-  where tile = item t
+  where tile = gridItem t
         coord = pairMap fromIntegral $ gridCoord t
         f (SmoothSliding offset _) = drawTileAt r target tile
           where (x, y) = (scale * coord) + origin + offset
