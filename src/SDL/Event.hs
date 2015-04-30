@@ -10,8 +10,8 @@ data Key = Q | W | E | A | S | D | N
 
 type Input = Maybe SDL.T.Event
 
-handle :: IO (Maybe SDL.T.Event) -> IO Bool
-handle stream = do
+pollQuit :: IO (Maybe SDL.T.Event) -> IO Bool
+pollQuit stream = do
     maybeEvent <- stream
     case maybeEvent of
         Nothing -> return False
@@ -22,11 +22,18 @@ handle stream = do
 
 pollEvent :: IO Input
 pollEvent = alloca $ \pointer -> do
-    status <- Event.pollEvent pointer
+  status <- Event.pollEvent pointer
 
-    if status == 1
-        then maybePeek peek pointer
-        else return Nothing
+  if status == 1
+    then do
+    evt <- maybePeek peek pointer
+    case evt of
+--      Just (SDL.T.MouseMotionEvent { SDL.T.mouseMotionEventX = x
+--                                   , SDL.T.mouseMotionEventY = y}) ->
+--        print (x, y)
+      _ -> return ()
+    return evt
+    else return Nothing
 
 getKey :: SDL.T.Keysym -> Key
 getKey sym = case SDL.T.keysymScancode sym of

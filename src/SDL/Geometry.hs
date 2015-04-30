@@ -6,6 +6,7 @@ module SDL.Geometry where
 import qualified Graphics.UI.SDL.Types as SDL.T
 import Foreign.C.Types
 import Utils.Utils
+import GHC.Int
 
 instance Num a => Num (Point a) where
    (ax, ay) + (bx, by) = (ax + bx, ay + by)
@@ -21,6 +22,12 @@ type GeomPoint = Point CInt
 
 toGeomPoint :: RealFrac a => Point a -> GeomPoint
 toGeomPoint = pairMap floor
+
+toGeomPointInt :: Integral a => Point a -> GeomPoint
+toGeomPointInt = pairMap (CInt . fromIntegral)
+
+zero :: Num a => Point a
+zero = (0, 0)
 
 toRect :: (Integral a) => a -> a -> a -> a -> SDL.T.Rect
 toRect x y w h = SDL.T.Rect { SDL.T.rectX = fromIntegral x, SDL.T.rectY = fromIntegral y, SDL.T.rectW = fromIntegral w, SDL.T.rectH = fromIntegral h }

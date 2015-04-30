@@ -7,9 +7,9 @@ import Control.Monad
 import SDL.Geometry hiding (moveTo)
 import FreezableT
 
-type RowZipper a = Zipper [a]
+type RowZipper a = Zipper (Zipper a)
 
-data GridZipper a = GridZipper (RowZipper a) (Zipper a) (Point Int)
+data GridZipper a = GridZipper (RowZipper a) (Zipper a) (Point Int) deriving Show
 
 safePrev :: Zipper a -> Maybe (Zipper a)
 safePrev z = do
@@ -23,13 +23,17 @@ safeNext z = do
     where z' = right z
 
 itemCursor :: RowZipper a -> Maybe (Zipper a)
-itemCursor = (fmap fromList) . safeCursor
+itemCursor = safeCursor
 
 fromRows :: [[a]] -> Maybe (GridZipper a)
 fromRows rows = do
   itemZ <- itemCursor rowZ
   return $ GridZipper rowZ itemZ (0, 0)
-  where rowZ = fromList rows
+  where rowZ = fromList $ fmap fromList rows
+
+toRowsFrom :: GridZipper a -> [[a]]
+toRowsFrom (GridZipper rowz _ _) =
+  fmap Data.List.Zipper.toList (Data.List.Zipper.toList rowz)
 
 moveTo :: (Int, Int) -> GridZipper a -> Maybe (GridZipper a)
 moveTo t@(x', y') z@(GridZipper r i (x, y))
@@ -71,8 +75,12 @@ moveUpZ z@(GridZipper _ _ (_, y)) = moveTo (0, y - 1) z
 item :: GridZipper a -> a
 item (GridZipper _ iz _) = cursor iz
 
+replaceCurrent :: Zipper a -> GridZipper a -> GridZipper a
+replaceCurrent r (GridZipper rz iz t) = GridZipper rz' r t
+  where rz' = replace r rz
+
 replaceItem :: a -> GridZipper a -> GridZipper a
-replaceItem i (GridZipper rz iz t) = GridZipper rz (replace i iz) t
+replaceItem i z@(GridZipper _ iz _) = replaceCurrent (replace i iz) z
 
 changeItem :: (a -> a) -> GridZipper a -> GridZipper a
 changeItem f z = replaceItem (f . item $ z) z

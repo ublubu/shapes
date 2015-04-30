@@ -31,6 +31,10 @@ instance Monoid (TerminatingFold b) where
 evalWith :: b -> TerminatingFold b -> b
 evalWith x (TerminatingFold f) = snd (f x)
 
+foldlUntil_ :: Foldable t => (b -> a -> (Bool, b)) -> b -> t a -> b
+foldlUntil_ f a0 = (evalWith a0) . (foldMap f')
+  where f' x = TerminatingFold (`f` x)
+
 foldlUntil :: Foldable t => (b -> a -> Bool) -> (b -> a -> b) -> b -> t a -> b
 foldlUntil test f a0 = (evalWith a0) . (foldMap f')
   where f' x = TerminatingFold (\b -> ((b `test` x), (b `f` x)))

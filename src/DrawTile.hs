@@ -4,6 +4,7 @@ import qualified Graphics.UI.SDL.Types as SDL.T
 import SDL.Geometry
 import SDL.Draw
 import SlidingGrid
+import SmoothSlidingGrid
 import Grid
 import Utils.Utils
 
@@ -12,16 +13,21 @@ drawTileAt r target t = do
   setColor r color
   fillRectangle r target
     where color = case t of
-            EmptyTile -> White
+            EmptyTile -> Yellow
             FixedTile _ -> Green
             SlidingTile _ -> Blue
 
-drawTile :: SDL.T.Renderer -> GeomPoint -> GeomPoint -> TileZipper a -> IO ()
-drawTile r scale@(w, h) origin t = drawTileAt r target (item t)
-  where coord = pairMap fromIntegral $ gridCoord t
-        (x, y) = (scale * coord) + origin
-        target = toRect x y w h
+drawTile :: SDL.T.Renderer -> GeomPoint -> GeomPoint -> TileZipper (SmoothSliding a) -> IO ()
+drawTile r scale@(w, h) origin t = case tile of
+  EmptyTile -> return ()
+  SlidingTile x -> f x
+  FixedTile x -> f x
+  where tile = item t
+        coord = pairMap fromIntegral $ gridCoord t
+        f (SmoothSliding offset _) = drawTileAt r target tile
+          where (x, y) = (scale * coord) + origin + offset
+                target = toRect x y w h
 
-drawTiles :: SDL.T.Renderer -> GeomPoint -> GeomPoint -> TileZipper a -> IO ()
+drawTiles :: SDL.T.Renderer -> GeomPoint -> GeomPoint -> TileZipper (SmoothSliding a) -> IO ()
 drawTiles r scale origin = gridSequenceFrom (drawTile r scale origin)
 

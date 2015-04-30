@@ -8,6 +8,7 @@ import qualified Graphics.UI.SDL.Image as Image
 import Control.Monad
 import Control.Monad.State hiding (state)
 import Data.Bits
+import Data.List.Zipper
 import Foreign.C.String
 import Foreign.C.Types
 import Foreign.Marshal.Alloc
@@ -20,10 +21,12 @@ import SDL.Error
 import SDL.Event
 import SDL.Init
 import SDL.Loading
+import SDL.Geometry
 import Utils.Utils
 import Game
 import Grid
 import SlidingGrid
+import SmoothSlidingGrid
 
 ---- Config ----
 
@@ -46,14 +49,45 @@ fullWindow = SDL.T.Rect {
 initialState :: World
 initialState = World
   { gameOver = False
-  , grid = fromRows [[SlidingTile (), EmptyTile, FixedTile ()]
-                    ,[SlidingTile (), SlidingTile (), SlidingTile ()]
-                    ,[SlidingTile (), SlidingTile (), SlidingTile ()]] }
+  , grid = fromRows [ [ SlidingTile (SmoothSliding zero 0)
+                      , EmptyTile
+                      , FixedTile (SmoothSliding zero 1) ]
+                    , [SlidingTile (SmoothSliding zero 2)
+                      , SlidingTile (SmoothSliding zero 3)
+                      , SlidingTile (SmoothSliding zero 4) ]
+                    , [SlidingTile (SmoothSliding zero 5)
+                      , SlidingTile (SmoothSliding zero 6)
+                      , SlidingTile (SmoothSliding zero 7) ] ]
+  , inputState = InputState { mouseButtonDown = False
+                            , mousePosition = zero }}
 
 ---- Application ----
 
+printMaybeTiles :: Show a => Maybe (TileZipper a) -> IO ()
+printMaybeTiles mz = case mz of
+  Nothing -> print mz
+  Just z -> printTiles z
+
 main :: IO ()
 main = do
+  print items
+  --print $ safePrev items
+  --print $ safeNext items
+  printMaybeTiles tiles
+  printMaybeTiles (moveRight =<< tiles)
+  printMaybeTiles (moveLeft =<< tiles)
+  printMaybeTiles (moveDown =<< tiles)
+  printMaybeTiles (moveUp =<< tiles)
+  printMaybeTiles (partialSlide (toGeomPointInt (10, 0)) =<< tiles)
+  printMaybeTiles (partialSlide (toGeomPointInt (-10, 0)) =<< tiles)
+  printMaybeTiles (partialSlide (toGeomPointInt (0, 10)) =<< tiles)
+  printMaybeTiles (partialSlide (toGeomPointInt (0, -10)) =<< tiles)
+
+  where tiles = grid initialState
+        items = fromList [1, 2, 3]
+
+main_ :: IO ()
+main_ = do
     initializeSDL [SDL.E.SDL_INIT_VIDEO] >>= catchRisky
     Image.imgInit [Image.InitPNG]
 
@@ -73,19 +107,3 @@ main = do
     SDL.B.quit
     Image.imgQuit
 
-drawAll :: SDL.T.Renderer -> IO ()
-drawAll renderer = do
-    clearScreen renderer
-    withColor Red >> fillRectangle' innerRect
-    withColor Green >> drawRectangle' outerRect
-    withColor Blue >> drawLine' (0, screenHeight `div` 2) (screenWidth, screenHeight `div` 2)
-    withColor Yellow >> mapM_ (\y -> drawDot' (screenWidth `div` 2, y)) [ 0, 4 .. screenHeight ]
-    SDL.V.renderPresent renderer
-
-    where innerRect = SDL.T.Rect { SDL.T.rectX = screenWidth `div` 4, SDL.T.rectY = screenHeight `div` 4, SDL.T.rectW = screenWidth `div` 2, SDL.T.rectH = screenHeight `div` 2 }
-          outerRect = SDL.T.Rect { SDL.T.rectX = screenWidth `div` 6, SDL.T.rectY = screenHeight `div` 6, SDL.T.rectW = 2 * screenWidth `div` 3, SDL.T.rectH = 2 * screenHeight `div` 3 }
-          withColor = setColor renderer
-          fillRectangle' = fillRectangle renderer
-          drawRectangle' = drawRectangle renderer
-          drawLine' = drawLine renderer
-          drawDot' = drawDot renderer
