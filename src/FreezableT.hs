@@ -22,11 +22,11 @@ foldMapUntil test f = unfreezer . foldMap f'
 data TerminatingFold b = TerminatingFold (b -> (Bool, b))
 
 instance Monoid (TerminatingFold b) where
-  mempty = TerminatingFold (\x -> (True, x))
+  mempty = TerminatingFold (\x -> (False, x))
   mappend (TerminatingFold f) (TerminatingFold f') =
     TerminatingFold (\b -> let (t, b') = f b in if t
-                           then f' b'
-                           else (False, b'))
+                           then (True, b')
+                           else f' b')
 
 evalWith :: b -> TerminatingFold b -> b
 evalWith x (TerminatingFold f) = snd (f x)

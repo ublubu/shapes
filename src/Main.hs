@@ -9,6 +9,7 @@ import Control.Monad
 import Control.Monad.State hiding (state)
 import Data.Bits
 import Data.List.Zipper
+import Debug.Trace
 import Foreign.C.String
 import Foreign.C.Types
 import Foreign.Marshal.Alloc
@@ -23,6 +24,8 @@ import SDL.Init
 import SDL.Loading
 import SDL.Geometry
 import Utils.Utils
+import Directional
+import FreezableT
 import Game
 import Grid
 import SlidingGrid
@@ -68,8 +71,29 @@ printMaybeTiles mz = case mz of
   Nothing -> print mz
   Just z -> printTiles z
 
+twoString :: (Show a, Show b) => a -> b -> String
+twoString a b = "(" ++ show a ++ ", " ++ show b ++ ")"
+
+testFoldlUntil :: IO ()
+testFoldlUntil = print $ foldlUntil (\a b -> trace (twoString (overThree a b) $ twoString a b) (overThree a b)) (\a b -> trace (twoString a b) (a + b)) 0 [1, 2, 3, 4, 5]
+  where overThree _ b = b > 3
+
 main :: IO ()
 main = do
+  --print items
+  --print $ safePrev items
+  --print $ safeNext items
+  printTiles tiles
+  --printMaybeTiles (moveRight tiles)
+  --printMaybeTiles (moveLeft tiles)
+  --printMaybeTiles (moveDown tiles)
+  --printMaybeTiles (moveUp tiles)
+  printMaybeTiles (slide_ GridRight tiles)
+
+  where tiles = grid initialState
+
+main_ :: IO ()
+main_ = do
   initializeSDL [SDL.E.SDL_INIT_VIDEO] >>= catchRisky
   Image.imgInit [Image.InitPNG]
 

@@ -6,6 +6,7 @@ import qualified Data.Foldable as Fld
 import Data.Monoid
 import Control.Monad
 import SDL.Geometry hiding (moveTo)
+import Directional
 import FreezableT
 
 type IndexedZipper a = (Int, Zipper a)
@@ -22,7 +23,7 @@ safeNext (i, z) = do
   return (i + 1, z')
     where z' = right z
 
-gridCoord :: GridZipper a -> (Int, Int)
+gridCoord :: GridZipper a -> Point Int
 gridCoord z = (fst $ gridRow z, fst z)
 
 gridRow :: GridZipper a -> IndexedZipper a
@@ -52,7 +53,7 @@ fromRows rows = indexedFromList $ fmap indexedFromList rows
 toRowsFrom :: GridZipper a -> [[a]]
 toRowsFrom = fmap indexedToList . indexedToList
 
-moveTo :: (Int, Int) -> GridZipper a -> Maybe (GridZipper a)
+moveTo :: Point Int -> GridZipper a -> Maybe (GridZipper a)
 moveTo t@(x', y') z
   | y == y' =
     if x == x' then Just z else
@@ -89,11 +90,20 @@ moveUp z = moveTo (x, y - 1) z
 
 moveDownZ :: GridZipper a -> Maybe (GridZipper a)
 moveDownZ z = moveTo (0, y + 1) z
-  where (x, y) = gridCoord z
+  where (_, y) = gridCoord z
 
 moveUpZ :: GridZipper a -> Maybe (GridZipper a)
 moveUpZ z = moveTo (0, y - 1) z
-  where (x, y) = gridCoord z
+  where (_, y) = gridCoord z
+
+moveOne :: Rectangular (GridZipper a -> Maybe (GridZipper a))
+moveOne = Rectangular moveRight moveDown moveLeft moveUp
+
+moveNext :: GridDirection -> GridZipper a -> Maybe (GridZipper a)
+moveNext = flip extract moveOne
+
+movePrev :: GridDirection -> GridZipper a -> Maybe (GridZipper a)
+movePrev = flip extract (rotate . rotate $ moveOne)
 
 gridMap :: (a -> b) -> GridZipper a -> GridZipper b
 gridMap f = fmap . fmap . fmap . fmap $ f
@@ -107,31 +117,29 @@ gridFoldFrom f a z = case moveRight z of
   where a' = f a z
 
 gridSequenceFrom :: Monad m => (GridZipper a -> m ()) -> GridZipper a -> m ()
-gridSequenceFrom f = gridFoldFrom (\a z' -> (f z') >> a) (return ())
+gridSequenceFrom f = gridFoldFrom (\a z' -> f z' >> a) (return ())
 
-type GridZipperTrans a = (GridZipper a -> Maybe (GridZipper a))
-
-data GridSequence a = GridSequence (GridZipperTrans a) (GridZipperTrans a) (GridZipper a)
+data GridSequence a = GridSequence GridDirection (GridZipper a)
 
 gridNext :: GridSequence a -> Maybe (GridSequence a)
-gridNext (GridSequence next prev z) = do
-  z' <- next z
-  return $ GridSequence next prev z'
+gridNext (GridSequence dir z) = do
+  z' <- moveNext dir z
+  return $ GridSequence dir z'
 
 gridPrev :: GridSequence a -> Maybe (GridSequence a)
-gridPrev (GridSequence next prev z) = do
-  z' <- prev z
-  return $ GridSequence next prev z'
+gridPrev (GridSequence dir z) = do
+  z' <- movePrev dir z
+  return $ GridSequence dir z'
 
 instance Foldable GridSequence where
-  foldMap f (GridSequence next prev z) = case next z of
-    Just z' -> mappend a (foldMap f (GridSequence next prev z'))
+  foldMap f (GridSequence dir z) = case moveNext dir z of
+    Just z' -> mappend a (foldMap f (GridSequence dir z'))
     Nothing -> a
     where a = f $ gridItem z
 
 applyChanges :: [a -> a] -> GridSequence a -> Maybe (GridSequence a)
 applyChanges [] s = Just s
-applyChanges (f:fs) (GridSequence next prev z) = do
-  zz <- next $ changeItem f z
-  gridPrev =<< applyChanges fs (GridSequence next prev zz)
+applyChanges (f:fs) (GridSequence dir z) = do
+  zz <- moveNext dir $ changeItem f z
+  gridPrev =<< applyChanges fs (GridSequence dir zz)
 

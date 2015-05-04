@@ -12,6 +12,12 @@ data GridOriented a = GridOriented GridDirection a
 unitGeomPoint :: Rectangular GeomPoint
 unitGeomPoint = Rectangular (1, 0) (0, 1) (-1, 0) (0, -1)
 
+extract :: GridDirection -> Rectangular a -> a
+extract GridRight (Rectangular x _ _ _) = x
+extract GridDown (Rectangular _ x _ _) = x
+extract GridLeft (Rectangular _ _ x _) = x
+extract GridUp (Rectangular _ _ _ x) = x
+
 extractOriented :: GridDirection -> Rectangular a -> GridOriented a
 extractOriented GridRight (Rectangular x _ _ _) = GridOriented GridRight x
 extractOriented GridDown (Rectangular _ x _ _) = GridOriented GridDown x
@@ -40,6 +46,9 @@ collapse shouldReplace t = foldl f' Nothing (flatten t)
           a@(GridOriented _ x) <- aa
           return $ if shouldReplace x x' then b
                    else a
+
+rotate :: Rectangular a -> Rectangular a
+rotate (Rectangular a b c d) = Rectangular d a b c
 
 instance Functor GridOriented where
   fmap f (GridOriented o x) = GridOriented o (f x)

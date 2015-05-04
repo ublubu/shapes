@@ -41,11 +41,8 @@ tileSize = (20, 20)
 
 drawState :: SDL.T.Renderer -> SDL.T.Rect -> [Asset] -> World -> IO ()
 drawState r fullWindow assets state =
-  withBlankScreen r $ drawTiles r tileSize (0, 0) g'
+  withBlankScreen r $ drawTiles r tileSize (0, 0) g
   where g = toSmoothSliding (grid state)
-        g' = fromMaybe g $ do
-          x <- mouseSlide state
-          partialSlide x g
 
 updateState :: Input -> World -> World
 updateState (Just (SDL.T.QuitEvent _ _)) state = state { gameOver = True }

@@ -2,6 +2,8 @@ module SlidingGrid where
 
 import Data.Maybe
 import Grid
+import SDL.Geometry
+import Directional
 import FreezableT (foldlUntil, foldMapUntil)
 
 data Tile a = EmptyTile | FixedTile a | SlidingTile a deriving Show
@@ -12,11 +14,24 @@ instance Functor Tile where
     FixedTile x -> FixedTile (f x)
     SlidingTile x -> SlidingTile (f x)
 
+tileIsFixed :: Tile a -> Bool
+tileIsFixed (FixedTile _) = True
+tileIsFixed _ = False
+
+tileIsEmpty :: Tile a -> Bool
+tileIsEmpty EmptyTile = True
+tileIsEmpty _ = False
+
 type TileZipper a = GridZipper (Tile a)
-type TileZipperTrans a = GridZipperTrans (Tile a)
 
 tilesMap :: (a -> b) -> TileZipper a -> TileZipper b
 tilesMap f = gridMap . fmap $ f
+
+tileToString :: Show a => Tile a -> String
+tileToString t = case t of
+  EmptyTile -> "Empty"
+  FixedTile x -> "Fixed (" ++ show x ++ ")"
+  SlidingTile x -> "Slide (" ++ show x ++ ")"
 
 rowToString :: Show a => [Tile a] -> String
 rowToString = foldl f ""
@@ -33,46 +48,22 @@ tilesToString z = show (gridCoord z) ++ " " ++ show (gridItem z) ++ gridString
 printTiles :: Show a => TileZipper a -> IO ()
 printTiles = putStrLn . tilesToString
 
-slideRight :: TileZipper a -> Maybe (TileZipper a)
-slideRight = slide moveRight moveLeft
-
-slideLeft :: TileZipper a -> Maybe (TileZipper a)
-slideLeft = slide moveLeft moveRight
-
-slideDown :: TileZipper a -> Maybe (TileZipper a)
-slideDown = slide moveDown moveUp
-
-slideUp :: TileZipper a -> Maybe (TileZipper a)
-slideUp = slide moveUp moveDown
-
-data SlideDirection a = SlideDirection (TileZipperTrans a) (TileZipperTrans a)
-
-rightSliding :: SlideDirection a
-rightSliding = SlideDirection moveRight moveLeft
-
-leftSliding :: SlideDirection a
-leftSliding = SlideDirection moveLeft moveRight
-
-downSliding :: SlideDirection a
-downSliding = SlideDirection moveDown moveUp
-
-upSliding :: SlideDirection a
-upSliding = SlideDirection moveUp moveDown
-
-slide :: TileZipperTrans a -> TileZipperTrans a -> TileZipper a -> Maybe (TileZipper a)
-slide next prev z = moveTo coord =<< foldlUntil test accum pushEmpty s z
-  where s = GridSequence next prev z
+slide_ :: GridDirection -> TileZipper a -> Maybe (TileZipper a)
+slide_ dir z = Grid.moveTo coord =<< foldlUntil test accum pushEmpty s z
+  where s = GridSequence dir z
         test _ t = case t of
-          EmptyTile -> False
-          FixedTile _ -> False
-          SlidingTile _ -> True
-        accum f x z' = do
-          zz' <- f z'
-          z'' <- next zz'
-          case gridItem z'' of
-            FixedTile _ -> Nothing
-            _ -> return $ replaceItem x z''
-        pushEmpty = return . replaceItem EmptyTile
+          EmptyTile -> True
+          FixedTile _ -> True
+          SlidingTile _ -> False
+        accum f x z0 = do
+          zM <- f z0 -- run the last transformer on the first tile to get the last tile
+          zN <- moveNext dir zM -- advance to this tile
+          case x of -- change this tile and return it as the new "last" tile
+            EmptyTile -> return zN
+            _ -> case gridItem zN of
+              FixedTile _ -> Nothing
+              _ -> return $ replaceItem x zN
+        pushEmpty z0 = return $ replaceItem EmptyTile z0
         coord = gridCoord z
 
 data SlideList a = SlideList [TileZipper a] (TileZipper a) deriving Show
@@ -83,53 +74,38 @@ sliders (SlideList zs _) = zs
 theEmpty :: SlideList a -> TileZipper a
 theEmpty (SlideList _ e) = e
 
-slideList :: SlideDirection a -> TileZipper a -> Maybe (SlideList a)
-slideList dir@(SlideDirection next _) z = case x of
+slideList :: GridDirection -> TileZipper a -> Maybe (SlideList a)
+slideList dir z = case x of
   EmptyTile -> return $ SlideList [] z
   FixedTile _ -> Nothing
   SlidingTile _ -> do
-    z' <- next z
+    z' <- moveNext dir z
     zs' <- slideList dir z'
-    return $ SlideList (z:(sliders zs')) (theEmpty zs')
+    return $ SlideList (z:sliders zs') (theEmpty zs')
   where x = gridItem z
 
 --returns something if it was able to perform the map
-slideMap_ :: SlideDirection a -> (TileZipper a -> Tile a) -> SlideList a -> TileZipper a -> Maybe (TileZipper a)
-slideMap_ dir@(SlideDirection next prev) f l@(SlideList ss e) zz = case ss of
+slideMap_ :: GridDirection -> (TileZipper a -> Tile a) -> SlideList a -> TileZipper a -> Maybe (TileZipper a)
+slideMap_ dir f l@(SlideList ss e) zz = case ss of
   [] -> return $ replaceItem (f e) zz
   x:xs -> do
-    zz' <- slideMap_ dir f (SlideList xs e) =<< next zz
-    fmap (replaceItem $ f x) (prev zz')
+    zz' <- slideMap_ dir f (SlideList xs e) =<< moveNext dir zz
+    fmap (replaceItem $ f x) (movePrev dir zz')
 
-slideMap :: SlideDirection a -> (TileZipper a -> Tile a) -> TileZipper a -> Maybe (TileZipper a)
+slideMap :: GridDirection -> (TileZipper a -> Tile a) -> TileZipper a -> Maybe (TileZipper a)
 slideMap dir f z = do l <- slideList dir z
                       return $ fromMaybe (error "something broke the map")
                         (slideMap_ dir f l z)
 
-slideInto :: TileZipperTrans a -> TileZipperTrans a -> Tile a -> TileZipper a -> Maybe (TileZipper a)
-slideInto next prev x z = case x' of
+slideInto :: GridDirection -> Tile a -> TileZipper a -> Maybe (TileZipper a)
+slideInto dir x z = case x' of
   SlidingTile _ -> do
-    z' <- next z
-    zz' <- slideInto next prev x' z'
-    fmap (replaceItem x) (prev zz')
+    z' <- moveNext dir z
+    zz' <- slideInto dir x' z'
+    fmap (replaceItem x) (movePrev dir zz')
   EmptyTile -> Just $ replaceItem x z
   FixedTile _ -> Nothing -- can't slide into a fixed tile
   where x' = gridItem z
-
-slideRightInto :: Tile a -> TileZipper a -> Maybe (TileZipper a)
-slideRightInto = slideInto moveRight moveLeft
-
-slideLeftInto :: Tile a -> TileZipper a -> Maybe (TileZipper a)
-slideLeftInto = slideInto moveLeft moveRight
-
-slideDownInto :: Tile a -> TileZipper a -> Maybe (TileZipper a)
-slideDownInto = slideInto moveDown moveUp
-
-slideUpInto :: Tile a -> TileZipper a -> Maybe (TileZipper a)
-slideUpInto = slideInto moveUp moveDown
-
-class Connectable c where
-  connected :: c -> c -> Bool
 
 pushWith :: (Tile b -> Tile b) -> GridSequence (Tile b) -> Maybe (GridSequence (Tile b))
 pushWith f gs = applyChanges (foldMapUntil test f' gs) gs

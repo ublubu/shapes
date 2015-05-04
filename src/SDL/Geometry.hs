@@ -16,6 +16,12 @@ instance Num a => Num (Point a) where
    signum (x, y) = (signum x, signum y)
    fromInteger a = (fromInteger a, 0)
 
+cross :: Num a => Point a -> Point a -> a
+cross (ax, ay) (bx, by) = (ax * by) - (bx * ay)
+
+dot :: Num a => Point a -> Point a -> a
+dot (ax, ay) (bx, by) = (ax * bx) + (ay * by)
+
 type Point a = (a, a)
 
 type GeomPoint = Point CInt
@@ -28,6 +34,18 @@ toGeomPointInt = pairMap (CInt . fromIntegral)
 
 zero :: Num a => Point a
 zero = (0, 0)
+
+unitRight :: Num a => Point a
+unitRight = (1, 0)
+
+unitLeft :: Num a => Point a
+unitLeft = (-1, 0)
+
+unitDown :: Num a => Point a
+unitDown = (0, 1)
+
+unitUp :: Num a => Point a
+unitUp = (0, 1)
 
 toRect :: (Integral a) => a -> a -> a -> a -> SDL.T.Rect
 toRect x y w h = SDL.T.Rect { SDL.T.rectX = fromIntegral x, SDL.T.rectY = fromIntegral y, SDL.T.rectW = fromIntegral w, SDL.T.rectH = fromIntegral h }
