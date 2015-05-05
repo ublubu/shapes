@@ -5,6 +5,7 @@ import qualified Graphics.UI.SDL.Basic as SDL.B
 import qualified Graphics.UI.SDL.Timer as SDL.Timer
 import qualified Graphics.UI.SDL.Event as SDL.Event
 import qualified Graphics.UI.SDL.Image as Image
+import Control.Applicative
 import Control.Monad
 import Control.Monad.State hiding (state)
 import Data.Bits
@@ -83,14 +84,21 @@ main = do
   --print items
   --print $ safePrev items
   --print $ safeNext items
-  printTiles tiles
+  --printTiles tiles
   --printMaybeTiles (moveRight tiles)
   --printMaybeTiles (moveLeft tiles)
   --printMaybeTiles (moveDown tiles)
   --printMaybeTiles (moveUp tiles)
-  printMaybeTiles (slide_ GridRight tiles)
+  --printMaybeTiles (slide_ GridRight tiles)
+  --print $ intersect ((0, 0), (2, 5)) (Rectangular 1 1 (-1) (-1))
+  --print $ intersect ((0, 0), (2, 2)) (Rectangular 1 1 (-1) (-1))
+  --print $ intersect ((0, 0), (2, 0)) (Rectangular 1 1 (-1) (-1))
+  --print $ toBoundingRect (10, 10) (0, 0) (5, 5) GridRight
+  print drag
+  printMaybeTiles mz
 
   where tiles = grid initialState
+        (drag, mz) = applyDrag (10, 10) (0, 0) ((5, 5), (20, 7)) tiles
 
 main_ :: IO ()
 main_ = do

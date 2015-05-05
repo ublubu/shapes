@@ -1,9 +1,11 @@
 module SmoothSlidingGrid where
 
+import Control.Applicative
 import Data.Foldable
 import Data.Monoid
 import Data.Maybe
 import Foreign.C.Types
+import Directional hiding (toDirection)
 import Grid
 import SlidingGrid
 import FreezableT
@@ -24,16 +26,42 @@ setSlideAmount x = changeSlideAmount (\_ -> x)
 instance Functor SmoothSliding where
   fmap f (SmoothSliding x y) = SmoothSliding x (f y)
 
-toTileCoord :: GeomPoint -> GeomPoint -> GeomPoint -> Point Int
-toTileCoord scale origin x = pairMap fromIntegral (pairAp (pairMap quot (x - origin)) scale)
+toTileCoordInt :: Integral a => Point a -> Point a -> Point a -> Point Int
+toTileCoordInt scale origin x = pairMap fromIntegral (pairAp (pairMap quot (x - origin)) scale)
 
-data Drag = Drag GeomPoint GeomPoint
+toTileCoord :: RealFrac a => Point a -> Point a -> Point a -> Point Int
+toTileCoord scale origin x = pairMap floor (pairAp (pairMap (/) (x - origin)) scale)
 
-advanceDrag :: GeomPoint -> Drag -> Drag
-advanceDrag x (Drag y y') = Drag (y + x) y'
+dragDistance :: Num a => Point (Point a) -> Point a
+dragDistance (x, x') = x' - x
 
-dragDistance :: Drag -> GeomPoint
-dragDistance (Drag x x') = x' - x
+toDirection :: (Num a, Ord a) => Point (Point a) -> GridDirection
+toDirection d
+  | abs x > abs y = if x > 0 then GridRight
+                    else GridLeft
+  | y > 0 = GridDown
+  | otherwise = GridUp
+  where (x, y) = dragDistance d
+
+toBoundingRect :: Num a => Point a -> Point a -> Point a -> GridDirection -> Rectangular a
+toBoundingRect scale origin click dir = extend <*> rect' <*> degenerateRect scale
+  where scale' = scale + (1, 1)
+        origin' = origin - (1, 1)
+        click' = (+) <$> signedRect <*> degenerateRect click
+        rect = (+) <$> fromBottomRight scale' <*> degenerateRect origin'
+        rect' = clip <*> click' <*> rect
+        clip = injectOriented_ (GridOriented dir const) (\_ x -> x)
+        extend = injectOriented_ (GridOriented dir (+)) const
+
+applyDrag :: (Ord a, Fractional a) => Point a -> Point a -> Point (Point a) -> TileZipper b -> (Point (Point a), Maybe (TileZipper b))
+applyDrag scale origin drag@(x, x'') z = case mx' of
+  Nothing -> (drag, Nothing)
+  Just (GridOriented slideDir x') -> if slideDir == dir
+                                      then ((x', x''), slide_ slideDir z)
+                                      else ((x', x''), Nothing)
+  where mx' = intersect drag bounds
+        dir = toDirection drag
+        bounds = toBoundingRect scale origin x dir
 
 -- This is how the sliding works
 -- * The initial click selects the tile
@@ -48,4 +76,5 @@ dragDistance (Drag x x') = x' - x
 --     Calculate a partial move for the rendering
 --
 -- Drag after click+drag? merge the drag with whatever click+drag and do the above ^
+
 
