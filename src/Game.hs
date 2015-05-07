@@ -12,6 +12,7 @@ import Control.Monad
 import Data.Word
 import Data.Maybe
 import Foreign.C.Types
+import GHC.Int
 import SDL.Draw
 import SDL.Event
 import SDL.Geometry
@@ -20,29 +21,20 @@ import DrawTile
 import SmoothSlidingGrid
 import SlidingGrid
 import Grid
-import GHC.Int
+import Utils.Utils
 
-data InputState = InputState { mouseButtonDown :: Maybe GeomPoint
-                             , mousePosition :: GeomPoint } deriving Show
+data GridInput = GridInput { gridDrag :: Maybe (Point (Point Double)) } deriving Show
 
 data World = World { gameOver :: Bool
-                   , grid :: TileZipper ()
-                   , worldInput :: InputState } deriving Show
-
-mouseSlide :: World -> Maybe GeomPoint
-mouseSlide state = do
-  x <- mouseButtonDown inputState
-  return (x' - x)
-  where inputState = worldInput state
-        x' = mousePosition inputState
-
-tileSize :: Point CInt
-tileSize = (20, 20)
+                   , tileSize :: Point CInt
+                   , gridOrigin :: Point CInt
+                   , grid :: TileZipper (SmoothSliding ())
+                   , gridInput :: GridInput } deriving Show
 
 drawState :: SDL.T.Renderer -> SDL.T.Rect -> [Asset] -> World -> IO ()
 drawState r fullWindow assets state =
-  withBlankScreen r $ drawTiles r tileSize (0, 0) g
-  where g = toSmoothSliding (grid state)
+  withBlankScreen r $ drawTiles r (tileSize state) (gridOrigin state) g
+  where g = fromMaybe (error "wtf, there's no (0, 0) tile?") (Grid.moveTo zero $ grid state)
 
 updateState :: Input -> World -> World
 updateState (Just (SDL.T.QuitEvent _ _)) state = state { gameOver = True }
@@ -52,37 +44,45 @@ updateState (Just (SDL.T.KeyboardEvent evtType _ _ _ _ keysym)) state =
   else state
 updateState (Just (SDL.T.MouseMotionEvent { SDL.T.mouseMotionEventX = x
                                           , SDL.T.mouseMotionEventY = y })) state =
-  state { worldInput = applyMouseMotion x y (worldInput state)}
+  applyMouseMotion x y state
 updateState (Just (SDL.T.MouseButtonEvent { SDL.T.eventType = evtType
                                           , SDL.T.mouseButtonEventButton = button
                                           , SDL.T.mouseButtonEventX = x
                                           , SDL.T.mouseButtonEventY = y })) state =
-  state { worldInput = f button x y (worldInput state) }
+  state { gridInput = f button x y (gridInput state) }
   where f = case evtType of
           SDL.E.SDL_MOUSEBUTTONDOWN -> applyMouseButtonDown
           SDL.E.SDL_MOUSEBUTTONUP -> applyMouseButtonUp
-
 updateState _ state = state
 
 modifyState :: World -> SDL.T.Keysym -> World
 modifyState state keysym = case getKey keysym of
   _ -> state
 
-applyMouseMotion :: Int32 -> Int32 -> InputState -> InputState
-applyMouseMotion x y state = state { mousePosition = toGeomPointInt (x, y) }
+applyMouseMotion :: Int32 -> Int32 -> World -> World
+applyMouseMotion x y state = case gridDrag inputState of
+  -- update the end of the current drag (if we are dragging)
+  Nothing -> state
+  Just (click, _) -> state { grid = grid'
+                           , gridInput = inputState { gridDrag = Just drag' }}
+    where (drag', grid') = slideTiles scale origin drag (grid state)
+          scale = pairMap fromIntegral (tileSize state)
+          origin = pairMap fromIntegral (gridOrigin state)
+          drag = (click, pairMap fromIntegral (x, y))
+  where inputState = gridInput state
 
-applyMouseButtonDown :: Word8 -> Int32 -> Int32 -> InputState -> InputState
-applyMouseButtonDown button x y state = if button == SDL.E.SDL_BUTTON_LEFT
-                                        then state { mouseButtonDown = Just pos
-                                                   , mousePosition = pos }
-                                        else state { mousePosition = pos }
-  where pos = toGeomPointInt (x, y)
+applyMouseButtonDown :: Word8 -> Int32 -> Int32 -> GridInput -> GridInput
+applyMouseButtonDown button x y state =
+  if button == SDL.E.SDL_BUTTON_LEFT
+  then state { gridDrag = Just (pos, pos) } -- start new drag
+  else state -- we drag using the left button
+  where pos = pairMap fromIntegral (x, y)
 
-applyMouseButtonUp :: Word8 -> Int32 -> Int32 -> InputState -> InputState
-applyMouseButtonUp button x y state = if button == SDL.E.SDL_BUTTON_LEFT
-                                        then state { mouseButtonDown = Nothing
-                                                   , mousePosition = pos }
-                                        else state { mousePosition = pos }
+applyMouseButtonUp :: Word8 -> Int32 -> Int32 -> GridInput -> GridInput
+applyMouseButtonUp button x y state =
+  if button == SDL.E.SDL_BUTTON_LEFT
+  then state { gridDrag = Nothing } -- release the current drag
+  else state -- we drag using left button
   where pos = toGeomPointInt (x, y)
 
 runUntilComplete :: (Monad m) => m World -> m ()

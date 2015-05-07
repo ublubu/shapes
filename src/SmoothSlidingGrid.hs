@@ -97,11 +97,11 @@ completelyApplyDrag scale origin d z = case z' of
     where (d'', z'') = completelyApplyDrag scale origin d' zz'
   where (d', z') = applyDrag scale origin d z
 
-slideTiles :: (Ord a, RealFrac a) => Point a -> Point a -> Point (Point a) -> TileZipper b -> TileZipper (SmoothSliding b)
-slideTiles scale origin drag z = fromMaybe sz sz'
+slideTiles :: (Ord a, RealFrac a) => Point a -> Point a -> Point (Point a) -> TileZipper (SmoothSliding b) -> (Point (Point a), TileZipper (SmoothSliding b))
+slideTiles scale origin drag z = (d', fromMaybe sz sz')
   where (d', z') = completelyApplyDrag scale origin drag z
         dd' = toGeomPoint $ dragDistance d'
-        sz = toSmoothSliding (fromMaybe z z')
+        sz = fromMaybe z z'
         sz' = partialSlide dd' sz
 
 -- This is how the sliding works
