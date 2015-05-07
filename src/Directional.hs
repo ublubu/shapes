@@ -110,6 +110,9 @@ degenerateRect_ (AxisAligned x y) = Rectangular x y x y
 degenerateRect :: Point a -> Rectangular a
 degenerateRect = degenerateRect_ . fromPoint
 
+scaledSignedRect :: Num a => Point a -> Rectangular a
+scaledSignedRect x = (*) <$> signedRect <*> degenerateRect x
+
 fromBottomRight :: Num a => Point a -> Rectangular a
 fromBottomRight (x, y) = Rectangular x y 0 0
 

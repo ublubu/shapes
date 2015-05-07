@@ -26,11 +26,31 @@ setSlideAmount x = changeSlideAmount (\_ -> x)
 instance Functor SmoothSliding where
   fmap f (SmoothSliding x y) = SmoothSliding x (f y)
 
+toPartialSlide :: (Num a, Ord a) => Point a -> (GridDirection, Point a)
+toPartialSlide (x, y)
+  | abs x > abs y = if x > 0 then (GridRight, (x, 0))
+                    else (GridLeft, (x, 0))
+  | y > 0 = (GridDown, (0, y))
+  | otherwise = (GridUp, (0, y))
+
+partialSlide :: GeomPoint -> TileZipper (SmoothSliding a) -> Maybe (TileZipper (SmoothSliding a))
+partialSlide drag = slideMap dir f
+  where (dir, amount) = toPartialSlide drag
+        f z' = fmap (setSlideAmount amount) item
+          where item = gridItem z'
+
+tileOrigin :: Num a => Point a -> Point a -> TileZipper b -> Point a
+tileOrigin scale origin z = origin + (scale * coord)
+  where coord = pairMap fromIntegral $ gridCoord z
+
 toTileCoordInt :: Integral a => Point a -> Point a -> Point a -> Point Int
 toTileCoordInt scale origin x = pairMap fromIntegral (pairAp (pairMap quot (x - origin)) scale)
 
 toTileCoord :: RealFrac a => Point a -> Point a -> Point a -> Point Int
 toTileCoord scale origin x = pairMap floor (pairAp (pairMap (/) (x - origin)) scale)
+
+clickTile :: RealFrac a  =>  Point a -> Point a -> Point a -> TileZipper b -> Maybe (TileZipper b)
+clickTile scale origin click = Grid.moveTo (toTileCoord scale origin click)
 
 dragDistance :: Num a => Point (Point a) -> Point a
 dragDistance (x, x') = x' - x
@@ -44,7 +64,7 @@ toDirection d
   where (x, y) = dragDistance d
 
 toBoundingRect :: Num a => Point a -> Point a -> Point a -> GridDirection -> Rectangular a
-toBoundingRect scale origin click dir = extend <*> rect' <*> degenerateRect scale
+toBoundingRect scale origin click dir = extend <*> rect' <*> scaledSignedRect scale
   where scale' = scale + (1, 1)
         origin' = origin - (1, 1)
         click' = (+) <$> signedRect <*> degenerateRect click
@@ -53,15 +73,36 @@ toBoundingRect scale origin click dir = extend <*> rect' <*> degenerateRect scal
         clip = injectOriented_ (GridOriented dir const) (\_ x -> x)
         extend = injectOriented_ (GridOriented dir (+)) const
 
-applyDrag :: (Ord a, Fractional a) => Point a -> Point a -> Point (Point a) -> TileZipper b -> (Point (Point a), Maybe (TileZipper b))
-applyDrag scale origin drag@(x, x'') z = case mx' of
+applyDrag :: (Ord a, RealFrac a) => Point a -> Point a -> Point (Point a) -> TileZipper b -> (Point (Point a), Maybe (TileZipper b))
+applyDrag scale origin drag@(x, x'') z = case intersection of
   Nothing -> (drag, Nothing)
-  Just (GridOriented slideDir x') -> if slideDir == dir
-                                      then ((x', x''), slide_ slideDir z)
-                                      else ((x', x''), Nothing)
-  where mx' = intersect drag bounds
+  Just (tile, (GridOriented slideDir x')) ->
+    if slideDir == dir
+    then ((x', x''), slide_ slideDir tile)
+    else ((x', x''), Nothing)
+  where intersection = do
+          tile <- clickTile scale origin x z
+          x' <- let origin' = tileOrigin scale origin tile
+                    bounds = toBoundingRect scale origin' x dir in
+            drag `intersect` bounds
+          return (tile, x')
         dir = toDirection drag
-        bounds = toBoundingRect scale origin x dir
+
+completelyApplyDrag :: (Ord a, RealFrac a) => Point a -> Point a -> Point (Point a) -> TileZipper b -> (Point (Point a), Maybe (TileZipper b))
+completelyApplyDrag scale origin d z = case z' of
+  Nothing -> (d', Nothing)
+  Just zz' -> case z'' of
+    Nothing -> (d'', z')
+    Just _ -> (d'', z'')
+    where (d'', z'') = completelyApplyDrag scale origin d' zz'
+  where (d', z') = applyDrag scale origin d z
+
+slideTiles :: (Ord a, RealFrac a) => Point a -> Point a -> Point (Point a) -> TileZipper b -> TileZipper (SmoothSliding b)
+slideTiles scale origin drag z = fromMaybe sz sz'
+  where (d', z') = completelyApplyDrag scale origin drag z
+        dd' = toGeomPoint $ dragDistance d'
+        sz = toSmoothSliding (fromMaybe z z')
+        sz' = partialSlide dd' sz
 
 -- This is how the sliding works
 -- * The initial click selects the tile

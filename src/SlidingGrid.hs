@@ -55,14 +55,17 @@ slide_ dir z = Grid.moveTo coord =<< foldlUntil test accum pushEmpty s z
           EmptyTile -> True
           FixedTile _ -> True
           SlidingTile _ -> False
-        accum f x z0 = do
-          zM <- f z0 -- run the last transformer on the first tile to get the last tile
-          zN <- moveNext dir zM -- advance to this tile
-          case x of -- change this tile and return it as the new "last" tile
-            EmptyTile -> return zN
-            _ -> case gridItem zN of
+        accum f x z0 = case x of
+          EmptyTile -> f z0
+          FixedTile _ -> Nothing
+          SlidingTile _ -> do
+            -- run the last transformer on the first tile to get the last tile
+            zM <- f z0
+            zN <- moveNext dir zM -- advance to this tile
+            -- change this tile and return it as the new "last" tile
+            case gridItem zN of
               FixedTile _ -> Nothing
-              _ -> return $ replaceItem x zN
+              j -> return $ replaceItem x zN
         pushEmpty z0 = return $ replaceItem EmptyTile z0
         coord = gridCoord z
 
