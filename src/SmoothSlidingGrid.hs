@@ -4,6 +4,7 @@ import Control.Applicative
 import Data.Foldable
 import Data.Monoid
 import Data.Maybe
+import Debug.Trace
 import Foreign.C.Types
 import Directional hiding (toDirection)
 import Grid
@@ -28,16 +29,23 @@ instance Functor SmoothSliding where
 
 toPartialSlide :: (Num a, Ord a) => Point a -> (GridDirection, Point a)
 toPartialSlide (x, y)
-  | abs x > abs y = if x > 0 then (GridRight, (x, 0))
-                    else (GridLeft, (x, 0))
-  | y > 0 = (GridDown, (0, y))
-  | otherwise = (GridUp, (0, y))
+  | abs x > abs y = if x > 0 then trace "RIGHT" (GridRight, (x, 0))
+                    else trace "LEFT" (GridLeft, (x, 0))
+  | y > 0 = trace "DOWN" (GridDown, (0, y))
+  | otherwise = trace "UP" (GridUp, (0, y))
 
 partialSlide :: GeomPoint -> TileZipper (SmoothSliding a) -> Maybe (TileZipper (SmoothSliding a))
 partialSlide drag = slideMap dir f
   where (dir, amount) = toPartialSlide drag
         f z' = fmap (setSlideAmount amount) item
           where item = gridItem z'
+
+applyPartialSlide :: (RealFrac a) => Point a -> Point a -> Point (Point a) -> TileZipper b -> TileZipper (SmoothSliding b)
+applyPartialSlide scale origin drag@(x, _) z =
+  fromMaybe sz $ partialSlide distance =<< sz'
+  where distance = toGeomPoint (dragDistance drag)
+        sz = toSmoothSliding z
+        sz' = clickTile scale origin x sz
 
 tileOrigin :: Num a => Point a -> Point a -> TileZipper b -> Point a
 tileOrigin scale origin z = origin + (scale * coord)
@@ -97,12 +105,9 @@ completelyApplyDrag scale origin d z = case z' of
     where (d'', z'') = completelyApplyDrag scale origin d' zz'
   where (d', z') = applyDrag scale origin d z
 
-slideTiles :: (Ord a, RealFrac a) => Point a -> Point a -> Point (Point a) -> TileZipper (SmoothSliding b) -> (Point (Point a), TileZipper (SmoothSliding b))
-slideTiles scale origin drag z = (d', fromMaybe sz sz')
+slideTiles :: (Ord a, RealFrac a) => Point a -> Point a -> Point (Point a) -> TileZipper b -> (Point (Point a), TileZipper b)
+slideTiles scale origin drag z = (d', fromMaybe z z')
   where (d', z') = completelyApplyDrag scale origin drag z
-        dd' = toGeomPoint $ dragDistance d'
-        sz = fromMaybe z z'
-        sz' = partialSlide dd' sz
 
 -- This is how the sliding works
 -- * The initial click selects the tile

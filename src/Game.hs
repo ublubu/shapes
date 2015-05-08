@@ -11,6 +11,7 @@ import qualified Graphics.UI.SDL.Event as SDL.Event
 import Control.Monad
 import Data.Word
 import Data.Maybe
+import Debug.Trace
 import Foreign.C.Types
 import GHC.Int
 import SDL.Draw
@@ -21,20 +22,20 @@ import DrawTile
 import SmoothSlidingGrid
 import SlidingGrid
 import Grid
+import GameInput
 import Utils.Utils
 
-data GridInput = GridInput { gridDrag :: Maybe (Point (Point Double)) } deriving Show
-
 data World = World { gameOver :: Bool
-                   , tileSize :: Point CInt
-                   , gridOrigin :: Point CInt
-                   , grid :: TileZipper (SmoothSliding ())
+                   , gridDrawInfo :: GridDrawInfo
+                   , grid :: TileZipper ()
                    , gridInput :: GridInput } deriving Show
 
 drawState :: SDL.T.Renderer -> SDL.T.Rect -> [Asset] -> World -> IO ()
 drawState r fullWindow assets state =
-  withBlankScreen r $ drawTiles r (tileSize state) (gridOrigin state) g
-  where g = fromMaybe (error "wtf, there's no (0, 0) tile?") (Grid.moveTo zero $ grid state)
+  withBlankScreen r $ drawTiles r gdi gi g
+  where g = grid state
+        gi = gridInput state
+        gdi = gridDrawInfo state
 
 updateState :: Input -> World -> World
 updateState (Just (SDL.T.QuitEvent _ _)) state = state { gameOver = True }
@@ -63,11 +64,11 @@ applyMouseMotion :: Int32 -> Int32 -> World -> World
 applyMouseMotion x y state = case gridDrag inputState of
   -- update the end of the current drag (if we are dragging)
   Nothing -> state
-  Just (click, _) -> state { grid = grid'
+  Just (click, _) -> trace (tilesToString grid') state { grid = grid'
                            , gridInput = inputState { gridDrag = Just drag' }}
     where (drag', grid') = slideTiles scale origin drag (grid state)
-          scale = pairMap fromIntegral (tileSize state)
-          origin = pairMap fromIntegral (gridOrigin state)
+          scale = fromTileSize (gridDrawInfo state)
+          origin = fromGridOrigin (gridDrawInfo state)
           drag = (click, pairMap fromIntegral (x, y))
   where inputState = gridInput state
 

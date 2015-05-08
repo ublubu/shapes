@@ -26,8 +26,10 @@ import SDL.Loading
 import SDL.Geometry
 import Utils.Utils
 import Directional
+import DrawTile
 import FreezableT
 import Game
+import GameInput
 import Grid
 import SlidingGrid
 import SmoothSlidingGrid
@@ -53,9 +55,9 @@ fullWindow = SDL.T.Rect {
 initialState :: World
 initialState = World
   { gameOver = False
-  , tileSize = (20, 20)
-  , gridOrigin = (20, 20)
-  , grid = (toSmoothSliding . fromRows) [ [ SlidingTile ()
+  , gridDrawInfo = GridDrawInfo { tileSize = (20, 20)
+                                , gridOrigin = (20, 20) }
+  , grid = fromRows [ [ SlidingTile ()
                       , EmptyTile
                       , FixedTile () ]
                     , [SlidingTile ()
