@@ -11,7 +11,7 @@ import SDL.Geometry
 import SDL.Error
 import Utils.Utils
 
-data Colour = White | Red | Blue | Green | Yellow
+data Colour = White | Red | Blue | Green | Yellow | Black
 
 drawTextureStretch :: SDL.T.Renderer -> SDL.T.Texture -> IO ()
 drawTextureStretch renderer texture = do
@@ -56,6 +56,7 @@ setColorUnsafe renderer Red    = SDL.V.setRenderDrawColor renderer 0xFF 0x00 0x0
 setColorUnsafe renderer Green  = SDL.V.setRenderDrawColor renderer 0x00 0xFF 0x00 0xFF
 setColorUnsafe renderer Blue   = SDL.V.setRenderDrawColor renderer 0x00 0x00 0xFF 0xFF
 setColorUnsafe renderer Yellow = SDL.V.setRenderDrawColor renderer 0xFF 0xFF 0x00 0xFF
+setColorUnsafe renderer Black = SDL.V.setRenderDrawColor renderer 0x00 0x00 0x00 0xFF
 
 setColor :: SDL.T.Renderer -> Colour -> IO ()
 setColor = (catchErrorCode "failed to set color" =<<) <. setColorUnsafe

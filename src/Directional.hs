@@ -145,3 +145,6 @@ intersect p rect = fmap intersectionPoint $ collapse (>) intersections
                 useT (x, x') = x + (t * (x' - x))
                 point = toPoint (injectAxis (fmap const bound) useT <*> segment)
 
+sequenceRect :: Monad m => Rectangular (m a) -> m ()
+sequenceRect (Rectangular a b c d) = a >> b >> c >> d >> return ()
+

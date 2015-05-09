@@ -31,6 +31,7 @@ import FreezableT
 import Game
 import GameInput
 import Grid
+import qualified Levels.Level1 as Level1
 import SlidingGrid
 import SmoothSlidingGrid
 
@@ -57,15 +58,7 @@ initialState = World
   { gameOver = False
   , gridDrawInfo = GridDrawInfo { tileSize = (20, 20)
                                 , gridOrigin = (20, 20) }
-  , grid = fromRows [ [ SlidingTile ()
-                      , EmptyTile
-                      , FixedTile () ]
-                    , [SlidingTile ()
-                      , SlidingTile ()
-                      , SlidingTile () ]
-                    , [SlidingTile ()
-                      , SlidingTile ()
-                      , SlidingTile () ] ]
+  , grid = Level1.level
   , gridInput = GridInput { gridDrag = Nothing }}
 
 ---- Application ----

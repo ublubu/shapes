@@ -11,7 +11,6 @@ import qualified Graphics.UI.SDL.Event as SDL.Event
 import Control.Monad
 import Data.Word
 import Data.Maybe
-import Debug.Trace
 import Foreign.C.Types
 import GHC.Int
 import SDL.Draw
@@ -23,11 +22,12 @@ import SmoothSlidingGrid
 import SlidingGrid
 import Grid
 import GameInput
+import GameTile
 import Utils.Utils
 
 data World = World { gameOver :: Bool
                    , gridDrawInfo :: GridDrawInfo
-                   , grid :: TileZipper ()
+                   , grid :: TileZipper GameTile
                    , gridInput :: GridInput } deriving Show
 
 drawState :: SDL.T.Renderer -> SDL.T.Rect -> [Asset] -> World -> IO ()
@@ -64,7 +64,7 @@ applyMouseMotion :: Int32 -> Int32 -> World -> World
 applyMouseMotion x y state = case gridDrag inputState of
   -- update the end of the current drag (if we are dragging)
   Nothing -> state
-  Just (click, _) -> trace (tilesToString grid') state { grid = grid'
+  Just (click, _) -> state { grid = grid'
                            , gridInput = inputState { gridDrag = Just drag' }}
     where (drag', grid') = slideTiles scale origin drag (grid state)
           scale = fromTileSize (gridDrawInfo state)

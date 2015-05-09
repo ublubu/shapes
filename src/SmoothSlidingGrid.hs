@@ -4,7 +4,6 @@ import Control.Applicative
 import Data.Foldable
 import Data.Monoid
 import Data.Maybe
-import Debug.Trace
 import Foreign.C.Types
 import Directional hiding (toDirection)
 import Grid
@@ -29,10 +28,10 @@ instance Functor SmoothSliding where
 
 toPartialSlide :: (Num a, Ord a) => Point a -> (GridDirection, Point a)
 toPartialSlide (x, y)
-  | abs x > abs y = if x > 0 then trace "RIGHT" (GridRight, (x, 0))
-                    else trace "LEFT" (GridLeft, (x, 0))
-  | y > 0 = trace "DOWN" (GridDown, (0, y))
-  | otherwise = trace "UP" (GridUp, (0, y))
+  | abs x > abs y = if x > 0 then (GridRight, (x, 0))
+                    else (GridLeft, (x, 0))
+  | y > 0 = (GridDown, (0, y))
+  | otherwise = (GridUp, (0, y))
 
 partialSlide :: GeomPoint -> TileZipper (SmoothSliding a) -> Maybe (TileZipper (SmoothSliding a))
 partialSlide drag = slideMap dir f
