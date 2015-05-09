@@ -32,6 +32,7 @@ import Game
 import GameInput
 import Grid
 import qualified Levels.Level1 as Level1
+import qualified Levels.Level2 as Level2
 import SlidingGrid
 import SmoothSlidingGrid
 
@@ -58,7 +59,7 @@ initialState = World
   { gameOver = False
   , gridDrawInfo = GridDrawInfo { tileSize = (20, 20)
                                 , gridOrigin = (20, 20) }
-  , grid = Level1.level
+  , grid = Level2.level
   , gridInput = GridInput { gridDrag = Nothing }}
 
 ---- Application ----

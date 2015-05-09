@@ -70,10 +70,13 @@ toDirection d
   | otherwise = GridUp
   where (x, y) = dragDistance d
 
-toBoundingRect :: Num a => Point a -> Point a -> Point a -> GridDirection -> Rectangular a
-toBoundingRect scale origin click dir = extend <*> rect' <*> scaledSignedRect scale
+toBoundingRect :: Num a => Point a -> Point a -> Point a -> GridDirection -> TileZipper b -> Rectangular a
+toBoundingRect scale origin click dir z =
+  if canDrag then extend <*> rect' <*> scaledSignedRect scale
+  else rect
   where scale' = scale + (1, 1)
         origin' = origin - (1, 1)
+        canDrag = isJust (slideList dir z)
         click' = (+) <$> signedRect <*> degenerateRect click
         rect = (+) <$> fromBottomRight scale' <*> degenerateRect origin'
         rect' = clip <*> click' <*> rect
@@ -90,7 +93,7 @@ applyDrag scale origin drag@(x, x'') z = case intersection of
   where intersection = do
           tile <- clickTile scale origin x z
           x' <- let origin' = tileOrigin scale origin tile
-                    bounds = toBoundingRect scale origin' x dir in
+                    bounds = toBoundingRect scale origin' x dir tile in
             drag `intersect` bounds
           return (tile, x')
         dir = toDirection drag
