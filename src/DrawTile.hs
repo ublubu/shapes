@@ -4,24 +4,17 @@ import qualified Graphics.UI.SDL.Types as SDL.T
 import Control.Monad
 import Control.Applicative
 import Data.Maybe
+import Foreign.C.Types
 import SDL.Geometry
 import SDL.Draw
 import Directional
 import SlidingGrid
 import SmoothSlidingGrid
 import GameInput
+import GameState
 import GameTile
 import Grid
 import Utils.Utils
-
-data GridDrawInfo = GridDrawInfo { tileSize :: GeomPoint
-                                   , gridOrigin :: GeomPoint } deriving Show
-
-fromTileSize :: Num a => GridDrawInfo -> Point a
-fromTileSize i = pairMap fromIntegral (tileSize i)
-
-fromGridOrigin :: Num a => GridDrawInfo -> Point a
-fromGridOrigin i = pairMap fromIntegral (gridOrigin i)
 
 drawTileAt :: SDL.T.Renderer -> GeomPoint -> GeomPoint -> GameTile -> IO ()
 drawTileAt r scale@(w, h) origin@(x, y) (GameTile path role) = case role of
@@ -43,7 +36,7 @@ drawTilePaths r scale origin = f <$> center <*> outer
         outer = (+) <$> center <*> ((* scale') <$> unitGeomPoint)
         f x x' b = when b $ drawLine r x x'
 
-drawTile :: SDL.T.Renderer -> GridDrawInfo -> TileZipper (SmoothSliding GameTile) -> IO ()
+drawTile :: SDL.T.Renderer -> GridDrawInfo CInt -> TileZipper (SmoothSliding GameTile) -> IO ()
 drawTile r (GridDrawInfo scale@(w, h) origin) t = case tile of
   EmptyTile -> return ()
   SlidingTile x -> f x
@@ -53,14 +46,16 @@ drawTile r (GridDrawInfo scale@(w, h) origin) t = case tile of
         f (SmoothSliding offset gameTile) = drawTileAt r scale origin' gameTile
           where origin' = (scale * coord) + origin + offset
 
-drawTiles :: RealFrac b => SDL.T.Renderer -> GridDrawInfo -> GridInput -> TileZipper GameTile -> IO ()
+drawTiles :: SDL.T.Renderer -> GridDrawInfo CInt -> GridInput -> TileZipper GameTile -> IO ()
 drawTiles r drawInfo (GridInput drag) z = gridSequenceFrom (drawTile r drawInfo) z'
   where z' = fromMaybe (error "wtf, there's no (0, 0) tile?") (Grid.moveTo zero g)
         g = case drag of
           Nothing -> toSmoothSliding z
           Just drag' -> applyPartialSlide scale origin drag' z
-        scale = fromTileSize drawInfo
-        origin = fromGridOrigin drawInfo
+        scale = fromTileSize fromIntegral drawInfo
+        origin = fromGridOrigin fromIntegral drawInfo
 
-
+drawGrid :: SDL.T.Renderer -> GridDrawInfo CInt -> GridInput -> GridState -> IO ()
+drawGrid r drawInfo gi@(GridInput drag) (GridState _ _ tiles) =
+  drawTiles r drawInfo gi tiles
 

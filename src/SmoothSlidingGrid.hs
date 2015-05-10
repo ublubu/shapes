@@ -46,13 +46,6 @@ applyPartialSlide scale origin drag@(x, _) z =
         sz = toSmoothSliding z
         sz' = clickTile scale origin x sz
 
-tileOrigin :: Num a => Point a -> Point a -> TileZipper b -> Point a
-tileOrigin scale origin z = origin + (scale * coord)
-  where coord = pairMap fromIntegral $ gridCoord z
-
-toTileCoordInt :: Integral a => Point a -> Point a -> Point a -> Point Int
-toTileCoordInt scale origin x = pairMap fromIntegral (pairAp (pairMap quot (x - origin)) scale)
-
 toTileCoord :: RealFrac a => Point a -> Point a -> Point a -> Point Int
 toTileCoord scale origin x = pairMap floor (pairAp (pairMap (/) (x - origin)) scale)
 
@@ -61,68 +54,4 @@ clickTile scale origin click = Grid.moveTo (toTileCoord scale origin click)
 
 dragDistance :: Num a => Point (Point a) -> Point a
 dragDistance (x, x') = x' - x
-
-toDirection :: (Num a, Ord a) => Point (Point a) -> GridDirection
-toDirection d
-  | abs x > abs y = if x > 0 then GridRight
-                    else GridLeft
-  | y > 0 = GridDown
-  | otherwise = GridUp
-  where (x, y) = dragDistance d
-
-toBoundingRect :: Num a => Point a -> Point a -> Point a -> GridDirection -> TileZipper b -> Rectangular a
-toBoundingRect scale origin click dir z =
-  if canDrag then extend <*> rect' <*> scaledSignedRect scale
-  else rect
-  where scale' = scale + (1, 1)
-        origin' = origin - (1, 1)
-        canDrag = isJust (slideList dir z)
-        click' = (+) <$> signedRect <*> degenerateRect click
-        rect = (+) <$> fromBottomRight scale' <*> degenerateRect origin'
-        rect' = clip <*> click' <*> rect
-        clip = injectOriented_ (GridOriented dir const) (\_ x -> x)
-        extend = injectOriented_ (GridOriented dir (+)) const
-
-applyDrag :: (Ord a, RealFrac a) => Point a -> Point a -> Point (Point a) -> TileZipper b -> (Point (Point a), Maybe (TileZipper b))
-applyDrag scale origin drag@(x, x'') z = case intersection of
-  Nothing -> (drag, Nothing)
-  Just (tile, (GridOriented slideDir x')) ->
-    if slideDir == dir
-    then ((x', x''), slide_ slideDir tile)
-    else ((x', x''), Nothing)
-  where intersection = do
-          tile <- clickTile scale origin x z
-          x' <- let origin' = tileOrigin scale origin tile
-                    bounds = toBoundingRect scale origin' x dir tile in
-            drag `intersect` bounds
-          return (tile, x')
-        dir = toDirection drag
-
-completelyApplyDrag :: (Ord a, RealFrac a) => Point a -> Point a -> Point (Point a) -> TileZipper b -> (Point (Point a), Maybe (TileZipper b))
-completelyApplyDrag scale origin d z = case z' of
-  Nothing -> (d', Nothing)
-  Just zz' -> case z'' of
-    Nothing -> (d'', z')
-    Just _ -> (d'', z'')
-    where (d'', z'') = completelyApplyDrag scale origin d' zz'
-  where (d', z') = applyDrag scale origin d z
-
-slideTiles :: (Ord a, RealFrac a) => Point a -> Point a -> Point (Point a) -> TileZipper b -> (Point (Point a), TileZipper b)
-slideTiles scale origin drag z = (d', fromMaybe z z')
-  where (d', z') = completelyApplyDrag scale origin drag z
-
--- This is how the sliding works
--- * The initial click selects the tile
--- * The end position of the click+drag selects the direction
---     Use this direction to decide when the path falls off the sliding tile
---       (include the space the tile could slide into)
--- * If the path falls off the tile, split that part off as a new click+drag
---     Did the path fall off the tile before it finished moving one tile length?
---       yes -> put the tile back
---       no -> move the tile
--- * If the path never comes off the tile, leave this click+drag for the next round
---     Calculate a partial move for the rendering
---
--- Drag after click+drag? merge the drag with whatever click+drag and do the above ^
-
 

@@ -17,23 +17,25 @@ import SDL.Draw
 import SDL.Event
 import SDL.Geometry
 import SDL.Loading
+import Drag
 import DrawTile
 import SmoothSlidingGrid
 import SlidingGrid
 import Grid
 import GameInput
+import GameState
 import GameTile
 import Utils.Utils
 
 data World = World { gameOver :: Bool
-                   , gridDrawInfo :: GridDrawInfo
-                   , grid :: TileZipper GameTile
+                   , gridDrawInfo :: GridDrawInfo CInt
+                   , gridState :: GridState
                    , gridInput :: GridInput } deriving Show
 
 drawState :: SDL.T.Renderer -> SDL.T.Rect -> [Asset] -> World -> IO ()
 drawState r fullWindow assets state =
-  withBlankScreen r $ drawTiles r gdi gi g
-  where g = grid state
+  withBlankScreen r $ drawGrid r gdi gi gs
+  where gs = gridState state
         gi = gridInput state
         gdi = gridDrawInfo state
 
@@ -64,12 +66,12 @@ applyMouseMotion :: Int32 -> Int32 -> World -> World
 applyMouseMotion x y state = case gridDrag inputState of
   -- update the end of the current drag (if we are dragging)
   Nothing -> state
-  Just (click, _) -> state { grid = grid'
+  Just (click, _) -> state { gridState = gs'
                            , gridInput = inputState { gridDrag = Just drag' }}
-    where (drag', grid') = slideTiles scale origin drag (grid state)
-          scale = fromTileSize (gridDrawInfo state)
-          origin = fromGridOrigin (gridDrawInfo state)
+    where (drag', gs') = completelyApplyDrag drawInfo drag gs
+          drawInfo = fmap fromIntegral (gridDrawInfo state)
           drag = (click, pairMap fromIntegral (x, y))
+          gs = gridState state
   where inputState = gridInput state
 
 applyMouseButtonDown :: Word8 -> Int32 -> Int32 -> GridInput -> GridInput
@@ -88,4 +90,15 @@ applyMouseButtonUp button x y state =
 
 runUntilComplete :: (Monad m) => m World -> m ()
 runUntilComplete game = game >>= \state -> unless (gameOver state) $ runUntilComplete game
+
+instance Draggable (GridState) where
+  setCoord coord gs@(GridState _ _ tiles) = do
+    tiles' <- Grid.moveTo coord tiles
+    return $ gs { gridTiles = tiles' }
+  applyMove dir gs@(GridState player _ tiles) =
+    if player == gridCoord tiles then gs -- TODO: actually move the player
+    else gs { gridTiles = fromMaybe tiles $ slide_ dir tiles }
+  checkMove dir gs@(GridState player _ tiles) =
+    if player == gridCoord tiles then False -- TODO: actually see if the player can move
+    else isJust (slideList dir tiles)
 

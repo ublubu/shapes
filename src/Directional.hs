@@ -13,6 +13,12 @@ data AxisAligned a = AxisAligned a a deriving Show
 data GridOriented a = GridOriented GridDirection a deriving Show
 data SingleAxis a = SingleAxis Axis a deriving Show
 
+reverseDirection :: GridDirection -> GridDirection
+reverseDirection GridRight = GridLeft
+reverseDirection GridDown = GridUp
+reverseDirection GridLeft = GridRight
+reverseDirection GridUp = GridDown
+
 unitGeomPoint :: Rectangular GeomPoint
 unitGeomPoint = Rectangular (1, 0) (0, 1) (-1, 0) (0, -1)
 

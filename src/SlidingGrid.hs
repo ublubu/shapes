@@ -14,6 +14,12 @@ instance Functor Tile where
     FixedTile x -> FixedTile (f x)
     SlidingTile x -> SlidingTile (f x)
 
+extractFromTile :: Tile a -> Maybe a
+extractFromTile tile = case tile of
+  EmptyTile -> Nothing
+  FixedTile x -> Just x
+  SlidingTile x -> Just x
+
 tileIsFixed :: Tile a -> Bool
 tileIsFixed (FixedTile _) = True
 tileIsFixed _ = False
@@ -23,6 +29,9 @@ tileIsEmpty EmptyTile = True
 tileIsEmpty _ = False
 
 type TileZipper a = GridZipper (Tile a)
+
+tileItem :: TileZipper a -> Maybe a
+tileItem = extractFromTile . gridItem
 
 tilesMap :: (a -> b) -> TileZipper a -> TileZipper b
 tilesMap f = gridMap . fmap $ f
