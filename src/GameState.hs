@@ -35,8 +35,18 @@ couldMovePlayer dir tile = case tileM' of
   Just tile' -> test dir gameTile && test dir' gameTile'
     where gameTile' = tileItem tile'
   where tileM' = moveNext dir tile
-        dir' = reverseDirection dir'
+        dir' = reverseDirection dir
         gameTile = tileItem tile
-        test dir mt = case mt of
+        test d mt = case mt of
           Nothing -> False
-          Just (GameTile paths _) -> extract dir paths
+          Just (GameTile paths _) -> extract d paths
+
+movePlayer :: GridDirection -> GridState -> GridState
+movePlayer dir (GridState player wasSliding tiles) =
+  GridState player' wasSliding' tiles'
+  where tiles' = fromMaybe (error "this move should not have failed") (moveNext dir $
+                 if wasSliding then changeItem toSlidingTile tiles
+                 else tiles)
+        wasSliding' = tileIsSliding $ gridItem tiles'
+        player' = gridCoord tiles'
+

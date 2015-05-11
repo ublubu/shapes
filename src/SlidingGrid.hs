@@ -20,6 +20,10 @@ extractFromTile tile = case tile of
   FixedTile x -> Just x
   SlidingTile x -> Just x
 
+tileIsSliding :: Tile a -> Bool
+tileIsSliding (SlidingTile _) = True
+tileIsSliding _ = False
+
 tileIsFixed :: Tile a -> Bool
 tileIsFixed (FixedTile _) = True
 tileIsFixed _ = False
@@ -27,6 +31,16 @@ tileIsFixed _ = False
 tileIsEmpty :: Tile a -> Bool
 tileIsEmpty EmptyTile = True
 tileIsEmpty _ = False
+
+toSlidingTile :: Tile a -> Tile a
+toSlidingTile (FixedTile a) = SlidingTile a
+toSlidingTile (SlidingTile a) = SlidingTile a
+toSlidingTile EmptyTile = error "can't convert empty tile to sliding"
+
+toFixedTile :: Tile a -> Tile a
+toFixedTile (SlidingTile a) = FixedTile a
+toFixedTile (FixedTile a) = FixedTile a
+toFixedTile EmptyTile = error "can't convert empty tile to fixed"
 
 type TileZipper a = GridZipper (Tile a)
 

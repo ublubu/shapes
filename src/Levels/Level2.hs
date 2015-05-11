@@ -30,6 +30,6 @@ level = GridState { gridPlayer = (0, 1)
                                            , FixedTile $ nothingAt tileNone ]
                                          , [ FixedTile $ nothingAt tileNone
                                            , FixedTile $ nothingAt tileNone
-                                           , FixedTile $ goalAt tileNone
+                                           , FixedTile $ goalAt tileN
                                            , FixedTile $ nothingAt tileNone
                                            , FixedTile $ nothingAt tileNone ] ] }

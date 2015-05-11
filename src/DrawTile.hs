@@ -55,7 +55,16 @@ drawTiles r drawInfo (GridInput drag) z = gridSequenceFrom (drawTile r drawInfo)
         scale = fromTileSize fromIntegral drawInfo
         origin = fromGridOrigin fromIntegral drawInfo
 
+drawPlayer :: SDL.T.Renderer -> GridDrawInfo CInt -> Point Int -> IO ()
+drawPlayer r (GridDrawInfo scale origin) p = do
+  setColor r Black
+  fillRectangle r target
+  where (x0, y0) = origin + (toGeomPointInt p * scale) + pairMap (`quot` 4) scale
+        (w', h') = pairMap (`quot` 2) scale
+        target = SDL.Geometry.toRect x0 y0 w' h'
+
 drawGrid :: SDL.T.Renderer -> GridDrawInfo CInt -> GridInput -> GridState -> IO ()
-drawGrid r drawInfo gi@(GridInput drag) (GridState _ _ tiles) =
+drawGrid r drawInfo gi@(GridInput drag) (GridState player _ tiles) = do
   drawTiles r drawInfo gi tiles
+  drawPlayer r drawInfo player
 

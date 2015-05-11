@@ -69,7 +69,7 @@ dragResult drawInfo drag@(click, end) z =
   case intersection of
     Nothing -> DragResult drag z Nothing
     Just (GridOriented intersectDir click') ->
-      if intersectDir == dir then DragResult drag' tile' (Just dir)
+      if intersectDir == dir && canDrag then DragResult drag' tile' (Just dir)
       else DragResult drag' tile' Nothing
       where drag' = (click', end)
             tile' = fromMaybe z tileM
