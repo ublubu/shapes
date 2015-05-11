@@ -43,10 +43,14 @@ couldMovePlayer dir tile = case tileM' of
 
 movePlayer :: GridDirection -> GridState -> GridState
 movePlayer dir (GridState player wasSliding tiles) =
-  GridState player' wasSliding' tiles'
+  GridState player' wasSliding' (changeItem toFixedTile tiles')
   where tiles' = fromMaybe (error "this move should not have failed") (moveNext dir $
                  if wasSliding then changeItem toSlidingTile tiles
                  else tiles)
         wasSliding' = tileIsSliding $ gridItem tiles'
         player' = gridCoord tiles'
+
+levelComplete :: GridState -> Bool
+levelComplete (GridState player wasSliding tiles) = maybe False isGoalTile (tileItem tiles')
+  where tiles' = fromMaybe (error "player is not on a tile") (Grid.moveTo player tiles)
 

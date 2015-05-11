@@ -8,6 +8,10 @@ data TileRole = SpawnTile | GoalTile | PathTile | NothingTile deriving (Show, Eq
 
 data GameTile = GameTile (Rectangular Bool) TileRole deriving Show
 
+isGoalTile :: GameTile -> Bool
+isGoalTile (GameTile _ GoalTile) = True
+isGoalTile _ = False
+
 spawnAt :: GameTile -> GameTile
 spawnAt (GameTile rect _) = GameTile rect SpawnTile
 

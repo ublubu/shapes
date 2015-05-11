@@ -67,12 +67,14 @@ applyMouseMotion :: Int32 -> Int32 -> World -> World
 applyMouseMotion x y state = case gridDrag inputState of
   -- update the end of the current drag (if we are dragging)
   Nothing -> state
-  Just (click, _) -> state { gridState = gs'
+  Just (click, _) -> state { gameOver = alreadyDone || levelComplete gs'
+                           , gridState = gs'
                            , gridInput = inputState { gridDrag = Just drag' }}
     where (drag', gs') = completelyApplyDrag drawInfo drag gs
           drawInfo = fmap fromIntegral (gridDrawInfo state)
           drag = (click, pairMap fromIntegral (x, y))
           gs = gridState state
+          alreadyDone = gameOver state
   where inputState = gridInput state
 
 applyMouseButtonDown :: Word8 -> Int32 -> Int32 -> GridInput -> GridInput
