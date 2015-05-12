@@ -143,3 +143,9 @@ applyChanges (f:fs) (GridSequence dir z) = do
   zz <- moveNext dir $ changeItem f z
   gridPrev =<< applyChanges fs (GridSequence dir zz)
 
+atCoord :: (GridZipper a -> Maybe (GridZipper a)) -> Point Int -> GridZipper a -> Maybe (GridZipper a)
+atCoord f coordA z = do
+  za <- moveTo coordA z
+  f za
+  where coordB = gridCoord z
+

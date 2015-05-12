@@ -61,7 +61,7 @@ initialState = World
   , gridDrawInfo = GridDrawInfo { tileSize = (20, 20)
                                 , gridOrigin = (20, 20) }
   , gridState = Level2.level
-  , gridInput = GridInput { gridDrag = Nothing }}
+  , gridInput = defaultGridInput }
 
 ---- Application ----
 

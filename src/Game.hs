@@ -69,8 +69,9 @@ applyMouseMotion x y state = case gridDrag inputState of
   Nothing -> state
   Just (click, _) -> state { gameOver = alreadyDone || levelComplete gs'
                            , gridState = gs'
-                           , gridInput = inputState { gridDrag = Just drag' }}
-    where (drag', gs') = completelyApplyDrag drawInfo drag gs
+                           , gridInput = inputState { gridDrag = Just drag'
+                                                    , gridPartialMove = partialMove }}
+    where (drag', partialMove, gs') = completelyApplyDrag drawInfo drag gs
           drawInfo = fmap fromIntegral (gridDrawInfo state)
           drag = (click, pairMap fromIntegral (x, y))
           gs = gridState state
@@ -87,7 +88,7 @@ applyMouseButtonDown button x y state =
 applyMouseButtonUp :: Word8 -> Int32 -> Int32 -> GridInput -> GridInput
 applyMouseButtonUp button x y state =
   if button == SDL.E.SDL_BUTTON_LEFT
-  then state { gridDrag = Nothing } -- release the current drag
+  then defaultGridInput -- release the current drag
   else state -- we drag using left button
   where pos = toGeomPointInt (x, y)
 

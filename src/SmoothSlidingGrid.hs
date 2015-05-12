@@ -33,18 +33,10 @@ toPartialSlide (x, y)
   | y > 0 = (GridDown, (0, y))
   | otherwise = (GridUp, (0, y))
 
-partialSlide :: GeomPoint -> TileZipper (SmoothSliding a) -> Maybe (TileZipper (SmoothSliding a))
-partialSlide drag = slideMap dir f
-  where (dir, amount) = toPartialSlide drag
-        f z' = fmap (setSlideAmount amount) item
+partialSlide :: GridDirection -> GeomPoint -> TileZipper (SmoothSliding a) -> Maybe (TileZipper (SmoothSliding a))
+partialSlide dir amount = slideMap dir f
+  where f z' = fmap (setSlideAmount amount) item
           where item = gridItem z'
-
-applyPartialSlide :: (RealFrac a) => Point a -> Point a -> Point (Point a) -> TileZipper b -> TileZipper (SmoothSliding b)
-applyPartialSlide scale origin drag@(x, _) z =
-  fromMaybe sz $ partialSlide distance =<< sz'
-  where distance = toGeomPoint (dragDistance drag)
-        sz = toSmoothSliding z
-        sz' = clickTile scale origin x sz
 
 toTileCoord :: RealFrac a => Point a -> Point a -> Point a -> Point Int
 toTileCoord scale origin x = pairMap floor (pairAp (pairMap (/) (x - origin)) scale)
