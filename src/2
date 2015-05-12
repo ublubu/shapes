@@ -42,18 +42,15 @@ drawState r fullWindow assets state =
         gdi = gridDrawInfo state
 
 updateState :: Input -> World -> World
-updateState input = maybeAdvanceLevel . updateState_ input
-
-updateState_ :: Input -> World -> World
-updateState_ (Just (SDL.T.QuitEvent _ _)) state = state { gameOver = True }
-updateState_ (Just (SDL.T.KeyboardEvent evtType _ _ _ _ keysym)) state =
+updateState (Just (SDL.T.QuitEvent _ _)) state = state { gameOver = True }
+updateState (Just (SDL.T.KeyboardEvent evtType _ _ _ _ keysym)) state =
   if evtType == SDL.E.SDL_KEYDOWN
   then modifyState state keysym
   else state
-updateState_ (Just (SDL.T.MouseMotionEvent { SDL.T.mouseMotionEventX = x
+updateState (Just (SDL.T.MouseMotionEvent { SDL.T.mouseMotionEventX = x
                                           , SDL.T.mouseMotionEventY = y })) state =
   applyMouseMotion x y state
-updateState_ (Just (SDL.T.MouseButtonEvent { SDL.T.eventType = evtType
+updateState (Just (SDL.T.MouseButtonEvent { SDL.T.eventType = evtType
                                           , SDL.T.mouseButtonEventButton = button
                                           , SDL.T.mouseButtonEventX = x
                                           , SDL.T.mouseButtonEventY = y })) state =
@@ -61,7 +58,7 @@ updateState_ (Just (SDL.T.MouseButtonEvent { SDL.T.eventType = evtType
   where f = case evtType of
           SDL.E.SDL_MOUSEBUTTONDOWN -> applyMouseButtonDown
           SDL.E.SDL_MOUSEBUTTONUP -> applyMouseButtonUp
-updateState_ _ state = state
+updateState _ state = state
 
 modifyState :: World -> SDL.T.Keysym -> World
 modifyState state keysym = case getKey keysym of

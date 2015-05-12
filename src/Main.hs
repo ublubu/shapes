@@ -32,8 +32,7 @@ import Game
 import GameInput
 import GameState
 import Grid
-import qualified Levels.Level1 as Level1
-import qualified Levels.Level2 as Level2
+import Levels.Levels
 import SlidingGrid
 import SmoothSlidingGrid
 
@@ -58,9 +57,10 @@ fullWindow = SDL.T.Rect {
 initialState :: World
 initialState = World
   { gameOver = False
+  , remainingLevels = tail levels
   , gridDrawInfo = GridDrawInfo { tileSize = (70, 70)
                                 , gridOrigin = (20, 20) }
-  , gridState = Level1.level
+  , gridState = head levels
   , gridInput = defaultGridInput }
 
 ---- Application ----
