@@ -47,6 +47,13 @@ screenWidth = 640
 screenHeight :: CInt
 screenHeight = 480
 
+-- TODO: calculate scale based on level and screen size
+screenSize :: GeomPoint
+screenSize = (screenWidth, screenHeight)
+
+marginSize :: GeomPoint
+marginSize = (20, 20)
+
 fullWindow :: SDL.T.Rect
 fullWindow = SDL.T.Rect {
   SDL.T.rectX = 0,
@@ -59,7 +66,7 @@ initialState = World
   { gameOver = False
   , remainingLevels = tail levels
   , gridDrawInfo = GridDrawInfo { tileSize = (70, 70)
-                                , gridOrigin = (20, 20) }
+                                , gridOrigin = marginSize }
   , gridState = head levels
   , gridInput = defaultGridInput }
 

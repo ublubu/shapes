@@ -105,8 +105,10 @@ maybeAdvanceLevel world@(World _ levels _ gs _) =
   if levelComplete gs
   then case levels of
     [] -> world { gameOver = True -- all levels completed - end the game
+                , gridInput = defaultGridInput
                 , remainingLevels = [] }
     (x:xs) -> world { remainingLevels = xs -- advance to the next level
+                    , gridInput = defaultGridInput
                     , gridState = x }
   else world
 
