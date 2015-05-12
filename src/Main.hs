@@ -58,9 +58,9 @@ fullWindow = SDL.T.Rect {
 initialState :: World
 initialState = World
   { gameOver = False
-  , gridDrawInfo = GridDrawInfo { tileSize = (20, 20)
+  , gridDrawInfo = GridDrawInfo { tileSize = (70, 70)
                                 , gridOrigin = (20, 20) }
-  , gridState = Level2.level
+  , gridState = Level1.level
   , gridInput = defaultGridInput }
 
 ---- Application ----

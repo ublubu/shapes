@@ -53,7 +53,7 @@ updateState (Just (SDL.T.MouseButtonEvent { SDL.T.eventType = evtType
                                           , SDL.T.mouseButtonEventButton = button
                                           , SDL.T.mouseButtonEventX = x
                                           , SDL.T.mouseButtonEventY = y })) state =
-  state { gridInput = f button x y (gridInput state) }
+  f button x y state
   where f = case evtType of
           SDL.E.SDL_MOUSEBUTTONDOWN -> applyMouseButtonDown
           SDL.E.SDL_MOUSEBUTTONUP -> applyMouseButtonUp
@@ -78,19 +78,25 @@ applyMouseMotion x y state = case gridDrag inputState of
           alreadyDone = gameOver state
   where inputState = gridInput state
 
-applyMouseButtonDown :: Word8 -> Int32 -> Int32 -> GridInput -> GridInput
+applyMouseButtonDown :: Word8 -> Int32 -> Int32 -> World -> World
 applyMouseButtonDown button x y state =
   if button == SDL.E.SDL_BUTTON_LEFT
-  then state { gridDrag = Just (pos, pos) } -- start new drag
+  then state { gridInput = (gridInput state) {gridDrag = Just (pos, pos) } } -- start new drag
   else state -- we drag using the left button
   where pos = pairMap fromIntegral (x, y)
 
-applyMouseButtonUp :: Word8 -> Int32 -> Int32 -> GridInput -> GridInput
+applyMouseButtonUp :: Word8 -> Int32 -> Int32 -> World -> World
 applyMouseButtonUp button x y state =
   if button == SDL.E.SDL_BUTTON_LEFT
-  then defaultGridInput -- release the current drag
+  then state { gridInput = defaultGridInput
+             , gridState = gs'} -- release the current drag
   else state -- we drag using left button
   where pos = toGeomPointInt (x, y)
+        input = gridInput state
+        drawInfo = fmap fromIntegral (gridDrawInfo state)
+        move = convertPartialMove drawInfo =<< gridPartialMove input
+        gs = gridState state
+        gs' = maybe gs (`applyFullMove` gs) move
 
 runUntilComplete :: (Monad m) => m World -> m ()
 runUntilComplete game = game >>= \state -> unless (gameOver state) $ runUntilComplete game

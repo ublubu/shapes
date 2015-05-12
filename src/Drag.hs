@@ -17,6 +17,7 @@ data MoveAmount a = FullMove | PartialMove a deriving Show
 type DragMove a = (GridDirection, MoveAmount a, Point Int)
 data DragResult a b = DragResult (Point (Point a)) b (Maybe (DragMove a)) deriving Show
 data PartialMoveResult a = PartialMoveResult GridDirection a (Point Int) deriving Show
+data FullMoveResult = FullMoveResult GridDirection (Point Int) deriving Show
 
 toTileCoord :: RealFrac a => GridDrawInfo a -> Point a -> Point Int
 toTileCoord (GridDrawInfo scale origin) click = pairMap floor (pairAp (pairMap (/) (click - origin)) scale)
@@ -100,4 +101,15 @@ completelyApplyDrag drawInfo drag z =
         where z' = applyMove dir clickZ
       PartialMove x -> (drag', Just (PartialMoveResult dir x coord), clickZ)
   where (DragResult drag' clickZ move) = dragResult drawInfo drag z
+
+convertPartialMove :: (Ord a, RealFrac a) => GridDrawInfo a -> PartialMoveResult a -> Maybe FullMoveResult
+convertPartialMove (GridDrawInfo scale _) (PartialMoveResult dir dist coord) =
+  if shouldConvert then Just $ FullMoveResult dir coord else Nothing
+  where shouldConvert = (axisScale / 2) < abs dist
+        axisScale = extract dir (degenerateRect scale)
+
+applyFullMove :: Draggable t => FullMoveResult -> t -> t
+applyFullMove (FullMoveResult dir coord) z = applyMove dir z'
+  where z' = fromMaybe (error "full move should've been checked beforehand") $
+             setCoord coord z
 
