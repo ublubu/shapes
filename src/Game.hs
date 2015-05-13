@@ -120,8 +120,7 @@ instance Draggable (GridState) where
     tiles' <- Grid.moveTo coord tiles
     return $ gs { gridTiles = tiles' }
   applyMove dir gs@(GridState player _ tiles) =
-    trace "applying a move"
-    (if player == gridCoord tiles then movePlayer dir gs
-     else gs { gridTiles = fromMaybe tiles $ slide_ dir tiles })
+    if player == gridCoord tiles then movePlayer dir gs
+     else gs { gridTiles = fromMaybe tiles $ slide_ dir tiles }
   checkMove dir (GridState player _ tiles) = canMove player dir tiles
 

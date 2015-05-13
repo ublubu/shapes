@@ -76,12 +76,12 @@ dragResult drawInfo drag@(click, end) z =
     Nothing -> DragResult drag z (if canDrag
                                   then Just (dir, PartialMove dragDist, coord)
                                   else Nothing)
-      where dragDist = extract dir (degenerateRect (dragDistance drag))
     Just (GridOriented intersectDir click') ->
-      if intersectDir == dir && canDrag then DragResult drag' tile' $ Just (dir, FullMove, coord)
+      if canDrag && completedMove then DragResult drag' tile' $ Just (dir, FullMove, coord)
       else DragResult drag' tile' Nothing
       where drag' = (click', end)
             tile' = fromMaybe z tileM
+            completedMove = intersectDir == dir || shouldConvert drawInfo (GridOriented dir dragDist)
   where dir = dragDirection drag
         coord = toTileCoord drawInfo click
         tileM = setCoord coord z
@@ -91,6 +91,7 @@ dragResult drawInfo drag@(click, end) z =
         rect = if canDrag then toBoundingRect drawInfo coord click dir
                else tileBoundingRect drawInfo coord
         intersection = drag `intersect` rect
+        dragDist = extract dir (degenerateRect (dragDistance drag))
 
 completelyApplyDrag :: (Ord a, RealFrac a, Draggable b) => GridDrawInfo a -> Point (Point a) -> b -> (Point (Point a), Maybe (PartialMoveResult a), b)
 completelyApplyDrag drawInfo drag z =
@@ -102,11 +103,14 @@ completelyApplyDrag drawInfo drag z =
       PartialMove x -> (drag', Just (PartialMoveResult dir x coord), clickZ)
   where (DragResult drag' clickZ move) = dragResult drawInfo drag z
 
+shouldConvert :: (Ord a, RealFrac a) => GridDrawInfo a -> GridOriented a -> Bool
+shouldConvert (GridDrawInfo scale _) (GridOriented dir dist) =
+  (axisScale / 2) < abs dist
+  where axisScale = extract dir (degenerateRect scale)
+
 convertPartialMove :: (Ord a, RealFrac a) => GridDrawInfo a -> PartialMoveResult a -> Maybe FullMoveResult
-convertPartialMove (GridDrawInfo scale _) (PartialMoveResult dir dist coord) =
-  if shouldConvert then Just $ FullMoveResult dir coord else Nothing
-  where shouldConvert = (axisScale / 2) < abs dist
-        axisScale = extract dir (degenerateRect scale)
+convertPartialMove drawInfo (PartialMoveResult dir dist coord) =
+  if shouldConvert drawInfo (GridOriented dir dist) then Just $ FullMoveResult dir coord else Nothing
 
 applyFullMove :: Draggable t => FullMoveResult -> t -> t
 applyFullMove (FullMoveResult dir coord) z = applyMove dir z'
