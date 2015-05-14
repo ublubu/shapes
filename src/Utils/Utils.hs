@@ -66,3 +66,6 @@ pairAp (f, g) (x, y) = (f x, g y)
 maybeChange :: a -> (a -> Maybe a) -> a
 maybeChange x f = fromMaybe x (f x)
 
+toMaybe :: Bool -> a -> Maybe a
+toMaybe b x = if b then Just x else Nothing
+

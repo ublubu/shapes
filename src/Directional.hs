@@ -154,3 +154,6 @@ intersect p rect = fmap intersectionPoint $ collapse (>) intersections
 sequenceRect :: Monad m => Rectangular (m a) -> m ()
 sequenceRect (Rectangular a b c d) = a >> b >> c >> d >> return ()
 
+generateRect :: (GridDirection -> a) -> Rectangular a
+generateRect f = Rectangular (f GridRight) (f GridDown) (f GridLeft) (f GridUp)
+

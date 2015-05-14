@@ -28,13 +28,11 @@ clickTile drawInfo click = setCoord (toTileCoord drawInfo click)
 dragDistance :: Num a => Point (Point a) -> Point a
 dragDistance (x, x') = x' - x
 
-dragDirection :: (Num a, Ord a) => Point (Point a) -> GridDirection
-dragDirection d
-  | abs x > abs y = if x > 0 then GridRight
-                    else GridLeft
-  | y > 0 = GridDown
-  | otherwise = GridUp
-  where (x, y) = dragDistance d
+dragDirection :: (Num a, Ord a, Draggable t) => Point (Point a) -> t -> Maybe (GridOriented a)
+dragDirection d z = collapse (<) (toMaybe <$> trySlide <*> dist)
+  where dist = degenerateRect (dragDistance d)
+        canSlide = generateRect (`checkMove` z)
+        trySlide = (&&) <$> ((>0) <$> ((*) <$> dist <*> signedRect)) <*> canSlide
 
 -- a rectangle on the edge of the tile, but not outside
 tileRect :: Num a => GridDrawInfo a -> Point Int -> Rectangular a
@@ -71,27 +69,25 @@ resultDir :: DragResult a b -> Maybe GridDirection
 resultDir (DragResult _ _ move) = fmap (\(x, _, _) -> x) move
 
 dragResult :: (Ord a, RealFrac a, Draggable b) => GridDrawInfo a -> Point (Point a) -> b -> DragResult a b
-dragResult drawInfo drag@(click, end) z =
-  case intersection of
-    Nothing -> DragResult drag z (if canDrag
-                                  then Just (dir, PartialMove dragDist, coord)
-                                  else Nothing)
+dragResult drawInfo drag@(click, end) z = case dirM of
+  Just (GridOriented dir dragDist) -> case intersection of
+    Nothing -> DragResult drag z $ Just (dir, PartialMove dragDist, coord)
     Just (GridOriented intersectDir click') ->
-      if canDrag && completedMove then DragResult drag' tile' $ Just (dir, FullMove, coord)
+      if completedMove then DragResult drag' tile' $ Just (dir, FullMove, coord)
       else DragResult drag' tile' Nothing
       where drag' = (click', end)
             tile' = fromMaybe z tileM
             completedMove = intersectDir == dir || shouldConvert drawInfo (GridOriented dir dragDist)
-  where dir = dragDirection drag
+    where intersection = drag `intersect` (toBoundingRect drawInfo coord click dir)
+  Nothing -> case intersection of
+    Nothing -> DragResult drag z Nothing
+    Just (GridOriented intersectDir click') -> DragResult drag' tile' Nothing
+      where drag' = (click', end)
+            tile' = fromMaybe z tileM
+    where intersection = drag `intersect` (tileBoundingRect drawInfo coord)
+  where dirM = dragDirection drag =<< tileM
         coord = toTileCoord drawInfo click
         tileM = setCoord coord z
-        canDrag = case tileM of
-          Nothing -> False
-          Just tile -> checkMove dir tile
-        rect = if canDrag then toBoundingRect drawInfo coord click dir
-               else tileBoundingRect drawInfo coord
-        intersection = drag `intersect` rect
-        dragDist = extract dir (degenerateRect (dragDistance drag))
 
 completelyApplyDrag :: (Ord a, RealFrac a, Draggable b) => GridDrawInfo a -> Point (Point a) -> b -> (Point (Point a), Maybe (PartialMoveResult a), b)
 completelyApplyDrag drawInfo drag z =
