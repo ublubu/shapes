@@ -1,6 +1,7 @@
 module Directional where
 
 import Control.Applicative
+import Data.Foldable
 import Data.Maybe
 import SDL.Geometry
 
@@ -64,7 +65,7 @@ flatten (Rectangular a b c d) = [ GridOriented GridRight a
                                 , GridOriented GridUp d ]
 
 collapse :: (a -> a -> Bool) -> Rectangular (Maybe a) -> Maybe (GridOriented a)
-collapse shouldReplace t = foldl f' Nothing (flatten t)
+collapse shouldReplace t = Prelude.foldl f' Nothing (flatten t)
   where f' maa (GridOriented dir mb) = case maa of
           Nothing -> do
             b <- mb
@@ -77,11 +78,20 @@ collapse shouldReplace t = foldl f' Nothing (flatten t)
 rotate :: Rectangular a -> Rectangular a
 rotate (Rectangular a b c d) = Rectangular d a b c
 
+reverseRect :: Rectangular a -> Rectangular a
+reverseRect = rotate . rotate
+
+swapAxes :: AxisAligned a -> AxisAligned a
+swapAxes (AxisAligned a b) = AxisAligned b a
+
 instance Functor GridOriented where
   fmap f (GridOriented o x) = GridOriented o (f x)
 
 instance Functor Rectangular where
   fmap f (Rectangular a b c d) = Rectangular (f a) (f b) (f c) (f d)
+
+instance Foldable Rectangular where
+  foldMap f (Rectangular a b c d) = foldMap f [a, b, c, d]
 
 instance Applicative Rectangular where
   pure a = Rectangular a a a a
@@ -94,12 +104,18 @@ instance Functor SingleAxis where
 instance Functor AxisAligned where
   fmap f (AxisAligned a b) = AxisAligned (f a) (f b)
 
+instance Foldable AxisAligned where
+  foldMap f (AxisAligned a b) = foldMap f [a, b]
+
 instance Applicative AxisAligned where
   pure a = AxisAligned a a
   (AxisAligned fa fb) <*> (AxisAligned a b) = AxisAligned (fa a) (fb b)
 
 toDirection :: GridOriented a -> GridDirection
 toDirection (GridOriented dir _) = dir
+
+deorient :: GridOriented a -> a
+deorient  (GridOriented _ x) = x
 
 toAxis :: GridOriented a -> SingleAxis a
 toAxis (GridOriented GridRight x) = SingleAxis XAxis x
@@ -156,4 +172,13 @@ sequenceRect (Rectangular a b c d) = a >> b >> c >> d >> return ()
 
 generateRect :: (GridDirection -> a) -> Rectangular a
 generateRect f = Rectangular (f GridRight) (f GridDown) (f GridLeft) (f GridUp)
+
+rectToAxisAligned :: Rectangular a -> AxisAligned (a, a)
+rectToAxisAligned (Rectangular a b c d) = AxisAligned (a, c) (b, d)
+
+toSignedRect :: a -> a -> Rectangular a
+toSignedRect plus minus = Rectangular plus plus minus minus
+
+toSignedPairs :: Rectangular a -> Rectangular (a, a)
+toSignedPairs rect = (,) <$> rect <*> (rotate . rotate) rect
 

@@ -4,6 +4,7 @@ import Control.Monad
 import Control.Monad.State hiding (state)
 import Data.Bits
 import Data.Maybe
+import Data.Monoid
 import Foreign.C.String
 import Foreign.C.Types
 import Foreign.Marshal.Alloc
@@ -62,6 +63,9 @@ pairMap f (x, y) = (f x, f y)
 
 pairAp :: (a -> b, c -> d) -> ((a, c) -> (b, d))
 pairAp (f, g) (x, y) = (f x, g y)
+
+pairFold :: Monoid m => (m, m) -> m
+pairFold (a, b) = mappend a b
 
 maybeChange :: a -> (a -> Maybe a) -> a
 maybeChange x f = fromMaybe x (f x)
