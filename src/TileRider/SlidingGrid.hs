@@ -1,7 +1,8 @@
-module SlidingGrid where
+module TileRider.SlidingGrid where
 
 import Data.Maybe
-import Grid
+import TileRider.Grid
+import qualified TileRider.Grid as Grid
 import SDL.Geometry
 import Directional
 import FreezableT (foldlUntil, foldMapUntil)

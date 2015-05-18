@@ -1,4 +1,4 @@
-module SmoothSlidingGrid where
+module TileRider.SmoothSlidingGrid where
 
 import Control.Applicative
 import Data.Foldable
@@ -6,8 +6,9 @@ import Data.Monoid
 import Data.Maybe
 import Foreign.C.Types
 import Directional hiding (toDirection)
-import Grid
-import SlidingGrid
+import TileRider.Grid
+import qualified TileRider.Grid as Grid
+import TileRider.SlidingGrid
 import FreezableT
 import SDL.Geometry
 import Utils.Utils

@@ -1,3 +1,5 @@
+module Main where
+
 import qualified Graphics.UI.SDL.Video as SDL.V
 import qualified Graphics.UI.SDL.Enum as SDL.E
 import qualified Graphics.UI.SDL.Types as SDL.T
@@ -26,15 +28,16 @@ import SDL.Loading
 import SDL.Geometry
 import Utils.Utils
 import Directional
-import DrawTile
 import FreezableT
-import Game
-import GameInput
-import GameState
-import Grid
-import Levels.Levels
-import SlidingGrid
-import SmoothSlidingGrid
+import TileRider.DrawTile
+import TileRider.Game
+import TileRider.GameInput
+import TileRider.GameState
+import TileRider.Grid
+import qualified TileRider.Grid as Grid
+import TileRider.Levels.Levels
+import TileRider.SlidingGrid
+import TileRider.SmoothSlidingGrid
 
 ---- Config ----
 

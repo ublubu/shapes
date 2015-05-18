@@ -1,11 +1,11 @@
-module Drag where
+module TileRider.Drag where
 
 import Control.Applicative
 import Control.Monad
 import Data.Maybe
 import SDL.Geometry
 import Directional
-import GameState
+import TileRider.GameState
 import Utils.Utils
 
 class Draggable d where

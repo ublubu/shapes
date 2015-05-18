@@ -1,6 +1,6 @@
 {-# LANGUAGE PatternSynonyms #-}
 
-module Game where
+module TileRider.Game where
 
 import qualified Graphics.UI.SDL.Video as SDL.V
 import qualified Graphics.UI.SDL.Enum as SDL.E
@@ -18,14 +18,15 @@ import SDL.Draw
 import SDL.Event
 import SDL.Geometry
 import SDL.Loading
-import Drag
-import DrawTile
-import SmoothSlidingGrid
-import SlidingGrid
-import Grid
-import GameInput
-import GameState
-import GameTile
+import TileRider.Drag
+import TileRider.DrawTile
+import TileRider.SmoothSlidingGrid
+import TileRider.SlidingGrid
+import TileRider.Grid
+import qualified TileRider.Grid as Grid
+import TileRider.GameInput
+import TileRider.GameState
+import TileRider.GameTile
 import Utils.Utils
 
 data World = World { gameOver :: Bool

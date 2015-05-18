@@ -1,8 +1,8 @@
-module GameInput where
+module TileRider.GameInput where
 
 import SDL.Geometry
 import Directional
-import Drag
+import TileRider.Drag
 
 data GridInput = GridInput { gridDrag :: Maybe (Point (Point Double))
                            , gridPartialMove :: Maybe (PartialMoveResult Double)} deriving Show

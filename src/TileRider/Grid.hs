@@ -1,4 +1,4 @@
-module Grid where
+module TileRider.Grid where
 
 import Data.List.Zipper
 import Data.Foldable hiding (toList)

@@ -1,4 +1,4 @@
-module DrawTile where
+module TileRider.DrawTile where
 
 import qualified Graphics.UI.SDL.Types as SDL.T
 import Control.Monad
@@ -8,13 +8,14 @@ import Foreign.C.Types
 import SDL.Geometry
 import SDL.Draw
 import Directional
-import Drag
-import SlidingGrid
-import SmoothSlidingGrid
-import GameInput
-import GameState
-import GameTile
-import Grid
+import TileRider.Drag
+import TileRider.SlidingGrid
+import TileRider.SmoothSlidingGrid
+import TileRider.GameInput
+import TileRider.GameState
+import TileRider.GameTile
+import TileRider.Grid
+import qualified TileRider.Grid as Grid
 import Utils.Utils
 
 drawTileAt :: SDL.T.Renderer -> GeomPoint -> GeomPoint -> GameTile -> IO ()

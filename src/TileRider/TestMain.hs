@@ -1,10 +1,10 @@
-module TestMain where
+module TileRider.TestMain where
 
 import Data.Maybe
 import Debug.Trace
-import Grid
-import SlidingGrid
-import SmoothSlidingGrid
+import TileRider.Grid
+import TileRider.SlidingGrid
+import TileRider.SmoothSlidingGrid
 import FreezableT
 import Directional
 

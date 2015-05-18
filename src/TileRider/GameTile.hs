@@ -1,8 +1,8 @@
-module GameTile where
+module TileRider.GameTile where
 
 import Directional
-import Grid
-import SlidingGrid
+import TileRider.Grid
+import TileRider.SlidingGrid
 
 data TileRole = SpawnTile | GoalTile | PathTile | NothingTile deriving (Show, Eq)
 

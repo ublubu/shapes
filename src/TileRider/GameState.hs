@@ -1,12 +1,13 @@
-module GameState where
+module TileRider.GameState where
 
 import Data.Maybe
 import SDL.Geometry
 import Utils.Utils
 import Directional
-import Grid
-import SlidingGrid
-import GameTile
+import TileRider.Grid
+import qualified TileRider.Grid as Grid
+import TileRider.SlidingGrid
+import TileRider.GameTile
 
 data GridDrawInfo a = GridDrawInfo { tileSize :: Point a
                                    , gridOrigin :: Point a } deriving Show

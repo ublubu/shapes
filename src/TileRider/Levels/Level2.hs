@@ -1,9 +1,9 @@
-module Levels.Level2 where
+module TileRider.Levels.Level2 where
 
-import Grid
-import SlidingGrid
-import GameTile
-import GameState
+import TileRider.Grid
+import TileRider.SlidingGrid
+import TileRider.GameTile
+import TileRider.GameState
 
 level :: GridState
 level = GridState { gridPlayer = (0, 1)
