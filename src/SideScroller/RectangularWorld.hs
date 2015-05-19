@@ -8,11 +8,9 @@ import SDL.Geometry
 import Directional
 import Utils.Utils
 import Debug.Trace
+import SideScroller.WorldUnit
 
-data WorldPos a = WorldPos a
-data WorldTime a = WorldTime a
-data WorldSpeed a = WorldSpeed a
-data WorldAccel a = WorldAccel a
+data Box a = Box (Rectangular a) (WorldSpeed a)
 
 hasCollision :: (Ord a) => Rectangular a -> Rectangular a -> Bool
 hasCollision rectA rectB = getAny . fold . fmap Any $ (overlap <$> boundsA <*> boundsB)
