@@ -1,19 +1,22 @@
 module Main where
 
+import qualified Graphics.UI.SDL.Timer as SDL.Timer
+import GHC.Word
 import Debug.Trace
+import SDL.Geometry
 import Directional
+import GameLoop
 import SideScroller.RectangularWorld
+
+advanceFrame :: (Word32, Word32) -> Word32 -> IO (Word32, Word32)
+advanceFrame (t0, t) t' = do
+  print (t' - t0)
+  return (t0, t')
+
+testFrame :: (Word32, Word32) -> Bool
+testFrame (t, t') = t' - t < 1000
 
 main :: IO ()
 main = do
-  print $ hasCollision (Rectangular 1 1 0 0) (Rectangular 2 2 1 1) -- True
-  print $ hasCollision (Rectangular 1 1 0 0) (Rectangular 0.8 0.8 0.2 0.2) -- True
-  print $ hasCollision (Rectangular 0.8 0.8 0.2 0.2) (Rectangular 1 1 0 0) -- True
-  print $ hasCollision (Rectangular 1 1 0 0) (Rectangular 3 3 2 2) -- False
-  print $ overlap (0, 1) (0.5, 1.5)
-  print $ overlap (0, 1) (0.2, 0.8)
-  print $ overlap (0.2, 0.8) (0, 1)
-  print $ checkCollision (Rectangular 1 1 0 0) (Rectangular 3 1 2 0) (2, 0)
-  print $ checkCollision (Rectangular 1 1 0 0) (Rectangular 3 1 2 0) (2, 2)
-  print $ checkCollision (Rectangular 1 1 0 0) (Rectangular 3 2 2 1) (2, 1)
-
+  t0 <- SDL.Timer.getTicks
+  timedRunUntil t0 200 (t0, t0) testFrame advanceFrame
