@@ -4,6 +4,7 @@ import Data.Maybe
 import SDL.Geometry
 import Utils.Utils
 import Directional
+import Geometry
 import TileRider.Grid
 import qualified TileRider.Grid as Grid
 import TileRider.SlidingGrid
@@ -18,6 +19,10 @@ data GridState = GridState { gridPlayer :: Point Int
 
 instance Functor GridDrawInfo where
   fmap f (GridDrawInfo scale origin) = GridDrawInfo (pairMap f scale) (pairMap f origin)
+
+drawInfoTransform :: GridDrawInfo a -> Transform a
+drawInfoTransform (GridDrawInfo scale origin) =
+  Transform (tupleToPair scale) (tupleToPair origin)
 
 fromTileSize :: (a -> b) -> GridDrawInfo a -> Point b
 fromTileSize f i = pairMap f (tileSize i)

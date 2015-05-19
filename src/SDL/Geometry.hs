@@ -45,7 +45,7 @@ unitDown :: Num a => Point a
 unitDown = (0, 1)
 
 unitUp :: Num a => Point a
-unitUp = (0, 1)
+unitUp = (0, -1)
 
 toRect :: (Integral a) => a -> a -> a -> a -> SDL.T.Rect
 toRect x y w h = SDL.T.Rect { SDL.T.rectX = fromIntegral x, SDL.T.rectY = fromIntegral y, SDL.T.rectW = fromIntegral w, SDL.T.rectH = fromIntegral h }

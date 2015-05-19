@@ -8,6 +8,7 @@ import Foreign.C.Types
 import SDL.Geometry
 import SDL.Draw
 import Directional
+import Geometry
 import TileRider.Drag
 import TileRider.SlidingGrid
 import TileRider.SmoothSlidingGrid
@@ -35,7 +36,7 @@ drawTilePaths :: SDL.T.Renderer -> GeomPoint -> GeomPoint -> Rectangular (Bool -
 drawTilePaths r scale origin = f <$> center <*> outer
   where scale' = pairMap (`quot` 2) scale
         center = pure (origin + scale')
-        outer = (+) <$> center <*> ((* scale') <$> unitGeomPoint)
+        outer = (+) <$> center <*> ((* scale') <$> (fmap pairToTuple signedVectors))
         f x x' b = when b $ drawLine r x x'
 
 drawTile :: SDL.T.Renderer -> GridDrawInfo CInt -> TileZipper (SmoothSliding GameTile) -> IO ()
@@ -50,12 +51,12 @@ drawTile r (GridDrawInfo scale origin) t = case tile of
 
 drawTiles :: RealFrac a => SDL.T.Renderer -> GridDrawInfo CInt -> Maybe (PartialMoveResult a) -> TileZipper GameTile -> IO ()
 drawTiles r drawInfo moveM z = gridSequenceFrom (drawTile r drawInfo) szz''
-  where szz'' = fromMaybe (error "wtf, there's no (0, 0) tile?") (Grid.moveTo zero sz')
+  where szz'' = fromMaybe (error "wtf, there's no (0, 0) tile?") (Grid.moveTo SDL.Geometry.zero sz')
         sz' = case moveM of
           Nothing -> sz
           Just move@(PartialMoveResult dir _ coord) ->
             fromMaybe (error "the partial move failed!") szM'
-            where szM' = atCoord (partialSlide dir (toGeomPoint $ offsetAmount_ move)) coord sz
+            where szM' = atCoord (partialSlide dir (toGeomPoint $ offsetAmount_ move)) (pairToTuple coord) sz
         sz = toSmoothSliding z
 
 drawPlayer :: RealFrac a => SDL.T.Renderer -> GridDrawInfo CInt -> Maybe (PartialMoveResult a) -> Point Int -> IO ()
@@ -73,13 +74,13 @@ drawGrid r drawInfo (GridInput _ partialMove) (GridState player _ tiles) = do
   drawPlayer r drawInfo playerMove player
   where (tileMove, playerMove) = case partialMove of
           Nothing -> (Nothing, Nothing)
-          Just (PartialMoveResult _ _ coord) -> if coord == player
+          Just (PartialMoveResult _ _ coord) -> if pairToTuple coord == player
                                                 then (Nothing, partialMove)
                                                 else (partialMove, Nothing)
 
 offsetAmount :: Num a => Maybe (PartialMoveResult a) -> Point a
-offsetAmount = maybe zero offsetAmount_
+offsetAmount = maybe SDL.Geometry.zero offsetAmount_
 
 offsetAmount_ :: Num a => PartialMoveResult a -> Point a
-offsetAmount_ (PartialMoveResult dir dist _) = toPoint $ injectAxis (toAxis $ GridOriented dir dist) 0
+offsetAmount_ (PartialMoveResult dir dist _) = pairToTuple . toPair $ injectAxis (toAxis $ GridOriented dir dist) 0
 

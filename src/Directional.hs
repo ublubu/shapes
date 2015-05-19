@@ -3,7 +3,7 @@ module Directional where
 import Control.Applicative
 import Data.Foldable
 import Data.Maybe
-import SDL.Geometry
+import Geometry
 
 data GridDirection = GridRight | GridDown | GridLeft | GridUp deriving (Show, Eq)
 data Axis = XAxis | YAxis deriving (Show, Eq)
@@ -20,8 +20,8 @@ reverseDirection GridDown = GridUp
 reverseDirection GridLeft = GridRight
 reverseDirection GridUp = GridDown
 
-unitGeomPoint :: Rectangular GeomPoint
-unitGeomPoint = Rectangular (1, 0) (0, 1) (-1, 0) (0, -1)
+signedVectors :: Num a => Rectangular (Pair a)
+signedVectors = Rectangular (Pair 1 0) (Pair 0 1) (Pair (-1) 0) (Pair 0 (-1))
 
 signedRect :: Num a => Rectangular a
 signedRect = Rectangular 1 1 (-1) (-1)
@@ -123,23 +123,23 @@ toAxis (GridOriented GridDown x) = SingleAxis YAxis x
 toAxis (GridOriented GridLeft x) = SingleAxis XAxis x
 toAxis (GridOriented GridUp x) = SingleAxis YAxis x
 
-toRect :: Num a => Point a -> Point a -> Rectangular a
-toRect (sx, sy) (ox, oy) = Rectangular (ox + sx) (oy + sy) ox oy
+toRect :: Num a => Pair a -> Pair a -> Rectangular a
+toRect (Pair sx sy) (Pair ox oy) = Rectangular (ox + sx) (oy + sy) ox oy
 
 degenerateRect_ :: AxisAligned a -> Rectangular a
 degenerateRect_ (AxisAligned x y) = Rectangular x y x y
 
-degenerateRect :: Point a -> Rectangular a
-degenerateRect = degenerateRect_ . fromPoint
+degenerateRect :: Pair a -> Rectangular a
+degenerateRect = degenerateRect_ . fromPair
 
-scaledSignedRect :: Num a => Point a -> Rectangular a
+scaledSignedRect :: Num a => Pair a -> Rectangular a
 scaledSignedRect x = (*) <$> signedRect <*> degenerateRect x
 
-fromBottomRight :: Num a => Point a -> Rectangular a
-fromBottomRight (x, y) = Rectangular x y 0 0
+fromBottomRight :: Num a => Pair a -> Rectangular a
+fromBottomRight (Pair x y) = Rectangular x y 0 0
 
-splitSegment :: Point (Point a) -> AxisAligned (Point a)
-splitSegment ((x, y), (x', y')) = AxisAligned (x, x') (y, y')
+splitSegment :: Pair (Pair a) -> AxisAligned (Pair a)
+splitSegment (Pair (Pair x y) (Pair x' y')) = AxisAligned (Pair x x') (Pair y y')
 
 orientedOnRect :: GridOriented (a -> b) -> Rectangular a -> GridOriented b
 orientedOnRect (GridOriented dir f) rect = GridOriented dir (f $ extract dir rect)
@@ -147,25 +147,25 @@ orientedOnRect (GridOriented dir f) rect = GridOriented dir (f $ extract dir rec
 alignedOnRect :: AxisAligned (a -> b) -> Rectangular a -> Rectangular b
 alignedOnRect f rect = degenerateRect_ f <*> rect
 
-fromPoint :: Point a -> AxisAligned a
-fromPoint (x, y) = AxisAligned x y
+fromPair :: Pair a -> AxisAligned a
+fromPair (Pair x y) = AxisAligned x y
 
-toPoint :: AxisAligned a -> Point a
-toPoint (AxisAligned x y) = (x, y)
+toPair :: AxisAligned a -> Pair a
+toPair (AxisAligned x y) = Pair x y
 
-intersect :: (Num a, Fractional a, Ord a) => Point (Point a) -> Rectangular a -> Maybe (GridOriented (Point a))
-intersect p rect = fmap intersectionPoint $ collapse (>) intersections
+intersect :: (Num a, Fractional a, Ord a) => Pair (Pair a) -> Rectangular a -> Maybe (GridOriented (Pair a))
+intersect p rect = fmap intersectionPair $ collapse (>) intersections
   where segment = splitSegment p
-        partial (x, x') t = (t - x) / (x' - x)
+        partial (Pair x x') t = (t - x) / (x' - x)
         partials = partial <$> degenerateRect_ segment <*> rect
         isIntersection t = if t > 0 && t <= 1 then Just t
                            else Nothing
         intersections = fmap isIntersection partials
-        intersectionPoint tt@(GridOriented dir t) =
+        intersectionPair tt@(GridOriented dir t) =
           GridOriented dir point
           where bound = toAxis $ extractOriented dir rect
-                useT (x, x') = x + (t * (x' - x))
-                point = toPoint (injectAxis (fmap const bound) useT <*> segment)
+                useT (Pair x x') = x + (t * (x' - x))
+                point = toPair (injectAxis (fmap const bound) useT <*> segment)
 
 sequenceRect :: Monad m => Rectangular (m a) -> m ()
 sequenceRect (Rectangular a b c d) = a >> b >> c >> d >> return ()
@@ -173,12 +173,12 @@ sequenceRect (Rectangular a b c d) = a >> b >> c >> d >> return ()
 generateRect :: (GridDirection -> a) -> Rectangular a
 generateRect f = Rectangular (f GridRight) (f GridDown) (f GridLeft) (f GridUp)
 
-rectToAxisAligned :: Rectangular a -> AxisAligned (a, a)
-rectToAxisAligned (Rectangular a b c d) = AxisAligned (a, c) (b, d)
+rectToAxisAligned :: Rectangular a -> AxisAligned (Pair a)
+rectToAxisAligned (Rectangular a b c d) = AxisAligned (Pair a c) (Pair b d)
 
 toSignedRect :: a -> a -> Rectangular a
 toSignedRect plus minus = Rectangular plus plus minus minus
 
-toSignedPairs :: Rectangular a -> Rectangular (a, a)
-toSignedPairs rect = (,) <$> rect <*> (rotate . rotate) rect
+toSignedPairs :: Rectangular a -> Rectangular (Pair a)
+toSignedPairs rect = Pair <$> rect <*> (rotate . rotate) rect
 

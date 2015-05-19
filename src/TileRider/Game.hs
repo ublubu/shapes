@@ -28,6 +28,7 @@ import TileRider.GameInput
 import TileRider.GameState
 import TileRider.GameTile
 import Utils.Utils
+import Geometry
 
 data World = World { gameOver :: Bool
                    , remainingLevels :: [GridState]
@@ -73,11 +74,11 @@ applyMouseMotion x y state = case gridDrag inputState of
   -- update the end of the current drag (if we are dragging)
   Nothing -> state
   Just (click, _) -> state { gridState = gs'
-                           , gridInput = inputState { gridDrag = Just drag'
+                           , gridInput = inputState { gridDrag = Just $ pairToTuple (fmap pairToTuple drag')
                                                     , gridPartialMove = partialMove }}
     where (drag', partialMove, gs') = completelyApplyDrag drawInfo drag gs
-          drawInfo = fmap fromIntegral (gridDrawInfo state)
-          drag = (click, pairMap fromIntegral (x, y))
+          drawInfo = drawInfoTransform $ fmap fromIntegral (gridDrawInfo state)
+          drag = Pair (tupleToPair click) (fmap fromIntegral (Pair x y))
           gs = gridState state
   where inputState = gridInput state
 
@@ -96,7 +97,7 @@ applyMouseButtonUp button x y state =
   else state -- we drag using left button
   where pos = toGeomPointInt (x, y)
         input = gridInput state
-        drawInfo = fmap fromIntegral (gridDrawInfo state)
+        drawInfo = drawInfoTransform $ fmap fromIntegral (gridDrawInfo state)
         move = convertPartialMove drawInfo =<< gridPartialMove input
         gs = gridState state
         gs' = maybe gs (`applyFullMove` gs) move
@@ -118,7 +119,7 @@ runUntilComplete game = game >>= \state -> unless (gameOver state) $ runUntilCom
 
 instance Draggable (GridState) where
   setCoord coord gs@(GridState _ _ tiles) = do
-    tiles' <- Grid.moveTo coord tiles
+    tiles' <- Grid.moveTo (pairToTuple coord) tiles
     return $ gs { gridTiles = tiles' }
   applyMove dir gs@(GridState player _ tiles) =
     if player == gridCoord tiles then movePlayer dir gs

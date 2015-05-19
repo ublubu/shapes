@@ -2,9 +2,9 @@ module SideScroller.WorldUnit where
 
 import Control.Applicative
 
-data WorldPos a = WorldPos a
-data WorldTime a = WorldTime a
-data WorldRate a = WorldRate a
+data WorldPos a = WorldPos a deriving (Eq, Show)
+data WorldTime a = WorldTime a deriving (Eq, Show)
+data WorldRate a = WorldRate a deriving (Eq, Show)
 
 type WorldSpeed a = WorldRate (WorldPos a)
 type WorldAccel a = WorldRate (WorldSpeed a)
