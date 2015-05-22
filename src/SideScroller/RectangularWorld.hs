@@ -8,9 +8,12 @@ import Directional
 import Geometry
 import Utils.Utils
 import Debug.Trace
-import SideScroller.WorldUnit
+import SideScroller.Calculus
 
-data Box a = Box (Rectangular a) (WorldSpeed a)
+data Box a = Box (Transform (Pos a)) (Speed a)
+
+data Boxes a b = Boxes { boxes :: [Box b]
+                       , boxesTime :: a }
 
 hasCollision :: (Ord a) => Rectangular a -> Rectangular a -> Bool
 hasCollision rectA rectB = getAny . fold . fmap Any $ (overlap <$> boundsA <*> boundsB)
@@ -49,3 +52,14 @@ checkCollision rectA rectB dx = collapse (>) collisions
           where a' = a + (fmap (*p) dx)
         collisions = toCollision <$> potentials <*> toBounds rectA <*> toBounds rectB
 
+advanceStep :: (Convert a b, Num a, Num b) => Boxes a b -> a -> Boxes a b
+advanceStep (Boxes bs t) dt = Boxes (fmap f bs) (t + dt)
+  where f (Box (Transform scale origin) speed) = Box (Transform scale (origin `aplus` dx)) speed
+          where dx = speed `integral` (convert dt)
+
+advanceTime :: (Convert a b, Num b, RealFrac a) => Boxes a b -> a -> a -> (Boxes a b, Boxes a b)
+advanceTime bs dt tstep = (bs', bs'')
+  where steps = floor (dt / tstep)
+        remaining = max 0 (dt - ((fromIntegral steps) * tstep))
+        bs' = iterate (`advanceStep` tstep) bs !! fromIntegral steps
+        bs'' = bs' `advanceStep` remaining

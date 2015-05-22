@@ -20,7 +20,7 @@ data GridState = GridState { gridPlayer :: Point Int
 instance Functor GridDrawInfo where
   fmap f (GridDrawInfo scale origin) = GridDrawInfo (pairMap f scale) (pairMap f origin)
 
-drawInfoTransform :: GridDrawInfo a -> Transform a
+drawInfoTransform :: GridDrawInfo a -> Transform (Pair a)
 drawInfoTransform (GridDrawInfo scale origin) =
   Transform (tupleToPair scale) (tupleToPair origin)
 
