@@ -57,9 +57,15 @@ advanceStep (Boxes bs t) dt = Boxes (fmap f bs) (t + dt)
   where f (Box (Transform scale origin) speed) = Box (Transform scale (origin `aplus` dx)) speed
           where dx = speed `integral` (convert dt)
 
+advanceSteps :: (Convert a b, Num a, Num b) => Boxes a b -> a -> Int -> Boxes a b
+advanceSteps bs dt = (iterate (`advanceStep` dt) bs !!)
+
+interpStep :: (Convert a b, Num a, Num b) => Boxes a b -> a -> Boxes a b
+interpStep = advanceStep
+
 advanceTime :: (Convert a b, Num b, RealFrac a) => Boxes a b -> a -> a -> (Boxes a b, Boxes a b)
 advanceTime bs dt tstep = (bs', bs'')
   where steps = floor (dt / tstep)
         remaining = max 0 (dt - ((fromIntegral steps) * tstep))
         bs' = iterate (`advanceStep` tstep) bs !! fromIntegral steps
-        bs'' = bs' `advanceStep` remaining
+        bs'' = if remaining > 0 then bs' `interpStep` remaining else bs'

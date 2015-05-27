@@ -3,6 +3,7 @@ module GameLoop where
 import qualified Graphics.UI.SDL.Timer as SDL.Timer
 import Control.Monad.State
 import GHC.Word
+import Utils.Utils
 
 updater :: (a -> Word32 -> IO a) -> StateT a IO ()
 updater f = do
@@ -13,27 +14,39 @@ updater f = do
   return ()
 
 timedUpdater :: Word32 -> (a -> Word32 -> IO a) -> StateT (Word32, a) IO ()
-timedUpdater t f = do
+timedUpdater dt f = do
   (target, s) <- get
   time <- SDL.Timer.getTicks
   let wait = target - time in when (wait > 0) (liftIO $ SDL.Timer.delay wait)
   time' <- SDL.Timer.getTicks
   s' <- liftIO $ f s time'
-  put (target + t, s')
+  put (target + dt, s')
   return ()
 
-timedRunUntil :: Word32 -> Word32 -> a -> (a -> Bool) -> (a -> Word32 -> IO a) -> IO ()
-timedRunUntil t0 dt s0 test f = runStateT u' (t0, s0) >> return ()
+timedRunWhile :: Word32 -> Word32 -> a -> (a -> Bool) -> (a -> Word32 -> IO a) -> IO ()
+timedRunWhile t0 dt s0 test f = void $ runStateT u' (t0, s0)
   where u = timedUpdater dt f
         u' = do
           (_, s) <- get
-          if test s then u >> u'
-          else return ()
+          when (test s) $ u >> u'
 
-runUntil :: a -> (a -> Bool) -> StateT a IO () -> IO ()
-runUntil s0 test f = runStateT f' s0 >> return ()
+runWhile :: a -> (a -> Bool) -> StateT a IO () -> IO ()
+runWhile s0 test f = void $ runStateT f' s0
   where f' = do
           s <- get
-          if test s then f >> f'
-          else return ()
+          when (test s) $ f >> f'
+
+runUntil :: a -> (a -> Bool) -> StateT a IO () -> IO ()
+runUntil s0 test = runWhile s0 (not . test)
+
+timeSteps :: (RealFrac a, Integral b) => a -> a -> (b, a)
+timeSteps dt tstep = (steps, remaining)
+  where steps = floor (dt / tstep)
+        remaining = max 0 (dt - (fromIntegral steps) * tstep)
+
+timeSteps_ :: (Ord a, Num a, Integral b) => a -> a -> (b, a)
+timeSteps_ dt = f (0, dt)
+  where f res@(steps, remaining) tstep = if remaining > tstep
+                                         then f (steps + 1, remaining - tstep) tstep
+                                         else res
 

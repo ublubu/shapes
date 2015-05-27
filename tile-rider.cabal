@@ -64,6 +64,7 @@ executable side-scroller
                      , sdl2-image >= 0.1.2.0
                      , mtl
                      , ListZipper
+                     , monad-extras >= 0.5.9
   
   -- Directories containing source files.
   hs-source-dirs:      src
@@ -88,6 +89,7 @@ executable tile-rider
                      , sdl2-image >= 0.1.2.0
                      , mtl
                      , ListZipper
+                     , monad-extras >= 0.5.9
   
   -- Directories containing source files.
   hs-source-dirs:      src

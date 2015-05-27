@@ -2,9 +2,12 @@ module SDL.Event where
 
 import qualified Graphics.UI.SDL.Types as SDL.T
 import qualified Graphics.UI.SDL.Event as Event
+import Control.Monad.Extra
 import Foreign.Marshal.Alloc
 import Foreign.Marshal.Utils
 import Foreign.Storable
+import Foreign.Ptr
+import Data.Maybe
 
 data Key = Q | W | E | A | S | D | N
 
@@ -21,12 +24,15 @@ pollQuit stream = do
         _ -> return False
 
 pollEvent :: IO Input
-pollEvent = alloca $ \pointer -> do
-  status <- Event.pollEvent pointer
+pollEvent = alloca pollEvent_
+
+pollEvent_ :: Ptr SDL.T.Event -> IO Input
+pollEvent_ ptr = do
+  status <- Event.pollEvent ptr
 
   if status == 1
     then do
-    evt <- maybePeek peek pointer
+    evt <- maybePeek peek ptr
     case evt of
 --      Just (SDL.T.MouseMotionEvent { SDL.T.mouseMotionEventX = x
 --                                   , SDL.T.mouseMotionEventY = y}) ->
@@ -34,6 +40,9 @@ pollEvent = alloca $ \pointer -> do
       _ -> return ()
     return evt
     else return Nothing
+
+flushEvents :: IO [SDL.T.Event]
+flushEvents = alloca (\ptr -> fmap catMaybes $ sequenceWhile isJust $ repeat (pollEvent_ ptr))
 
 getKey :: SDL.T.Keysym -> Key
 getKey sym = case SDL.T.keysymScancode sym of

@@ -60,3 +60,21 @@ adiv = liftA2 (/)
 ffloor :: (Functor t, RealFrac a, Integral b) => t a -> t b
 ffloor = fmap floor
 
+baseValue :: BaseValue a -> a
+baseValue (BaseValue x) = x
+
+speedValue :: Speed a -> a
+speedValue (RateValue () x) = x
+
+accelValue :: Accel a -> a
+accelValue (RateValue (Rate ()) x) = x
+
+toBase :: a -> BaseValue a
+toBase = BaseValue
+
+toSpeed :: a -> Speed a
+toSpeed = RateValue ()
+
+toAccel :: a -> Accel a
+toAccel = RateValue (Rate ())
+
