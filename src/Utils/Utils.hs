@@ -73,3 +73,41 @@ maybeChange x f = fromMaybe x (f x)
 toMaybe :: Bool -> a -> Maybe a
 toMaybe b x = if b then Just x else Nothing
 
+takeIfAll :: (a -> Bool) -> [a] -> Maybe [a]
+takeIfAll p [] = Just []
+takeIfAll p (x:xs)
+  | p x = fmap (x:) (takeIfAll p xs)
+  | otherwise = Nothing
+
+cycles :: [a] -> [[a]]
+cycles xs = folds tail (cycle xs) xs
+
+data Loop a = Loop { loopPrev :: Loop a
+                   , loopVal :: a
+                   , loopNext :: Loop a }
+
+loopify :: [a] -> Loop a
+loopify [] = error "can't have an empty loop"
+loopify v = let (first, last) = f last v first
+            in first
+  where f :: Loop a -> [a] -> Loop a -> (Loop a, Loop a)
+        f prev [] next = (next, prev)
+        f prev (x:xs) next = let (next', last') = f this xs next
+                                 this = Loop prev x next'
+                             in (this, last')
+
+takeNext :: Int -> Loop a -> [Loop a]
+takeNext = takeDir loopNext
+
+takePrev :: Int -> Loop a -> [Loop a]
+takePrev = takeDir loopPrev
+
+takeDir :: (Loop a -> Loop a) -> Int -> Loop a -> [Loop a]
+takeDir dir n x
+  | n > 0 = x : takeDir dir (n - 1) (dir x)
+  | n == 0 = []
+  | n < 0 = error "cannot take fewer than 0"
+
+folds :: (b -> b) -> b -> [a] -> [b]
+folds _ _ [] = []
+folds f a0 (_:xs) = a0 : folds f (f a0) xs

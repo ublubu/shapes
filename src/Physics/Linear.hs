@@ -43,13 +43,19 @@ rotate22 ori = V2 (V2 c (-s)) (V2 s c)
 clockwise22 :: Num a => M22 a
 clockwise22 = V2 (V2 0 1) (V2 (-1) 0)
 
+clockwise2 :: Num a => V2 a -> V2 a
+clockwise2 (V2 x y) = V2 y (-x)
+
 anticlockwise22 :: Num a => M22 a
 anticlockwise22 = V2 (V2 0 1) (V2 (-1) 0)
 
+anticlockwise2 :: Num a => V2 a -> V2 a
+anticlockwise2 (V2 x y) = V2 (-y) x
+
 perpendicularTowards :: (Num a, Ord a) => V2 a -> V2 a -> V2 a
-a `perpendicularTowards` b = rot !* b
-  where rot = if a `cross22` b > 0 then clockwise22
-              else anticlockwise22
+a `perpendicularTowards` b = rot b
+  where rot = if a `cross22` b > 0 then clockwise2
+              else anticlockwise2
 
 similarDir :: (Metric t, Num a, Ord a) => t a -> t a -> Bool
 similarDir a b = a `dot` b > 0
