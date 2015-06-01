@@ -9,7 +9,10 @@ import GameLoop
 import GameInit
 import Geometry
 import qualified SideScroller.Game as Game
+import qualified Physics.Constraint as P
 
 main :: IO ()
-main = runMain "SideScroller" window (Game.main window)
+main = do
+  P.main
+  --runMain "SideScroller" window (Game.main window)
   where window = Pair 800 600

@@ -65,6 +65,9 @@ executable side-scroller
                      , mtl
                      , ListZipper
                      , monad-extras >= 0.5.9
+                     , linear >= 1.18
+                     , lens >= 4.11
+                     , vector
   
   -- Directories containing source files.
   hs-source-dirs:      src
