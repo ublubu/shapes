@@ -38,46 +38,56 @@ invertTransform (f, g) = (g, f)
 data WorldVelocity a = WorldVelocity { worldLinearVel :: V2 a
                                      , worldAngularVel :: a }
 
-data WorldTransformable a => WorldT a = WorldT a (WorldTransform (WTNum a))
-data WorldT' b a = WorldT' b (WorldTransform a)
+data WorldTransformable b a => WorldT a b = WorldT (WorldTransform a) b
+data WorldT' a b = WorldT' (WorldTransform a) b
 
-wConvert' :: WorldTransformable a => WorldT a -> WorldT' a (WTNum a)
+instance Functor (WorldT' a) where
+  fmap f (WorldT' t v) = WorldT' t (f v)
+
+wConvert' :: WorldTransformable b a => WorldT a b -> WorldT' a b
 wConvert' (WorldT a b) = WorldT' a b
 
-wConvert :: WorldTransformable a => WorldT' a (WTNum a) -> WorldT a
+wConvert :: WorldTransformable b a => WorldT' a b -> WorldT a b
 wConvert (WorldT' a b) = WorldT a b
 
 -- wExtract and wInject don't change the transform - they only move between types
-class WorldTransformable t where
-  type WTNum t
-  transform :: WorldTransform (WTNum t) -> t -> t
-  untransform :: WorldTransform (WTNum t) -> t -> t
-  wExtract :: WorldT t -> t
-  wExtract (WorldT v t) = transform t v
-  wInject :: WorldTransform (WTNum t) -> t -> WorldT t
-  wInject t v = WorldT (untransform t v) t
-  wInject_ :: WorldTransform (WTNum t) -> t -> t -- same as wInject, but throws away type information
+class WorldTransformable t a where
+  transform :: WorldTransform a -> t -> t
+  untransform :: WorldTransform a -> t -> t
+
+  wExtract :: WorldT a t -> t
+  wExtract (WorldT t v) = transform t v
+
+  wInject :: WorldTransform a -> t -> WorldT a t
+  wInject t v = WorldT t (untransform t v)
+
+  wInject_ :: WorldTransform a -> t -> t -- same as wInject, but throws away type information
   wInject_ = untransform
 
-instance (Floating a) => WorldTransformable (V2 a) where
-  type WTNum (V2 a) = a
+instance (Floating a) => WorldTransformable (V2 a) a where
   transform = fst
   untransform = snd
 
-instance (WorldTransformable a) => WorldTransformable (WorldT a) where
-  type WTNum (WorldT a) = WTNum a
-  transform t' (WorldT v t) = WorldT v (joinTransforms t' t)
-  untransform t' (WorldT v t) = WorldT v (joinTransforms (invertTransform t') t)
-  wInject _ x = WorldT x idTransform
+instance (WorldTransformable a b) => WorldTransformable (WorldT b a) b where
+  transform t' (WorldT t v) = WorldT (joinTransforms t' t) v
+  untransform t' (WorldT t v) = WorldT (joinTransforms (invertTransform t') t) v
+  wInject _ = WorldT idTransform
 
-mapT' :: (WorldTransformable a) => (b -> a -> a) -> WorldT' b (WTNum a) -> a -> WorldT a
-mapT' f (WorldT' s t) v = WorldT (f s v') t
+wMap2' :: (WorldTransformable b n, WorldTransformable c n) => (a -> b -> c) -> WorldT' n a -> b -> WorldT n c
+wMap2' f (WorldT' t s) v = WorldT t (f s v')
   where v' = wInject_ t v
 
-mapTT' :: (WorldTransformable a) => (b -> a -> a) -> WorldT' b (WTNum a) -> WorldT a -> WorldT a
-mapTT' f s = mapT' f s . wExtract
+wMap2'' :: (WorldTransformable b n, WorldTransformable c n) => (a -> b -> c) -> WorldT' n a -> WorldT n b -> WorldT n c
+wMap2'' f s = wMap2' f s . wExtract
 
-mapT :: (WorldTransformable a) => (a -> b) -> WorldT a -> b
-mapT f = f . wExtract
+wExtractWith :: (WorldTransformable a n) => (a -> b) -> WorldT n a -> b
+wExtractWith f = f . wExtract
 
-apT' :: (WorldTransformable a) => WorldT' (a -> b)
+wInjectWith'' :: (WorldTransformable a n) => WorldT' n (a -> b) -> WorldT n a -> WorldT' n b
+wInjectWith'' f x = wInjectWith' f (wExtract x)
+
+wInjectWith' :: (WorldTransformable a n) => WorldT' n (a -> b) -> a -> WorldT' n b
+wInjectWith' (WorldT' t f) x = WorldT' t (f (wInject_ t x))
+
+wApply' :: (WorldTransformable a n, WorldTransformable b n) => WorldT' n (a -> b) -> a -> b
+wApply' f x = (wExtract . wConvert) (wInjectWith' f x)
