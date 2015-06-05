@@ -77,17 +77,20 @@ instance (WorldTransformable a b) => WorldTransformable (LocalT b a) b where
   untransform t' (LocalT t v) = LocalT (joinTransforms (invertTransform t') t) v
   wInject _ = LocalT idTransform . iExtract
 
-iMap :: (a -> b) -> WorldT a -> WorldT b
-iMap = fmap
+wMap :: (a -> b) -> WorldT a -> WorldT b
+wMap = fmap
 
-iAp :: WorldT (a -> b) -> WorldT a -> WorldT b
-iAp (WorldT f) = fmap f
+wAp :: WorldT (a -> b) -> WorldT a -> WorldT b
+wAp (WorldT f) = fmap f
 
-iwAp :: (WorldTransformable a n) => WorldT (a -> b) -> LocalT n a -> WorldT b
-iwAp f = iAp f . wExtract
+wlAp :: (WorldTransformable a n) => WorldT (a -> b) -> LocalT n a -> WorldT b
+wlAp f = wAp f . wExtract
 
-wiAp :: (WorldTransformable a n) => LocalT n (a -> b) -> WorldT a -> LocalT n b
-wiAp (LocalT t f) x = fmap f (wInject t x)
+lwAp :: (WorldTransformable a n) => LocalT n (a -> b) -> WorldT a -> LocalT n b
+lwAp (LocalT t f) x = fmap f (wInject t x)
 
-wAp :: (WorldTransformable a n) => LocalT n (a -> b) -> LocalT n a -> LocalT n b
-wAp f x = wiAp f (wExtract x)
+lAp :: (WorldTransformable a n) => LocalT n (a -> b) -> LocalT n a -> LocalT n b
+lAp f x = lwAp f (wExtract x)
+
+lMap :: (a -> b) -> LocalT n a -> LocalT n b
+lMap = fmap
