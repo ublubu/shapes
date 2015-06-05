@@ -38,33 +38,32 @@ invertTransform (f, g) = (g, f)
 data WorldVelocity a = WorldVelocity { worldLinearVel :: V2 a
                                      , worldAngularVel :: a }
 
-data WorldT a b = WorldT (WorldTransform a) b
+data LocalT a b = LocalT (WorldTransform a) b
 
-data WorldI a = WorldI a
+data WorldT a = WorldT a
 
-iExtract :: WorldI a -> a
-iExtract (WorldI x) = x
+iExtract :: WorldT a -> a
+iExtract (WorldT x) = x
 
-iInject :: a -> WorldI a
-iInject = WorldI
+iInject :: a -> WorldT a
+iInject = WorldT
 
--- this is dangerous because a localized function could operate on a WorldT in another locale
-instance Functor (WorldT a) where
-  fmap f (WorldT t v) = WorldT t (f v)
+instance Functor (LocalT a) where
+  fmap f (LocalT t v) = LocalT t (f v)
 
-instance Functor WorldI where
-  fmap f (WorldI v) = WorldI (f v)
+instance Functor WorldT where
+  fmap f (WorldT v) = WorldT (f v)
 
 -- wExtract and wInject don't change the transform - they only move between types
 class WorldTransformable t a where
   transform :: WorldTransform a -> t -> t
   untransform :: WorldTransform a -> t -> t
 
-  wExtract :: WorldT a t -> WorldI t
-  wExtract (WorldT t v) = WorldI (transform t v)
+  wExtract :: LocalT a t -> WorldT t
+  wExtract (LocalT t v) = WorldT (transform t v)
 
-  wInject :: WorldTransform a -> WorldI t -> WorldT a t
-  wInject t v = WorldT t (untransform t (iExtract v))
+  wInject :: WorldTransform a -> WorldT t -> LocalT a t
+  wInject t v = LocalT t (untransform t (iExtract v))
 
   wInject_ :: WorldTransform a -> t -> t -- same as wInject, but throws away type information
   wInject_ = untransform
@@ -73,22 +72,22 @@ instance (Floating a) => WorldTransformable (V2 a) a where
   transform = fst
   untransform = snd
 
-instance (WorldTransformable a b) => WorldTransformable (WorldT b a) b where
-  transform t' (WorldT t v) = WorldT (joinTransforms t' t) v
-  untransform t' (WorldT t v) = WorldT (joinTransforms (invertTransform t') t) v
-  wInject _ = WorldT idTransform . iExtract
+instance (WorldTransformable a b) => WorldTransformable (LocalT b a) b where
+  transform t' (LocalT t v) = LocalT (joinTransforms t' t) v
+  untransform t' (LocalT t v) = LocalT (joinTransforms (invertTransform t') t) v
+  wInject _ = LocalT idTransform . iExtract
 
-iMap :: (a -> b) -> WorldI a -> WorldI b
+iMap :: (a -> b) -> WorldT a -> WorldT b
 iMap = fmap
 
-iAp :: WorldI (a -> b) -> WorldI a -> WorldI b
-iAp (WorldI f) = fmap f
+iAp :: WorldT (a -> b) -> WorldT a -> WorldT b
+iAp (WorldT f) = fmap f
 
-iwAp :: (WorldTransformable a n) => WorldI (a -> b) -> WorldT n a -> WorldI b
+iwAp :: (WorldTransformable a n) => WorldT (a -> b) -> LocalT n a -> WorldT b
 iwAp f = iAp f . wExtract
 
-wiAp :: (WorldTransformable a n) => WorldT n (a -> b) -> WorldI a -> WorldT n b
-wiAp (WorldT t f) x = fmap f (wInject t x)
+wiAp :: (WorldTransformable a n) => LocalT n (a -> b) -> WorldT a -> LocalT n b
+wiAp (LocalT t f) x = fmap f (wInject t x)
 
-wAp :: (WorldTransformable a n) => WorldT n (a -> b) -> WorldT n a -> WorldT n b
+wAp :: (WorldTransformable a n) => LocalT n (a -> b) -> LocalT n a -> LocalT n b
 wAp f x = wiAp f (wExtract x)
