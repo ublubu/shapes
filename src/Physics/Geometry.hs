@@ -11,6 +11,7 @@ import Control.Monad
 import Control.Applicative
 import Data.Maybe
 import Data.List.Zipper
+import Linear.Affine
 import Linear.Epsilon
 import Linear.Matrix
 import Linear.Metric
@@ -20,14 +21,14 @@ import Utils.Utils
 import Physics.Linear
 import Physics.Transform
 
-data ConvexHull a = ConvexHull { hullVertices :: [V2 a] }
-data VertexView a = VertexView Int (Loop (V2 a))
+data ConvexHull a = ConvexHull { hullVertices :: [P2 a] }
+data VertexView a = VertexView Int (Loop (P2 a))
 
 rectangleHull :: (Fractional a) => a -> a -> ConvexHull a
-rectangleHull w h = ConvexHull [ V2 w2 h2
-                               , V2 (-w2) h2
-                               , V2 (-w2) (-h2)
-                               , V2 w2 (-h2) ]
+rectangleHull w h = ConvexHull [ P $ V2 w2 h2
+                               , P $ V2 (-w2) h2
+                               , P $ V2 (-w2) (-h2)
+                               , P $ V2 w2 (-h2) ]
   where w2 = w / 2
         h2 = h / 2
 
@@ -46,14 +47,14 @@ vCount (VertexView n _) = n
 vList :: VertexView a -> [VertexView a]
 vList v = take (vCount v) (iterate vNext v)
 
-vertexLoop :: VertexView a -> Loop (V2 a)
+vertexLoop :: VertexView a -> Loop (P2 a)
 vertexLoop (VertexView _ l) = l
 
-vertex :: VertexView a -> V2 a
+vertex :: VertexView a -> P2 a
 vertex = loopVal . vertexLoop
 
 edgeNormal :: (Num a, Ord a) => VertexView a -> V2 a
-edgeNormal vs = clockwise2 (v' - v)
+edgeNormal vs = clockwise2 (v' .-. v)
   where v = vertex vs
         v' = vertex (vNext vs)
 
@@ -63,8 +64,32 @@ unitEdgeNormal = normalize . edgeNormal
 support :: (Num a, Ord a) => VertexView a -> V2 a -> VertexView a
 support v dir = snd $ foldl1 g (fmap f vs)
   where vs = vList v
-        f v' = let point = vertex v' in (dir `dot` point, v')
+        f v' = let point = vertex v' in (dir `afdot'` point, v')
         g a@(distA, _) b@(distB, _) = if distB > distA then b else a
+
+type Feature a b = (LocalT a (VertexView a), b)
+type Support a = WorldT (V2 a) -> Feature a (WorldT (P2 a))
+
+support' :: (Floating a, Ord a) => LocalT a (VertexView a) -> Support a
+support' v dir = (v', wExtract (lmap vertex v'))
+  where sup = lmap support v
+        v' = lwap sup dir
+
+extentAlong :: (Floating a, Ord a) => Support a -> WorldT (V2 a) -> (Feature a a, Feature a a)
+extentAlong sup dir = (fmap f minv, fmap f maxv)
+  where f v = iExtract (wap (wmap afdot' dir) v)
+        minv = sup (wmap negate dir)
+        maxv = sup dir
+
+overlap :: (Ord a) => (a, a) -> (a, a) -> Bool
+overlap (a, b) (c, d) = not (c > b || d < a)
+
+edgeNormals :: (Epsilon a, Floating a, Ord a) => LocalT a (VertexView a) -> [Feature a (WorldT (V2 a))]
+edgeNormals v = fmap f vs
+  where f v' = (v', wExtract (lmap unitEdgeNormal v'))
+        vs = lfmap vList v
+
+--greatestOverlap :: Support a -> LocalT a (VertexView a) -> Maybe (Feature a (WorldT (V2 a), a), Feature a (WorldT))
 
 {-
 

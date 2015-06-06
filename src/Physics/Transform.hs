@@ -11,6 +11,7 @@ import Control.Monad
 import Control.Applicative
 import Data.Maybe
 import Data.List.Zipper
+import Linear.Affine
 import Linear.Epsilon
 import Linear.Matrix
 import Linear.Metric
@@ -19,24 +20,23 @@ import Linear.Vector
 import Utils.Utils
 import Physics.Linear
 
-type WorldTransform a = (V2 a -> V2 a, V2 a -> V2 a)
+type WorldTransform a = (M33 a, M33 a)
 
-toTransform :: (Floating a) => V2 a -> a -> WorldTransform a
-toTransform pos ori = (trans, untrans)
-  where trans r = (rotate22 ori !* r) + pos
-        untrans r = rotate22 (-ori) !* (r - pos)
+toTransform :: (Floating a) => Diff V2 a -> a -> WorldTransform a
+toTransform pos ori = (transl !*! rot, rot' !*! transl')
+  where rot = afrotate33 ori
+        rot' = afrotate33 (-ori)
+        transl = aftranslate33 pos
+        transl' = aftranslate33 (-pos)
 
-idTransform :: WorldTransform a
-idTransform = (id, id)
+idTransform :: (Num a) => WorldTransform a
+idTransform = (identity, identity)
 
-joinTransforms :: WorldTransform a -> WorldTransform a -> WorldTransform a
-joinTransforms (outerF, outerG) (innerF, innerG) = (outerF . innerF, outerG . innerG)
+joinTransforms :: (Num a) => WorldTransform a -> WorldTransform a -> WorldTransform a
+joinTransforms (outer, outer') (inner, inner') = (outer !*! inner, inner' !*! outer')
 
 invertTransform :: WorldTransform a -> WorldTransform a
 invertTransform (f, g) = (g, f)
-
-data WorldVelocity a = WorldVelocity { worldLinearVel :: V2 a
-                                     , worldAngularVel :: a }
 
 data LocalT a b = LocalT (WorldTransform a) b
 
@@ -68,29 +68,39 @@ class WorldTransformable t a where
   wInject_ :: WorldTransform a -> t -> t -- same as wInject, but throws away type information
   wInject_ = untransform
 
-instance (Floating a) => WorldTransformable (V2 a) a where
-  transform = fst
-  untransform = snd
+instance (Floating a) => WorldTransformable (P2 a) a where
+  transform (trans, _) = afmul trans
+  untransform (_, untrans) = afmul untrans
 
-instance (WorldTransformable a b) => WorldTransformable (LocalT b a) b where
+instance (Floating a) => WorldTransformable (V2 a) a where
+  transform (trans, _) = afmul trans
+  untransform (_, untrans) = afmul untrans
+
+instance (Num b, WorldTransformable a b) => WorldTransformable (LocalT b a) b where
   transform t' (LocalT t v) = LocalT (joinTransforms t' t) v
   untransform t' (LocalT t v) = LocalT (joinTransforms (invertTransform t') t) v
   wInject _ = LocalT idTransform . iExtract
 
-wMap :: (a -> b) -> WorldT a -> WorldT b
-wMap = fmap
+wfmap :: (Functor t) => (a -> t b) -> WorldT a -> t (WorldT b)
+wfmap f (WorldT v) = fmap WorldT (f v)
 
-wAp :: WorldT (a -> b) -> WorldT a -> WorldT b
-wAp (WorldT f) = fmap f
+wmap :: (a -> b) -> WorldT a -> WorldT b
+wmap = fmap
 
-wlAp :: (WorldTransformable a n) => WorldT (a -> b) -> LocalT n a -> WorldT b
-wlAp f = wAp f . wExtract
+wap :: WorldT (a -> b) -> WorldT a -> WorldT b
+wap (WorldT f) = wmap f
 
-lwAp :: (WorldTransformable a n) => LocalT n (a -> b) -> WorldT a -> LocalT n b
-lwAp (LocalT t f) x = fmap f (wInject t x)
+wlap :: (WorldTransformable a n) => WorldT (a -> b) -> LocalT n a -> WorldT b
+wlap f = wap f . wExtract
 
-lAp :: (WorldTransformable a n) => LocalT n (a -> b) -> LocalT n a -> LocalT n b
-lAp f x = lwAp f (wExtract x)
+lwap :: (WorldTransformable a n) => LocalT n (a -> b) -> WorldT a -> LocalT n b
+lwap (LocalT t f) x = lmap f (wInject t x)
 
-lMap :: (a -> b) -> LocalT n a -> LocalT n b
-lMap = fmap
+lap :: (WorldTransformable a n) => LocalT n (a -> b) -> LocalT n a -> LocalT n b
+lap f x = lwap f (wExtract x)
+
+lmap :: (a -> b) -> LocalT n a -> LocalT n b
+lmap = fmap
+
+lfmap :: (Functor t) => (a -> t b) -> LocalT n a -> t (LocalT n b)
+lfmap f (LocalT t v) = fmap (LocalT t) (f v)
