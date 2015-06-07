@@ -11,6 +11,7 @@ import Control.Lens
 import qualified Data.Vector as Vec
 import Data.Maybe
 import Linear.Affine
+import Linear.Epsilon
 import Linear.V
 import Linear.V2
 import Linear.V3
@@ -40,8 +41,11 @@ append2 (V2 a b) = V3 a b
 listToV :: Dim n => [a] -> V (n :: Nat) a
 listToV = fromJust . fromVector . Vec.fromList
 
+rotate22_ :: (Num a) => a -> a -> M22 a
+rotate22_ cosv sinv = V2 (V2 cosv (-sinv)) (V2 sinv cosv)
+
 rotate22 :: (Floating a) => a -> M22 a
-rotate22 ori = V2 (V2 c (-s)) (V2 s c)
+rotate22 ori = rotate22_ c s
   where c = cos ori
         s = sin ori
 
@@ -102,3 +106,19 @@ a `perpendicularTowards` b = rot b
 similarDir :: (Metric t, Num a, Ord a) => t a -> t a -> Bool
 similarDir a b = a `dot` b > 0
 
+horizontalizer22 :: (Floating a) => V2 a -> M22 a
+horizontalizer22 d@(V2 a o) = rotate22_ cosv (-sinv)
+  where sinv = o / h
+        cosv = a / h
+        h = norm d
+
+data Line2 a = Line2 { linePoint :: P2 a
+                     , lineNormal :: V2 a }
+
+-- solving some `mx = b` up in here
+intersect2 :: (Floating a, Epsilon a) => Line2 a -> Line2 a -> Maybe (P2 a)
+intersect2 (Line2 p n) (Line2 p' n') = do
+  m' <- inv22 m
+  return $ P (m' !* b)
+  where b = V2 (p `afdot` n) (p' `afdot` n')
+        m = V2 n n'

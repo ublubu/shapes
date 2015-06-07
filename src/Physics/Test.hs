@@ -1,27 +1,22 @@
 module Physics.Test where
 
+import Linear.Affine
+import Linear.Matrix
 import Linear.V2
+import Physics.Linear
+import Physics.Transform
 import Physics.Geometry
 
-boxA :: (Fractional a) => WorldT ConvexHull a
-boxA = WorldT (rectangleHull 1 1) (WorldTransform (V2 0 0) 0)
-
-boxB :: (Fractional a) => WorldT ConvexHull a
-boxB = WorldT (rectangleHull 1.0001 1.0001) (WorldTransform (V2 1 0) 0)
-
-boxC :: (Fractional a) => WorldT ConvexHull a
-boxC = WorldT (rectangleHull 1 1) (WorldTransform (V2 2 0) 0)
-
-boxD :: (Fractional a) => WorldT ConvexHull a
-boxD = WorldT (rectangleHull 1 1) (WorldTransform (V2 1 1) 0)
-
-boxE :: (Fractional a) => WorldT ConvexHull a
-boxE = WorldT (rectangleHull 1 1) (WorldTransform (V2 1 (-1)) 0)
+boxA :: (Floating a) => LocalT a (ConvexHull a)
+boxA = LocalT (toTransform (V2 0 0) 0) (rectangleHull 1 1)
 
 main :: IO ()
 main = do
-  print $ boxA `overlaps` boxB
-  print $ boxA `overlaps` boxC
-  print $ boxB `overlaps` boxC
-  print $ boxB `overlaps` boxD
-  print $ boxB `overlaps` boxE
+  let v = V2 3 4
+      h = horizontalizer22 v
+    in print (h !* v)
+  let p = P $ V2 0 0
+      n = V2 0 1 :: V2 Double
+      p' = P $ V2 2 0
+      n' = V2 (-1) 1
+    in print (intersect2 (Line2 p n) (Line2 p' n'))

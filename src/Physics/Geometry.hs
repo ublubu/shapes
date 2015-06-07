@@ -9,6 +9,7 @@ module Physics.Geometry where
 
 import Control.Monad
 import Control.Applicative
+import qualified Control.Lens as L
 import Data.Maybe
 import Data.List.Zipper
 import Linear.Affine
@@ -68,28 +69,54 @@ support v dir = snd $ foldl1 g (fmap f vs)
         g a@(distA, _) b@(distB, _) = if distB > distA then b else a
 
 type Feature a b = (LocalT a (VertexView a), b)
-type Support a = WorldT (V2 a) -> Feature a (WorldT (P2 a))
+type Support a = WV2 a -> Feature a (WP2 a)
 
 support' :: (Floating a, Ord a) => LocalT a (VertexView a) -> Support a
 support' v dir = (v', wExtract (lmap vertex v'))
   where sup = lmap support v
         v' = lwap sup dir
 
-extentAlong :: (Floating a, Ord a) => Support a -> WorldT (V2 a) -> (Feature a a, Feature a a)
-extentAlong sup dir = (fmap f minv, fmap f maxv)
-  where f v = iExtract (wap (wmap afdot' dir) v)
-        minv = sup (wmap negate dir)
+extentAlong :: (Floating a, Ord a) => Support a -> WV2 a -> (Feature a (WP2 a), Feature a (WP2 a))
+extentAlong sup dir = (minv, maxv)
+  where minv = sup (wmap negate dir)
         maxv = sup dir
 
-overlap :: (Ord a) => (a, a) -> (a, a) -> Bool
-overlap (a, b) (c, d) = not (c > b || d < a)
+-- assumes pairs are (min, max)
+overlapTest :: (Ord a) => (a, a) -> (a, a) -> Bool
+overlapTest (a, b) (c, d) = not (c > b || d < a)
 
-edgeNormals :: (Epsilon a, Floating a, Ord a) => LocalT a (VertexView a) -> [Feature a (WorldT (V2 a))]
-edgeNormals v = fmap f vs
+-- intervals are of distance along edge normal of shape X
+overlapAmount :: (Ord a, Num a) => (a, a) -> (a, a) -> Maybe a
+overlapAmount x@(_, edge) y@(penetrator, _) = toMaybe (overlapTest x y) (edge - penetrator)
+
+unitEdgeNormals :: (Epsilon a, Floating a, Ord a) => LocalT a (VertexView a) -> [Feature a (WV2 a)]
+unitEdgeNormals v = fmap f vs
   where f v' = (v', wExtract (lmap unitEdgeNormal v'))
         vs = lfmap vList v
 
---greatestOverlap :: Support a -> LocalT a (VertexView a) -> Maybe (Feature a (WorldT (V2 a), a), Feature a (WorldT))
+data Overlap a = Overlap { overlapEdge :: Feature a (WV2 a)
+                         , overlapDepth :: a
+                         , overlapPenetrator :: Feature a (WP2 a) }
+
+overlap :: (Floating a, Ord a) => Support a -> WV2 a -> Support a -> Maybe (Overlap a)
+overlap ss dir sp = fmap (\oval' -> Overlap { overlapEdge = L.set L._2 dir edge
+                                             , overlapDepth = oval'
+                                             , overlapPenetrator = penetrator }) oval
+  where extentS@(_, edge) = extentAlong ss dir
+        extentP@(penetrator, _) = extentAlong sp dir
+        projectedExtent ex = pairMap f (pairMap snd ex)
+                            where f v = iExtract (wap (wmap afdot' dir) v)
+        oval = overlapAmount (projectedExtent extentS) (projectedExtent extentP)
+
+greatestOverlap :: (Floating a, Ord a) => Support a -> [WV2 a] -> Support a -> Maybe (Overlap a)
+greatestOverlap ss dirs sp = foldl1 f os
+  where os = fmap (\dir -> overlap ss dir sp) dirs
+        f maxo o = do
+          maxo' <- maxo
+          o' <- o
+          return (if overlapDepth o' > overlapDepth maxo' then o' else maxo')
+
+--clipEdge :: (P2 a, P2 a) -> (P2 a, P2 a)
 
 {-
 
