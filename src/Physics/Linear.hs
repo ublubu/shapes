@@ -115,6 +115,14 @@ horizontalizer22 d@(V2 a o) = rotate22_ cosv (-sinv)
 data Line2 a = Line2 { linePoint :: P2 a
                      , lineNormal :: V2 a }
 
+toLine2 :: (Num a) => P2 a -> P2 a -> Line2 a
+toLine2 a b = Line2 { linePoint = a
+                    , lineNormal = clockwise2 (b .-. a) }
+
+perpLine2 :: (Num a) => P2 a -> P2 a -> Line2 a
+perpLine2 a b = Line2 { linePoint = a
+                      , lineNormal = b .-. a }
+
 -- solving some `mx = b` up in here
 intersect2 :: (Floating a, Epsilon a) => Line2 a -> Line2 a -> Maybe (P2 a)
 intersect2 (Line2 p n) (Line2 p' n') = do
@@ -122,3 +130,40 @@ intersect2 (Line2 p n) (Line2 p' n') = do
   return $ P (m' !* b)
   where b = V2 (p `afdot` n) (p' `afdot` n')
         m = V2 n n'
+
+data ClipResult a = ClipLeft a | ClipRight a | ClipBoth a | ClipNone
+
+-- replace clipped points with the intersection point
+-- if both points were clipped (entire segment behind the bound) return just the intersection
+applyClip :: ClipResult a -> (a, a) -> Either a (a, a)
+applyClip res (a, b) = case res of
+  ClipLeft c -> Right (c, b)
+  ClipRight c -> Right (a, c)
+  ClipBoth c -> Left c
+  ClipNone -> Right (a, b)
+
+-- if the entire segment was behind the bound, return Nothing
+applyClip' :: ClipResult a -> (a, a) -> Maybe (a, a)
+applyClip' (ClipBoth _) _ = Nothing
+applyClip' res seg = either (const Nothing) Just (applyClip res seg)
+
+-- remove clipped points
+applyClip'' :: ClipResult a -> (a, a) -> Maybe (Either a (a, a))
+applyClip'' res (a, b) = case res of
+  ClipLeft _ -> Just $ Left b
+  ClipRight _ -> Just $ Left a
+  ClipBoth _ -> Nothing
+  ClipNone -> Just $ Right (a, b)
+
+clipSegment :: (Floating a, Epsilon a, Ord a) => Line2 a -> (Line2 a, (P2 a, P2 a)) -> ClipResult (P2 a)
+clipSegment boundary (incident, (a, b)) = case intersect2 boundary incident of
+  Nothing -> ClipNone
+  Just c | a' < c' -> if b' < c' then ClipBoth c
+                      else ClipLeft c
+         | b' < c' -> ClipRight c
+         | otherwise -> ClipNone
+    where n = lineNormal boundary
+          a' = a `afdot` n
+          b' = b `afdot` n
+          c' = c `afdot` n
+

@@ -10,6 +10,7 @@ module Physics.Geometry where
 import Control.Monad
 import Control.Applicative
 import qualified Control.Lens as L
+import Data.Either
 import Data.Maybe
 import Data.List.Zipper
 import Linear.Affine
@@ -116,19 +117,17 @@ greatestOverlap ss dirs sp = foldl1 f os
           o' <- o
           return (if overlapDepth o' > overlapDepth maxo' then o' else maxo')
 
---clipEdge :: (P2 a, P2 a) -> (P2 a, P2 a)
+data Contact a = Contact { contactPoints :: Either (P2 a) (P2 a, P2 a)
+                         , contactNormal :: V2 a }
 
-{-
-
-extentAlong :: (Num a) => Support a -> V2 a -> (V2 a, V2 a)
-extentAlong sa dir = (sa (-dir), sa dir)
-
-data Overlap a = Overlap { overlapDir :: V2 a
-                         , overlapEdge :: Edge a ()
-                         , overlapFeature :: (Edge a (), Edge a ())}
-
---overlapAlong :: (Num a) => Support a -> V2 a -> Support a -> Overlap a
---overlapAlong sa dir sb =
-  --where xa = sa `extentAlong` dir
-        --xb = sb `extentAlong` dir
--}
+clipEdge :: (Floating a, Epsilon a, Ord a) => (P2 a, P2 a) -> V2 a -> (P2 a, P2 a) -> Maybe (Contact a)
+clipEdge (a, b) n inc@(c, d) = do
+  inc' <- applyClip' (clipSegment aBound (cd, inc)) inc
+  inc'' <- applyClip' (clipSegment bBound (cd, inc')) inc'
+  contacts <- applyClip'' (clipSegment abBound (cd, inc'')) inc''
+  return Contact { contactPoints = contacts
+                  , contactNormal = n }
+  where aBound = perpLine2 a b
+        bBound = perpLine2 b a
+        abBound = Line2 a (-n)
+        cd = toLine2 c d
