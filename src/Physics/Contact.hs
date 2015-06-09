@@ -5,8 +5,6 @@ module Physics.Contact where
 import Linear.V
 import Linear.V2
 import Physics.Linear
-import Physics.Shape
-import Physics.Geometry
 
 data ContactObject a = ContactObject { contactObjectCenter :: V2 a
                                      , contactObjectVel :: V2 a
@@ -26,7 +24,4 @@ jacobian (Contact (ContactObject xa va wa ra) (ContactObject xb vb wb rb) n) =
 velocity :: Contact a -> V 6 a
 velocity (Contact (ContactObject xa va wa ra) (ContactObject xb vb wb rb) n) =
   (va `append2` wa) `join33` (vb `append2` wb)
-
-support :: (Fractional a, Ord a) => V2 a -> Shape a -> V2 a
-support dir rect@(Rectangle _ _) = furthestAlong dir (vertices rect)
 

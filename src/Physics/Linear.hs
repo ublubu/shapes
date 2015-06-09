@@ -58,6 +58,9 @@ aftranslate33 (V2 x y) = V3 (V3 1 0 x) (V3 0 1 y) (V3 0 0 1)
 afrotate33 :: (Floating a) => a -> M33 a
 afrotate33 = afmat33 . rotate22
 
+afscale33 :: (Num a) => V2 a -> M33 a
+afscale33 (V2 x y) = V3 (V3 x 0 0) (V3 0 y 0) (V3 0 0 1)
+
 dfa :: (Num a) => Diff V2 a -> V3 a
 dfa (V2 x y) = V3 x y 0
 
@@ -130,6 +133,9 @@ intersect2 (Line2 p n) (Line2 p' n') = do
   return $ P (m' !* b)
   where b = V2 (p `afdot` n) (p' `afdot` n')
         m = V2 n n'
+
+center2 :: (Fractional a) => P2 a -> P2 a -> P2 a
+center2 a b = fmap (/2) (a + b)
 
 data ClipResult a = ClipLeft a | ClipRight a | ClipBoth a | ClipNone
 

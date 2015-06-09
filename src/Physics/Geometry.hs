@@ -26,6 +26,10 @@ import Physics.Transform
 data ConvexHull a = ConvexHull { hullVertices :: [P2 a] }
 data VertexView a = VertexView Int (Loop (P2 a))
 
+instance (Floating a) => WorldTransformable (ConvexHull a) a where
+  transform t (ConvexHull vs) = ConvexHull (fmap (transform t) vs)
+  untransform t (ConvexHull vs) = ConvexHull (fmap (untransform t) vs)
+
 rectangleHull :: (Fractional a) => a -> a -> ConvexHull a
 rectangleHull w h = ConvexHull [ P $ V2 w2 h2
                                , P $ V2 (-w2) h2
@@ -95,9 +99,9 @@ unitEdgeNormals v = fmap f vs
   where f v' = (v', wExtract (lmap unitEdgeNormal v'))
         vs = lfmap vList v
 
-data Overlap a = Overlap { overlapEdge :: Feature a (WV2 a)
+data Overlap a = Overlap { overlapEdge :: Feature a (WV2 a) -- unit normal
                          , overlapDepth :: a
-                         , overlapPenetrator :: Feature a (WP2 a) }
+                         , overlapPenetrator :: Feature a (WP2 a) } -- vertex in world coords
 
 overlap :: (Floating a, Ord a) => Support a -> WV2 a -> Support a -> Maybe (Overlap a)
 overlap ss dir sp = fmap (\oval' -> Overlap { overlapEdge = L.set L._2 dir edge
@@ -109,13 +113,13 @@ overlap ss dir sp = fmap (\oval' -> Overlap { overlapEdge = L.set L._2 dir edge
                             where f v = iExtract (wap (wmap afdot' dir) v)
         oval = overlapAmount (projectedExtent extentS) (projectedExtent extentP)
 
-greatestOverlap :: (Floating a, Ord a) => Support a -> [WV2 a] -> Support a -> Maybe (Overlap a)
-greatestOverlap ss dirs sp = foldl1 f os
+minOverlap :: (Floating a, Ord a) => Support a -> [WV2 a] -> Support a -> Maybe (Overlap a)
+minOverlap ss dirs sp = foldl1 f os
   where os = fmap (\dir -> overlap ss dir sp) dirs
-        f maxo o = do
-          maxo' <- maxo
+        f mino o = do
+          mino' <- mino
           o' <- o
-          return (if overlapDepth o' > overlapDepth maxo' then o' else maxo')
+          return (if overlapDepth o' < overlapDepth mino' then o' else mino')
 
 data Contact a = Contact { contactPoints :: Either (P2 a) (P2 a, P2 a)
                          , contactNormal :: V2 a }

@@ -6,12 +6,13 @@ import qualified Graphics.UI.SDL.Enum as SDL.E
 import Foreign.C.Types
 import Foreign.Marshal.Utils
 import Foreign.Ptr
+import GHC.Word
 import SDL.Loading
 import SDL.Geometry
 import SDL.Error
 import Utils.Utils
 
-data Colour = White | Red | Blue | Green | Yellow | Black
+data Colour = White | Red | Blue | Green | Yellow | Black | CustomRGBA Word8 Word8 Word8 Word8
 
 drawTextureStretch :: SDL.T.Renderer -> SDL.T.Texture -> IO ()
 drawTextureStretch renderer texture = do
@@ -35,7 +36,7 @@ drawRectangle renderer shape = catchErrorCode "failed to draw rectangle" =<<
 
 drawLine :: SDL.T.Renderer -> (CInt, CInt) -> (CInt, CInt) -> IO ()
 drawLine renderer (ox, oy) (tx, ty) =
-  catchErrorCode "failed to draw rectangle" =<<
+  catchErrorCode "failed to draw line" =<<
   SDL.V.renderDrawLine renderer ox oy tx ty
 
 drawDot :: SDL.T.Renderer -> (CInt, CInt) -> IO ()
@@ -57,6 +58,7 @@ setColorUnsafe renderer Green  = SDL.V.setRenderDrawColor renderer 0x00 0xFF 0x0
 setColorUnsafe renderer Blue   = SDL.V.setRenderDrawColor renderer 0x00 0x00 0xFF 0xFF
 setColorUnsafe renderer Yellow = SDL.V.setRenderDrawColor renderer 0xFF 0xFF 0x00 0xFF
 setColorUnsafe renderer Black = SDL.V.setRenderDrawColor renderer 0x00 0x00 0x00 0xFF
+setColorUnsafe renderer (CustomRGBA r g b a) = SDL.V.setRenderDrawColor renderer r g b a
 
 setColor :: SDL.T.Renderer -> Colour -> IO ()
 setColor = (catchErrorCode "failed to set color" =<<) <. setColorUnsafe

@@ -23,10 +23,20 @@ import Physics.Linear
 type WorldTransform a = (M33 a, M33 a)
 
 toTransform :: (Floating a) => Diff V2 a -> a -> WorldTransform a
-toTransform pos ori = (transl !*! rot, rot' !*! transl')
+toTransform pos ori = joinTransforms (translateTransform pos) (rotateTransform ori)
+
+scaleTransform :: (Floating a) => V2 a -> WorldTransform a
+scaleTransform s@(V2 x y) = (afscale33 s, afscale33 s')
+  where s' = V2 (1/x) (1/y)
+
+rotateTransform :: (Floating a) => a -> WorldTransform a
+rotateTransform ori = (rot, rot')
   where rot = afrotate33 ori
         rot' = afrotate33 (-ori)
-        transl = aftranslate33 pos
+
+translateTransform :: (Floating a) => Diff V2 a -> WorldTransform a
+translateTransform pos = (transl, transl')
+  where transl = aftranslate33 pos
         transl' = aftranslate33 (-pos)
 
 idTransform :: (Num a) => WorldTransform a
@@ -34,6 +44,9 @@ idTransform = (identity, identity)
 
 joinTransforms :: (Num a) => WorldTransform a -> WorldTransform a -> WorldTransform a
 joinTransforms (outer, outer') (inner, inner') = (outer !*! inner, inner' !*! outer')
+
+joinTransforms' :: (Num a) => [WorldTransform a] -> WorldTransform a
+joinTransforms' = foldl1 joinTransforms
 
 invertTransform :: WorldTransform a -> WorldTransform a
 invertTransform (f, g) = (g, f)
@@ -66,6 +79,9 @@ class WorldTransformable t a where
   wExtract :: LocalT a t -> WorldT t
   wExtract (LocalT t v) = WorldT (transform t v)
 
+  wExtract_ :: LocalT a t -> t
+  wExtract_ = iExtract . wExtract
+
   wInject :: WorldTransform a -> WorldT t -> LocalT a t
   wInject t v = LocalT t (untransform t (iExtract v))
 
@@ -80,10 +96,22 @@ instance (Floating a) => WorldTransformable (V2 a) a where
   transform (trans, _) = afmul trans
   untransform (_, untrans) = afmul untrans
 
-instance (Num b, WorldTransformable a b) => WorldTransformable (LocalT b a) b where
+instance (Num a) => WorldTransformable (LocalT a b) a where
   transform t' (LocalT t v) = LocalT (joinTransforms t' t) v
   untransform t' (LocalT t v) = LocalT (joinTransforms (invertTransform t') t) v
   wInject _ = LocalT idTransform . iExtract
+
+instance (WorldTransformable b a) => WorldTransformable (b, b) a where
+  transform t = pairMap (transform t)
+  untransform t = pairMap (untransform t)
+
+instance (WorldTransformable b a) => WorldTransformable [b] a where
+  transform t = map (transform t)
+  untransform t = map (untransform t)
+
+instance (WorldTransformable b a) => WorldTransformable (Maybe b) a where
+  transform t = fmap (transform t)
+  untransform t = fmap (untransform t)
 
 wfmap :: (Functor t) => (a -> t b) -> WorldT a -> t (WorldT b)
 wfmap f (WorldT v) = fmap WorldT (f v)
