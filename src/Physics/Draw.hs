@@ -34,6 +34,9 @@ v2GeomPoint (V2 x y) = toGeomPoint (x, y)
 drawLine :: (RealFrac a) => SDL.T.Renderer -> P2 a -> P2 a -> IO ()
 drawLine r a b = D.drawLine r (p2GeomPoint a) (p2GeomPoint b)
 
+drawLine_ :: (RealFrac a) => SDL.T.Renderer -> (P2 a, P2 a) -> IO ()
+drawLine_ r = uncurry (drawLine r)
+
 drawPoint :: (RealFrac a) => SDL.T.Renderer -> P2 a -> IO ()
 drawPoint r p = D.drawDot r (p2GeomPoint p)
 

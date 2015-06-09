@@ -121,6 +121,14 @@ minOverlap ss dirs sp = foldl1 f os
           o' <- o
           return (if overlapDepth o' < overlapDepth mino' then o' else mino')
 
+penetratingEdge :: (Floating a, Ord a) => Overlap a -> WorldT (P2 a, P2 a)
+penetratingEdge (Overlap (ve, n) depth (vp, b)) = if wlift2_ (>) bcn abn then wlift2 (,) b c
+                                                  else wlift2 (,) a b
+  where c = wExtract . lmap (vertex . vNext) $ vp
+        a = wExtract . lmap (vertex . vPrev) $ vp
+        abn = wlift2 dot (wlift2 (.-.) b a) n
+        bcn = wlift2 dot (wlift2 (.-.) c b) n
+
 data Contact a = Contact { contactPoints :: Either (P2 a) (P2 a, P2 a)
                          , contactNormal :: V2 a }
 

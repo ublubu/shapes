@@ -42,6 +42,8 @@ renderTest r = do
   drawConvexHull r (wExtract_ (transform vt boxB))
   D.setColor r D.Red
   maybe (print "no overlap") (drawOverlap r . LocalT vt) ovl
+  D.setColor r D.Green
+  maybe (return ()) (drawLine_ r . transform vt . iExtract) pene
 
   where vt = viewTransform (V2 800 600) (V2 4 4) (V2 0 0) :: WorldTransform Double
         it = idTransform :: WorldTransform Double
@@ -52,6 +54,7 @@ renderTest r = do
         sb = support' vb
         nas = unitEdgeNormals va
         ovl = minOverlap sa (fmap snd nas) sb
+        pene = fmap penetratingEdge ovl
 
 testMain :: SDL.T.Renderer -> IO ()
 testMain r = do

@@ -119,6 +119,12 @@ wfmap f (WorldT v) = fmap WorldT (f v)
 wmap :: (a -> b) -> WorldT a -> WorldT b
 wmap = fmap
 
+wlift2 :: (a -> b -> c) -> WorldT a -> WorldT b -> WorldT c
+wlift2 f x = wap (wmap f x)
+
+wlift2_ :: (a -> b -> c) -> WorldT a -> WorldT b -> c
+wlift2_ f x y = iExtract (wlift2 f x y)
+
 wap :: WorldT (a -> b) -> WorldT a -> WorldT b
 wap (WorldT f) = wmap f
 
