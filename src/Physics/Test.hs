@@ -35,6 +35,9 @@ main = do
 
 data TestState = TestState { testFinished :: Bool }
 
+pink :: D.Colour
+pink = D.CustomRGBA 0xFF 0x3E 0x96 0xFF
+
 renderTest :: SDL.T.Renderer -> IO ()
 renderTest r = do
   D.setColor r D.Black
@@ -44,17 +47,17 @@ renderTest r = do
   maybe (print "no overlap") (drawOverlap r . LocalT vt) ovl
   D.setColor r D.Green
   maybe (return ()) (drawLine_ r . transform vt . iExtract) pene
+  D.setColor r pink
+  maybe (print "no contact") drawC c
 
-  where vt = viewTransform (V2 800 600) (V2 4 4) (V2 0 0) :: WorldTransform Double
-        it = idTransform :: WorldTransform Double
-        rt = rotateTransform 0.8 :: WorldTransform Double
-        va = lmap vertices boxA
-        vb = lmap vertices boxB
-        sa = support' va
-        sb = support' vb
-        nas = unitEdgeNormals va
-        ovl = minOverlap sa (fmap snd nas) sb
+  where vt = viewTransform (V2 800 600) (V2 8 8) (V2 0 0) :: WorldTransform Double
+        sa = shapeInfo boxA
+        sb = shapeInfo boxB
+        ovl = minOverlap' sa sb
         pene = fmap penetratingEdge ovl
+        c = contact sa sb
+        drawC = either f f
+          where f = drawContact r . LocalT vt . iExtract
 
 testMain :: SDL.T.Renderer -> IO ()
 testMain r = do

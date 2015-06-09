@@ -76,6 +76,14 @@ support v dir = snd $ foldl1 g (fmap f vs)
 type Feature a b = (LocalT a (VertexView a), b)
 type Support a = WV2 a -> Feature a (WP2 a)
 
+type ShapeInfo a = (Support a, [Feature a (WV2 a)])
+
+shapeInfo :: (Epsilon a, Floating a, Ord a) => LocalT a (ConvexHull a) -> ShapeInfo a
+shapeInfo h = (sup, edges)
+  where sup = support' vs
+        vs = lmap vertices h
+        edges = unitEdgeNormals vs
+
 support' :: (Floating a, Ord a) => LocalT a (VertexView a) -> Support a
 support' v dir = (v', wExtract (lmap vertex v'))
   where sup = lmap support v
@@ -103,6 +111,9 @@ data Overlap a = Overlap { overlapEdge :: Feature a (WV2 a) -- unit normal
                          , overlapDepth :: a
                          , overlapPenetrator :: Feature a (WP2 a) } -- vertex in world coords
 
+overlapNormal :: Overlap a -> WV2 a
+overlapNormal = snd . overlapEdge
+
 overlap :: (Floating a, Ord a) => Support a -> WV2 a -> Support a -> Maybe (Overlap a)
 overlap ss dir sp = fmap (\oval' -> Overlap { overlapEdge = L.set L._2 dir edge
                                              , overlapDepth = oval'
@@ -121,6 +132,9 @@ minOverlap ss dirs sp = foldl1 f os
           o' <- o
           return (if overlapDepth o' < overlapDepth mino' then o' else mino')
 
+minOverlap' :: (Floating a, Ord a) => ShapeInfo a -> ShapeInfo a -> Maybe (Overlap a)
+minOverlap' (sa, esa) (sb, _) = minOverlap sa (fmap snd esa) sb
+
 penetratingEdge :: (Floating a, Ord a) => Overlap a -> WorldT (P2 a, P2 a)
 penetratingEdge (Overlap (ve, n) depth (vp, b)) = if wlift2_ (>) bcn abn then wlift2 (,) b c
                                                   else wlift2 (,) a b
@@ -128,6 +142,11 @@ penetratingEdge (Overlap (ve, n) depth (vp, b)) = if wlift2_ (>) bcn abn then wl
         a = wExtract . lmap (vertex . vPrev) $ vp
         abn = wlift2 dot (wlift2 (.-.) b a) n
         bcn = wlift2 dot (wlift2 (.-.) c b) n
+
+penetratedEdge :: (Floating a) => Overlap a -> WorldT (P2 a, P2 a)
+penetratedEdge (Overlap (ve, _) _ _) = wlift2 (,) a b
+  where a = wExtract . lmap vertex $ ve
+        b = wExtract . lmap (vertex . vNext) $ ve
 
 data Contact a = Contact { contactPoints :: Either (P2 a) (P2 a, P2 a)
                          , contactNormal :: V2 a }
@@ -143,3 +162,15 @@ clipEdge (a, b) n inc@(c, d) = do
         bBound = perpLine2 b a
         abBound = Line2 a (-n)
         cd = toLine2 c d
+
+contact :: (Floating a, Epsilon a, Ord a) => ShapeInfo a -> ShapeInfo a -> Maybe (Either (WorldT (Contact a)) (WorldT (Contact a)))
+contact a b = either (fmap Left . contact_) (fmap Right . contact_) =<< ovl
+  where ovlab = minOverlap' a b
+        ovlba = minOverlap' b a
+        ovl = maybeBranch (\oab oba -> overlapDepth oab < overlapDepth oba) ovlab ovlba
+
+contact_ :: (Floating a, Epsilon a, Ord a) => Overlap a -> Maybe (WorldT (Contact a))
+contact_ ovl = wflip $ (wmap clipEdge edge) `wap` n `wap` pen
+  where edge = penetratedEdge ovl
+        pen = penetratingEdge ovl
+        n = overlapNormal ovl

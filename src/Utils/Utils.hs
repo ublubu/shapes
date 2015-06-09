@@ -73,6 +73,13 @@ maybeChange x f = fromMaybe x (f x)
 toMaybe :: Bool -> a -> Maybe a
 toMaybe b x = if b then Just x else Nothing
 
+maybeBranch :: (a -> a -> Bool) -> Maybe a -> Maybe a -> Maybe (Either a a)
+maybeBranch _ Nothing Nothing = Nothing
+maybeBranch _ Nothing (Just x) = Just $ Right x
+maybeBranch _ (Just x) Nothing = Just $ Left x
+maybeBranch useLeft (Just x) (Just y) = if useLeft x y then Just $ Left x
+                                        else Just $ Right y
+
 takeIfAll :: (a -> Bool) -> [a] -> Maybe [a]
 takeIfAll p [] = Just []
 takeIfAll p (x:xs)

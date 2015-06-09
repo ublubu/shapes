@@ -116,6 +116,9 @@ instance (WorldTransformable b a) => WorldTransformable (Maybe b) a where
 wfmap :: (Functor t) => (a -> t b) -> WorldT a -> t (WorldT b)
 wfmap f (WorldT v) = fmap WorldT (f v)
 
+wflip :: (Functor t) => WorldT (t a) -> t (WorldT a)
+wflip (WorldT v) = fmap WorldT v
+
 wmap :: (a -> b) -> WorldT a -> WorldT b
 wmap = fmap
 

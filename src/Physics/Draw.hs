@@ -78,3 +78,28 @@ drawOverlap r ovl = do
         c = center2 a b
         c' = c .+^ depth
         pen = extractPenetrator ovl
+
+extractContactPoints :: (Floating a) => LocalT a (Contact a) -> Either (P2 a) (P2 a, P2 a)
+extractContactPoints cont = either (Left . wExtract_) (Right . wExtract_) $ flipEither (lmap contactPoints cont)
+  where flipEither :: LocalT a (Either b c) -> Either (LocalT a b) (LocalT a c)
+        flipEither (LocalT t (Left x)) = Left (LocalT t x)
+        flipEither (LocalT t (Right x)) = Right (LocalT t x)
+
+extractContactNormal :: (Floating a) => LocalT a (Contact a) -> V2 a
+extractContactNormal = wExtract_ . lmap contactNormal
+
+drawContact :: (Floating a, RealFrac a) => SDL.T.Renderer -> LocalT a (Contact a) -> IO ()
+drawContact r cont = do
+  (c, c') <- either f g ps
+  drawLine r c c'
+  where f a = do
+          drawThickPoint r a
+          return (a, a .+^ n)
+        g (a, b) = do
+          drawThickPoint r a
+          drawThickPoint r b
+          return (c, c')
+            where c = center2 a b
+                  c' = c .+^ n
+        ps = extractContactPoints cont
+        n = extractContactNormal cont
