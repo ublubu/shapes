@@ -37,22 +37,49 @@ data TestState = TestState { testFinished :: Bool
 pink :: D.Colour
 pink = D.CustomRGBA 0xFF 0x3E 0x96 0xFF
 
-renderTest :: SDL.T.Renderer -> TestState -> IO ()
-renderTest r (TestState _ posB angleB) = do
-  D.setColor r D.Black
-  drawConvexHull r (wExtract_ (transform vt boxA))
-  drawConvexHull r (wExtract_ (transform vt boxB))
+boxA :: TestState -> LocalT Double (ConvexHull Double)
+boxA _ = LocalT (toTransform (V2 0 0) 0) (rectangleHull 4 4)
+
+boxB :: TestState -> LocalT Double (ConvexHull Double)
+boxB (TestState _ posB angleB) = LocalT (toTransform posB angleB) (rectangleHull 2 2)
+
+vt :: WorldTransform Double
+vt = viewTransform (V2 400 300) (V2 40 40) (V2 0 2)
+
+overlapTest :: SDL.T.Renderer -> TestState -> IO ()
+overlapTest r state = do
+  D.setColor r D.Red
+  maybe (print "no overlap") (drawOverlap r . LocalT vt) ovl
+  D.setColor r D.Green
+  maybe (return ()) (drawLine_ r . transform vt . iExtract) pene
+  D.setColor r D.Blue
+  maybe (return ()) (drawLine_ r . transform vt . iExtract) edge
+
+  where va = lmap vertices (boxA state)
+        vb = lmap vertices (boxB state)
+        supa = support' va
+        supb = support' vb
+        nas = unitEdgeNormals va
+        ovl = minOverlap supa nas supb
+        pene = fmap penetratingEdge ovl
+        edge = fmap penetratedEdge ovl
+
+contactTest :: SDL.T.Renderer -> TestState -> IO ()
+contactTest r state = do
   D.setColor r pink
   maybe (print "no contact") drawC c
-
-  where vt = viewTransform (V2 400 300) (V2 40 40) (V2 0 2) :: WorldTransform Double
-        sa = shapeInfo boxA
-        sb = shapeInfo boxB
-        boxA = LocalT (toTransform (V2 0 0) 0) (rectangleHull 4 4)
-        boxB = LocalT (toTransform posB angleB) (rectangleHull 2 2)
+  where sa = shapeInfo (boxA state)
+        sb = shapeInfo (boxB state)
         c = contact sa sb
         drawC = either f f
           where f = drawContact r . LocalT vt . iExtract
+
+renderTest :: SDL.T.Renderer -> TestState -> IO ()
+renderTest r state = do
+  D.setColor r D.Black
+  drawConvexHull r (wExtract_ (transform vt (boxA state)))
+  drawConvexHull r (wExtract_ (transform vt (boxB state)))
+  contactTest r state
 
 testMain :: SDL.T.Renderer -> IO ()
 testMain r = runUntil (TestState False (V2 0 2.9) 0) testFinished (updater $ testStep r)

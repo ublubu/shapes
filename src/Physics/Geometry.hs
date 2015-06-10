@@ -114,26 +114,26 @@ data Overlap a = Overlap { overlapEdge :: Feature a (WV2 a) -- unit normal
 overlapNormal :: Overlap a -> WV2 a
 overlapNormal = snd . overlapEdge
 
-overlap :: (Floating a, Ord a) => Support a -> WV2 a -> Support a -> Maybe (Overlap a)
-overlap ss dir sp = fmap (\oval' -> Overlap { overlapEdge = L.set L._2 dir edge
+overlap :: (Floating a, Ord a) => Support a -> Feature a (WV2 a) -> Support a -> Maybe (Overlap a)
+overlap ss edge@(_, dir) sp = fmap (\oval' -> Overlap { overlapEdge = edge
                                              , overlapDepth = oval'
                                              , overlapPenetrator = penetrator }) oval
-  where extentS@(_, edge) = extentAlong ss dir
+  where extentS = extentAlong ss dir
         extentP@(penetrator, _) = extentAlong sp dir
         projectedExtent ex = pairMap f (pairMap snd ex)
                             where f v = iExtract (wap (wmap afdot' dir) v)
         oval = overlapAmount (projectedExtent extentS) (projectedExtent extentP)
 
-minOverlap :: (Floating a, Ord a) => Support a -> [WV2 a] -> Support a -> Maybe (Overlap a)
-minOverlap ss dirs sp = foldl1 f os
-  where os = fmap (\dir -> overlap ss dir sp) dirs
+minOverlap :: (Floating a, Ord a) => Support a -> [Feature a (WV2 a)] -> Support a -> Maybe (Overlap a)
+minOverlap ss edges sp = foldl1 f os
+  where os = fmap (\edge -> overlap ss edge sp) edges
         f mino o = do
           mino' <- mino
           o' <- o
           return (if overlapDepth o' < overlapDepth mino' then o' else mino')
 
 minOverlap' :: (Floating a, Ord a) => ShapeInfo a -> ShapeInfo a -> Maybe (Overlap a)
-minOverlap' (sa, esa) (sb, _) = minOverlap sa (fmap snd esa) sb
+minOverlap' (sa, esa) (sb, _) = minOverlap sa esa sb
 
 penetratingEdge :: (Floating a, Ord a) => Overlap a -> WorldT (P2 a, P2 a)
 penetratingEdge (Overlap (ve, n) depth (vp, b)) = if wlift2_ (<) bcn abn then wlift2 (,) b c
@@ -151,7 +151,7 @@ penetratedEdge (Overlap (ve, _) _ _) = wlift2 (,) a b
 data Contact a = Contact { contactPoints :: Either (P2 a) (P2 a, P2 a)
                          , contactNormal :: V2 a }
 
-clipEdge :: (Floating a, Epsilon a, Ord a) => (P2 a, P2 a) -> V2 a -> (P2 a, P2 a) -> Maybe (Contact a)
+clipEdge :: (Show a, Floating a, Epsilon a, Ord a) => (P2 a, P2 a) -> V2 a -> (P2 a, P2 a) -> Maybe (Contact a)
 clipEdge (a, b) n inc@(c, d) = do
   inc' <- applyClip' (clipSegment aBound (cd, inc)) inc
   inc'' <- applyClip' (clipSegment bBound (cd, inc')) inc'
@@ -163,13 +163,13 @@ clipEdge (a, b) n inc@(c, d) = do
         abBound = Line2 a (-n)
         cd = toLine2 c d
 
-contact :: (Floating a, Epsilon a, Ord a) => ShapeInfo a -> ShapeInfo a -> Maybe (Either (WorldT (Contact a)) (WorldT (Contact a)))
+contact :: (Show a, Floating a, Epsilon a, Ord a) => ShapeInfo a -> ShapeInfo a -> Maybe (Either (WorldT (Contact a)) (WorldT (Contact a)))
 contact a b = either (fmap Left . contact_) (fmap Right . contact_) =<< ovl
   where ovlab = minOverlap' a b
         ovlba = minOverlap' b a
         ovl = maybeBranch (\oab oba -> overlapDepth oab < overlapDepth oba) ovlab ovlba
 
-contact_ :: (Floating a, Epsilon a, Ord a) => Overlap a -> Maybe (WorldT (Contact a))
+contact_ :: (Show a, Floating a, Epsilon a, Ord a) => Overlap a -> Maybe (WorldT (Contact a))
 contact_ ovl = wflip $ (wmap clipEdge edge) `wap` n `wap` pen
   where edge = penetratedEdge ovl
         pen = penetratingEdge ovl

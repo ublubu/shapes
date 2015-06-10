@@ -71,7 +71,6 @@ drawOverlap :: (Floating a, RealFrac a, Ord a) => SDL.T.Renderer -> LocalT a (Ov
 drawOverlap r ovl = do
   drawLine r a b
   drawLine r c c'
-  D.setColor r D.Blue
   drawThickPoint r pen
   where depth = extractDepth ovl
         (a, b) = extractEdge ovl
