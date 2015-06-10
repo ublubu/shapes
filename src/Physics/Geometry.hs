@@ -136,12 +136,12 @@ minOverlap' :: (Floating a, Ord a) => ShapeInfo a -> ShapeInfo a -> Maybe (Overl
 minOverlap' (sa, esa) (sb, _) = minOverlap sa (fmap snd esa) sb
 
 penetratingEdge :: (Floating a, Ord a) => Overlap a -> WorldT (P2 a, P2 a)
-penetratingEdge (Overlap (ve, n) depth (vp, b)) = if wlift2_ (>) bcn abn then wlift2 (,) b c
+penetratingEdge (Overlap (ve, n) depth (vp, b)) = if wlift2_ (<) bcn abn then wlift2 (,) b c
                                                   else wlift2 (,) a b
   where c = wExtract . lmap (vertex . vNext) $ vp
         a = wExtract . lmap (vertex . vPrev) $ vp
-        abn = wlift2 dot (wlift2 (.-.) b a) n
-        bcn = wlift2 dot (wlift2 (.-.) c b) n
+        abn = wmap abs $ wlift2 dot (wlift2 (.-.) b a) n
+        bcn = wmap abs $ wlift2 dot (wlift2 (.-.) c b) n
 
 penetratedEdge :: (Floating a) => Overlap a -> WorldT (P2 a, P2 a)
 penetratedEdge (Overlap (ve, _) _ _) = wlift2 (,) a b
