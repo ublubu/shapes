@@ -70,6 +70,7 @@ executable side-scroller
                      , lens >= 4.11
                      , vector
                      , zippers
+                     , either >= 4.4
   
   -- Directories containing source files.
   hs-source-dirs:      src

@@ -9,6 +9,7 @@ module Physics.Linear where
 import GHC.TypeLits (Nat, type(+))
 import Control.Lens
 import qualified Data.Vector as Vec
+import Data.Vector ((!))
 import Data.Maybe
 import Linear.Affine
 import Linear.Epsilon
@@ -29,6 +30,17 @@ join22 (V2 ax ay) (V2 bx by) = V4 ax ay bx by
 join33 :: V3 a -> V3 a -> V 6 a
 join33 (V3 a b c) (V3 d e f) = listToV [a, b, c, d, e, f]
 
+split33 :: V6 a -> (V3 a, V3 a)
+split33 v = Vec.splitAt 3 (toVector v) & both %~ (\v' -> V3 (v' ! 0) (v' ! 1) (v' ! 2))
+
+flip33 :: V6 a -> V6 a
+flip33 v = listToV [d, e, f, a, b, c]
+  where (a, b, c, d, e, f) = extract6 v
+
+extract6 :: V6 a -> (a, a, a, a, a, a)
+extract6 v6 = (v ! 0, v ! 1, v ! 2, v ! 3, v ! 4, v ! 5)
+  where v = toVector v6
+
 join44 :: V4 a -> V4 a -> V 8 a
 join44 (V4 a b c d) (V4 e f g h) = listToV [a, b, c, d, e, f, g, h]
 
@@ -37,6 +49,9 @@ cross22 (V2 ax ay) (V2 bx by) = (ax * by) - (ay * bx)
 
 append2 :: V2 a -> a -> V3 a
 append2 (V2 a b) = V3 a b
+
+split3 :: V3 a -> (V2 a, a)
+split3 (V3 a b c) = (V2 a b, c)
 
 listToV :: Dim n => [a] -> V (n :: Nat) a
 listToV = fromJust . fromVector . Vec.fromList

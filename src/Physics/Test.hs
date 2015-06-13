@@ -17,6 +17,7 @@ import SDL.Event
 import GameInit
 import GameLoop
 import Geometry
+import Utils.Utils
 
 main :: IO ()
 main = do
@@ -70,7 +71,7 @@ contactTest r state = do
   maybe (print "no contact") drawC c
   where sa = shapeInfo (boxA state)
         sb = shapeInfo (boxB state)
-        c = contact sa sb
+        c = fmap flipAsEither $ contact sa sb
         drawC = either f f
           where f = drawContact r . LocalT vt . iExtract
 

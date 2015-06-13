@@ -23,8 +23,8 @@ import Utils.Utils
 import Physics.Linear
 import Physics.Transform
 
-data ConvexHull a = ConvexHull { hullVertices :: [P2 a] }
-data VertexView a = VertexView Int (Loop (P2 a))
+data ConvexHull a = ConvexHull { hullVertices :: [P2 a] } deriving Show
+data VertexView a = VertexView Int (Loop (P2 a)) deriving Show
 
 instance (Floating a) => WorldTransformable (ConvexHull a) a where
   transform t (ConvexHull vs) = ConvexHull (fmap (transform t) vs)
@@ -110,6 +110,7 @@ unitEdgeNormals v = fmap f vs
 data Overlap a = Overlap { overlapEdge :: Feature a (WV2 a) -- unit normal
                          , overlapDepth :: a
                          , overlapPenetrator :: Feature a (WP2 a) } -- vertex in world coords
+                 deriving Show
 
 overlapNormal :: Overlap a -> WV2 a
 overlapNormal = snd . overlapEdge
@@ -149,9 +150,13 @@ penetratedEdge (Overlap (ve, _) _ _) = wlift2 (,) a b
         b = wExtract . lmap (vertex . vNext) $ ve
 
 data Contact a = Contact { contactPoints :: Either (P2 a) (P2 a, P2 a)
-                         , contactNormal :: V2 a }
+                         , contactNormal :: V2 a } deriving Show
 
-clipEdge :: (Show a, Floating a, Epsilon a, Ord a) => (P2 a, P2 a) -> V2 a -> (P2 a, P2 a) -> Maybe (Contact a)
+flattenContactPoints :: Contact a -> [P2 a]
+flattenContactPoints (Contact (Left p) _) = [p]
+flattenContactPoints (Contact (Right (p1, p2)) _) = [p1, p2]
+
+clipEdge :: (Floating a, Epsilon a, Ord a) => (P2 a, P2 a) -> V2 a -> (P2 a, P2 a) -> Maybe (Contact a)
 clipEdge (a, b) n inc@(c, d) = do
   inc' <- applyClip' (clipSegment aBound (cd, inc)) inc
   inc'' <- applyClip' (clipSegment bBound (cd, inc')) inc'
@@ -163,13 +168,14 @@ clipEdge (a, b) n inc@(c, d) = do
         abBound = Line2 a (-n)
         cd = toLine2 c d
 
-contact :: (Show a, Floating a, Epsilon a, Ord a) => ShapeInfo a -> ShapeInfo a -> Maybe (Either (WorldT (Contact a)) (WorldT (Contact a)))
-contact a b = either (fmap Left . contact_) (fmap Right . contact_) =<< ovl
+-- 'Flipping' indicates the direction of the collision. 'Same' means the first object overlaps into the second.
+contact :: (Floating a, Epsilon a, Ord a) => ShapeInfo a -> ShapeInfo a -> Maybe (Flipping (WorldT (Contact a)))
+contact a b = either (fmap Same . contact_) (fmap Flip . contact_) =<< ovl
   where ovlab = minOverlap' a b
         ovlba = minOverlap' b a
         ovl = maybeBranch (\oab oba -> overlapDepth oab < overlapDepth oba) ovlab ovlba
 
-contact_ :: (Show a, Floating a, Epsilon a, Ord a) => Overlap a -> Maybe (WorldT (Contact a))
+contact_ :: (Floating a, Epsilon a, Ord a) => Overlap a -> Maybe (WorldT (Contact a))
 contact_ ovl = wflip $ (wmap clipEdge edge) `wap` n `wap` pen
   where edge = penetratedEdge ovl
         pen = penetratingEdge ovl

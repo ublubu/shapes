@@ -5,6 +5,7 @@ import Control.Monad.State hiding (state)
 import Data.Bits
 import Data.Maybe
 import Data.Monoid
+import Data.Tuple
 import Foreign.C.String
 import Foreign.C.Types
 import Foreign.Marshal.Alloc
@@ -91,7 +92,7 @@ cycles xs = folds tail (cycle xs) xs
 
 data Loop a = Loop { loopPrev :: Loop a
                    , loopVal :: a
-                   , loopNext :: Loop a }
+                   , loopNext :: Loop a } deriving Show
 
 loopify :: [a] -> Loop a
 loopify [] = error "can't have an empty loop"
@@ -118,3 +119,36 @@ takeDir dir n x
 folds :: (b -> b) -> b -> [a] -> [b]
 folds _ _ [] = []
 folds f a0 (_:xs) = a0 : folds f (f a0) xs
+
+data Flipping a = Same a | Flip a
+
+-- TODO: write an iso for Flipping and Either
+flipAsEither :: Flipping a -> Either a a
+flipAsEither (Same x) = Left x
+flipAsEither (Flip x) = Right x
+
+flipWrap :: Flipping a -> b -> Flipping b
+flipWrap (Same _) = Same
+flipWrap (Flip _) = Flip
+
+flipFlip :: (a -> (b, b) -> c) -> Flipping a -> (b, b) -> c
+flipFlip f (Same x) = f x
+flipFlip f (Flip x) = f x . swap
+
+flipMap :: (a -> (b, b) -> c) -> Flipping a -> (b, b) -> Flipping c
+flipMap f x = flipWrap x . flipFlip f x
+
+flipExtractWith :: (a -> b, a -> b) -> Flipping a -> b
+flipExtractWith (f, _) (Same x) = f x
+flipExtractWith (_, f) (Flip x) = f x
+
+instance Functor Flipping where
+  fmap f (Same x) = Same (f x)
+  fmap f (Flip x) = Flip (f x)
+
+flipExtract :: Flipping a -> a
+flipExtract (Same x) = x
+flipExtract (Flip x) = x
+
+flipInjectF :: Functor f => Flipping (f a) -> f (Flipping a)
+flipInjectF x = fmap (flipWrap x) . flipExtract $ x

@@ -51,11 +51,11 @@ joinTransforms' = foldl1 joinTransforms
 invertTransform :: WorldTransform a -> WorldTransform a
 invertTransform (f, g) = (g, f)
 
-data LocalT a b = LocalT (WorldTransform a) b
+data LocalT a b = LocalT (WorldTransform a) b deriving Show
 type LV2 a = LocalT a (V2 a)
 type LP2 a = LocalT a (P2 a)
 
-data WorldT a = WorldT a
+data WorldT a = WorldT a deriving Show
 type WV2 a = WorldT (V2 a)
 type WP2 a = WorldT (Point V2 a)
 
