@@ -4,7 +4,7 @@ import qualified Graphics.UI.SDL.Video as SDL.V
 import qualified Graphics.UI.SDL.Enum as SDL.E
 import qualified Graphics.UI.SDL.Types as SDL.T
 import qualified Graphics.UI.SDL.Basic as SDL.B
-import qualified Graphics.UI.SDL.Image as Image
+--import qualified Graphics.UI.SDL.Image as Image
 import Data.Bits
 import Foreign.C.String
 import Foreign.C.Types

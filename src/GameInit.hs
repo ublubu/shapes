@@ -6,7 +6,7 @@ import qualified Graphics.UI.SDL.Types as SDL.T
 import qualified Graphics.UI.SDL.Basic as SDL.B
 import qualified Graphics.UI.SDL.Timer as SDL.Timer
 import qualified Graphics.UI.SDL.Event as SDL.Event
-import qualified Graphics.UI.SDL.Image as Image
+--import qualified Graphics.UI.SDL.Image as Image
 import Foreign.C.Types
 import SDL.Draw
 import SDL.Error
@@ -20,7 +20,7 @@ import Utils.Utils
 runMain :: String -> Pair CInt -> (SDL.T.Renderer -> IO ()) -> IO ()
 runMain windowTitle (Pair screenWidth screenHeight) main = do
   initializeSDL [SDL.E.SDL_INIT_VIDEO] >>= catchRisky
-  Image.imgInit [Image.InitPNG]
+  --Image.imgInit [Image.InitPNG]
 
   setHint "SDL_RENDER_SCALE_QUALITY" "1" >>= logWarning
   window <- createWindow windowTitle screenWidth screenHeight >>= catchRisky
@@ -31,5 +31,5 @@ runMain windowTitle (Pair screenWidth screenHeight) main = do
   SDL.V.destroyRenderer renderer
   SDL.V.destroyWindow window
   SDL.B.quit
-  Image.imgQuit
+  --Image.imgQuit
 

@@ -3,7 +3,7 @@ module SDL.Loading where
 import qualified Graphics.UI.SDL.Video as SDL.V
 import qualified Graphics.UI.SDL.Enum as SDL.E
 import qualified Graphics.UI.SDL.Types as SDL.T
-import qualified Graphics.UI.SDL.Image as Image
+--import qualified Graphics.UI.SDL.Image as Image
 import Foreign.C.Types
 import Foreign.Ptr
 import Foreign.Storable
@@ -37,11 +37,11 @@ textureDimensions t = with4 SDL.E.SDL_PIXELFORMAT_UNKNOWN SDL.E.SDL_TEXTUREACCES
             return $ Right (width, height)
 
 
-loadTexture :: SDL.T.Renderer -> String -> IO (Risky Asset)
-loadTexture renderer path = do
-    loadedTexture <- Image.imgLoadTexture renderer path >>= catchRisky
-    (width, height) <- textureDimensions loadedTexture >>= catchRisky
-    return $ if loadedTexture == nullPtr then Left "failed to load texture image" else Right (loadedTexture, width, height)
+--loadTexture :: SDL.T.Renderer -> String -> IO (Risky Asset)
+--loadTexture renderer path = do
+    --loadedTexture <- Image.imgLoadTexture renderer path >>= catchRisky
+    --(width, height) <- textureDimensions loadedTexture >>= catchRisky
+    --return $ if loadedTexture == nullPtr then Left "failed to load texture image" else Right (loadedTexture, width, height)
 
 
 createTextureFromSurface :: SDL.T.Renderer -> Ptr SDL.T.Surface -> IO (Risky SDL.T.Texture)

@@ -6,7 +6,7 @@ import qualified Graphics.UI.SDL.Types as SDL.T
 import qualified Graphics.UI.SDL.Basic as SDL.B
 import qualified Graphics.UI.SDL.Timer as SDL.Timer
 import qualified Graphics.UI.SDL.Event as SDL.Event
-import qualified Graphics.UI.SDL.Image as Image
+--import qualified Graphics.UI.SDL.Image as Image
 import Control.Monad
 import GHC.Word
 import Foreign.C.Types
