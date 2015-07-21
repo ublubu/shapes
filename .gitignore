@@ -1,6 +1,7 @@
 dist
 cabal-dev
 result
+TAGS
 *.o
 *.hi
 *.chi
