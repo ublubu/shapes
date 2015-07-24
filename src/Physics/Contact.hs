@@ -21,21 +21,6 @@ data Contact a = Contact { contactA :: PhysicalObj a
                          , contactPoint :: V2 a
                          , contactNormal :: V2 a } deriving Show
 
---generateContact :: (Epsilon a, Floating a, Ord a) => PhysicalObj a -> PhysicalObj a -> [Contact a]
---generateContact a b = case mc of Nothing -> []
-                                 --Just c -> eitherFlip f c a b
-  --where sa = physicsShape a
-        --sb = physicsShape b
-        --mc = G.contact sa sb
-        --f c' a' b' = fmap g ps
-          --where ps = G.flattenContactPoints cc
-                --cc = iExtract c'
-                --n = G.contactNormal cc
-                --g p = Contact { contactA = a'
-                              --, contactB = b'
-                              --, contactPoint = view _Point p
-                              --, contactNormal = n }
-
 generateContacts :: (Epsilon a, Floating a, Ord a) => ConstrainedPair a -> [Flipping (Contact a)]
 generateContacts cp = case mc of Nothing -> []
                                  Just c -> flipInjectF $ flipMap f c cp
@@ -66,11 +51,4 @@ jacobian (Contact a b p n) = ja `join33` jb
         jb = n `append2` ((p - xb) `cross22` n)
         xa = _physObjPos a
         xb = _physObjPos b
-
-velocity :: Contact a -> V6 a
-velocity (Contact a b _ _) = (va `append2` wa) `join33` (vb `append2` wb)
-  where va = _physObjVel a
-        vb = _physObjVel b
-        wa = _physObjRotVel a
-        wb = _physObjRotVel b
 

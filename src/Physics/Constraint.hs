@@ -41,7 +41,9 @@ testObj = PhysicalObj (V2 1 0) 0.5 (V2 0 0) 0 (rectangleHull 2 2) (2, 1)
 testPair = (testObj, testObj)
 
 data Constraint a = Constraint (V6 a) a
+type Constraint' a = ConstrainedPair a -> Constraint a
 type ConstrainedPair a = (PhysicalObj a, PhysicalObj a)
+type ConstraintGen a = ConstrainedPair a -> [Constraint' a]
 
 _constrainedVel6 :: ConstrainedPair a -> V6 a
 _constrainedVel6 cp = uncurry join33 (pairMap (view physObjVel3) cp)
@@ -106,8 +108,8 @@ constraintImpulse2 j lagr = j ^* lagr
 updateVelocity2_ :: (Num a) => V6 a -> M66 a -> V6 a -> V6 a
 updateVelocity2_ v im pc = v + (im !* pc)
 
-solveConstraint :: (Num a, Fractional a) => ConstrainedPair a -> Constraint a -> ConstrainedPair a
-solveConstraint cp c@(Constraint j b) = cp & constrainedVel6 %~ f
+solveConstraint :: (Num a, Fractional a) => Constraint a -> ConstrainedPair a -> ConstrainedPair a
+solveConstraint c@(Constraint j b) cp = cp & constrainedVel6 %~ f
   where f v6 = updateVelocity2_ v6 im pc
         im = _constrainedInvMassM2 cp
         pc = constraintImpulse2 j lagr
