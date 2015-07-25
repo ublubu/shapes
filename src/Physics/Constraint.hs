@@ -45,6 +45,7 @@ type Constraint' a = ConstrainedPair a -> Constraint a
 type ConstrainedPair a = (PhysicalObj a, PhysicalObj a)
 type ConstraintGen a = ConstrainedPair a -> [Constraint' a]
 type PhysObjChanged a = PhysicalObj a -> PhysicalObj a -> Bool
+type ErrorMetric a = PhysicalObj a -> PhysicalObj a -> a
 
 _constrainedVel6 :: ConstrainedPair a -> V6 a
 _constrainedVel6 cp = uncurry join33 (pairMap (view physObjVel3) cp)
