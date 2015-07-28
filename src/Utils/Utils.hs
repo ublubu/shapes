@@ -120,7 +120,7 @@ folds :: (b -> b) -> b -> [a] -> [b]
 folds _ _ [] = []
 folds f a0 (_:xs) = a0 : folds f (f a0) xs
 
-data Flipping a = Same a | Flip a
+data Flipping a = Same a | Flip a deriving Show
 
 -- TODO: write an iso for Flipping and Either
 flipAsEither :: Flipping a -> Either a a

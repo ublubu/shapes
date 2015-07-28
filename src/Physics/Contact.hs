@@ -18,7 +18,7 @@ import Utils.Utils
 
 data Contact a = Contact { contactA :: PhysicalObj a
                          , contactB :: PhysicalObj a
-                         , contactPoint :: V2 a
+                         , contactPoint :: P2 a
                          , contactNormal :: V2 a } deriving Show
 
 generateContacts :: (Epsilon a, Floating a, Ord a) => ConstrainedPair a -> [Flipping (Contact a)]
@@ -32,7 +32,7 @@ generateContacts cp = case mc of Nothing -> []
                 n = G.contactNormal cc
                 g p = Contact { contactA = a'
                               , contactB = b'
-                              , contactPoint = view _Point p
+                              , contactPoint = p
                               , contactNormal = n }
 
 generateConstraints :: (Epsilon a, Floating a, Ord a) => ConstrainedPair a -> [Constraint a]
@@ -47,8 +47,9 @@ toConstraint_ c = Constraint (jacobian c) 0
 
 jacobian :: (Num a) => Contact a -> V6 a
 jacobian (Contact a b p n) = ja `join33` jb
-  where ja = (-n) `append2` ((xa - p) `cross22` n)
-        jb = n `append2` ((p - xb) `cross22` n)
+  where ja = (-n) `append2` ((xa - p') `cross22` n)
+        jb = n `append2` ((p' - xb) `cross22` n)
         xa = _physObjPos a
         xb = _physObjPos b
+        p' = view _Point p
 

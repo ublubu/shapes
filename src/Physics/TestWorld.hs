@@ -2,6 +2,8 @@
 
 module Physics.TestWorld where
 
+import Control.Applicative
+import Control.Monad
 import Control.Lens
 import Data.Sequence
 import qualified Graphics.UI.SDL.Types as SDL.T
@@ -12,9 +14,10 @@ import Linear.Affine
 import Linear.Matrix
 import Linear.V2
 import Physics.Constraint
+import Physics.Contact
 import Physics.Linear
 import Physics.Transform
-import Physics.Geometry
+import Physics.Geometry hiding (Contact)
 import Physics.Draw
 import Physics.DrawWorld
 import Physics.World hiding (testWorld)
@@ -25,20 +28,22 @@ import GameLoop hiding (testStep)
 import Geometry
 import Utils.Utils
 
+pink = D.CustomRGBA 0xFF 0x3E 0x96 0xFF
+
 data TestState = TestState { _testWorld :: World Double
                            , _testFinished :: Bool }
 makeLenses ''TestState
 
 boxA = PhysicalObj { _physObjVel = V2 1 0
                    , _physObjRotVel = 0
-                   , _physObjPos = V2 (-5) 0
+                   , _physObjPos = V2 (-2) 0
                    , _physObjRotPos = 0
                    , _physObjHull = rectangleHull 4 4
                    , _physObjMass = (2, 1) }
 
 boxB = PhysicalObj { _physObjVel = V2 (-1) 0
                    , _physObjRotVel = 0
-                   , _physObjPos = V2 5 0
+                   , _physObjPos = V2 2 0
                    , _physObjRotPos = 0
                    , _physObjHull = rectangleHull 2 2
                    , _physObjMass = (1, 0.5) }
@@ -56,11 +61,20 @@ renderTest r state = do
   D.setColor r D.Black
   drawWorld r vt (_testWorld state)
 
+renderContacts :: SDL.T.Renderer -> [WorldPair [Flipping (Contact Double)]] -> IO ()
+renderContacts r ps = sequence_ . join $ fmap f ps
+  where f (WorldPair _ fcs) = fmap g fcs
+        g = drawContact' r . LocalT vt . flipExtract
+
 testStep :: SDL.T.Renderer -> TestState -> Word32 -> IO TestState
 testStep r s0 _ = do
   events <- flushEvents
   let s = foldl handleEvent s0 events & testWorld %~ advanceWorld dt
-  D.withBlankScreen r (renderTest r s)
+      cs = fmap generateContacts <$> allPairs (view testWorld s)
+  D.withBlankScreen r (do
+                           renderTest r s
+                           D.setColor r pink
+                           renderContacts r cs)
   return s
   where dt = fromIntegral timeStep / 1000
 

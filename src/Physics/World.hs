@@ -29,6 +29,12 @@ testWorld = World (fromList [testObj, testObj])
 data WorldPair a = WorldPair (Int, Int) a deriving Show
 type External a = PhysicalObj a -> a -> PhysicalObj a
 
+instance Functor WorldPair where
+  fmap f (WorldPair ij x) = WorldPair ij (f x)
+
+fromPair :: WorldPair a -> a
+fromPair (WorldPair _ a) = a
+
 advanceWorld :: (Num a) => a -> World a -> World a
 advanceWorld dt w = w & worldObjs %~ fmap (`advanceObj` dt)
 
