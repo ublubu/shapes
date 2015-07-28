@@ -1,6 +1,7 @@
 module GameLoop where
 
 import qualified Graphics.UI.SDL.Timer as SDL.Timer
+import Control.Concurrent
 import Control.Monad.State
 import GHC.Word
 import Utils.Utils
@@ -29,7 +30,7 @@ timedUpdater :: Word32 -> (a -> Word32 -> IO a) -> StateT (Word32, a) IO ()
 timedUpdater dt f = do
   (target, s) <- get
   time <- SDL.Timer.getTicks
-  let wait = target - time in when (wait > 0) (liftIO $ SDL.Timer.delay wait)
+  let wait = target - time in when (wait > 0) (liftIO $ threadDelay (1000 * fromIntegral wait))
   time' <- SDL.Timer.getTicks
   s' <- liftIO $ f s time'
   put (target + dt, s')
