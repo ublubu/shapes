@@ -36,14 +36,14 @@ makeLenses ''TestState
 
 boxA = PhysicalObj { _physObjVel = V2 1 0
                    , _physObjRotVel = 0
-                   , _physObjPos = V2 (-2) 0
+                   , _physObjPos = V2 (-5) 0
                    , _physObjRotPos = 0
                    , _physObjHull = rectangleHull 4 4
                    , _physObjMass = (2, 1) }
 
-boxB = PhysicalObj { _physObjVel = V2 (-1) 0
+boxB = PhysicalObj { _physObjVel = V2 (-4) 0
                    , _physObjRotVel = 0
-                   , _physObjPos = V2 2 0
+                   , _physObjPos = V2 5 2
                    , _physObjRotPos = 0
                    , _physObjHull = rectangleHull 2 2
                    , _physObjMass = (1, 0.5) }
@@ -71,11 +71,12 @@ testStep r s0 _ = do
   events <- flushEvents
   let s = foldl handleEvent s0 events & testWorld %~ advanceWorld dt
       cs = fmap generateContacts <$> allPairs (view testWorld s)
+      s' = s & testWorld %~ solveGens [generator]
   D.withBlankScreen r (do
                            renderTest r s
                            D.setColor r pink
                            renderContacts r cs)
-  return s
+  return s'
   where dt = fromIntegral timeStep / 1000
 
 handleEvent :: TestState -> SDL.T.Event -> TestState

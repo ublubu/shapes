@@ -59,3 +59,6 @@ solveConstraint w (WorldPair ij c') = w & ixWorldPair ij %~ C.solveConstraint c
 solveConstraints :: (Epsilon a, Floating a, Ord a) => World a -> [WorldPair (Constraint' a)] -> World a
 solveConstraints = foldl solveConstraint
 
+solveGens :: (Epsilon a, Floating a, Ord a) => [ConstraintGen a] -> World a -> World a
+solveGens gs w = solveConstraints w (constraints w gs)
+

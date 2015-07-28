@@ -35,6 +35,10 @@ generateContacts cp = case mc of Nothing -> []
                               , contactPoint = p
                               , contactNormal = n }
 
+generator :: (Epsilon a, Floating a, Ord a) => ConstrainedPair a -> [Constraint' a]
+generator cp = fmap f (generateContacts cp)
+               where f c _ = toConstraint c
+
 generateConstraints :: (Epsilon a, Floating a, Ord a) => ConstrainedPair a -> [Constraint a]
 generateConstraints cp = fmap toConstraint (generateContacts cp)
 

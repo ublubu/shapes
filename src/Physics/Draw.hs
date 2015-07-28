@@ -90,7 +90,6 @@ extractContactNormal = wExtract_ . lmap contactNormal
 
 drawContact' :: (Floating a, RealFrac a, Show a) => SDL.T.Renderer -> LocalT a (C.Contact a) -> IO ()
 drawContact' r cont = do
-  print p
   drawThickPoint r p
   drawLine r p (p .+^ n)
   where p = wExtract_ . lmap C.contactPoint $ cont
