@@ -1,5 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
-module World where
+
+module Physics.World where
 
 import Control.Applicative
 import Control.Lens
@@ -28,8 +29,8 @@ testWorld = World (fromList [testObj, testObj])
 data WorldPair a = WorldPair (Int, Int) a deriving Show
 type External a = PhysicalObj a -> a -> PhysicalObj a
 
-advanceWorld :: (Num a) => World a -> a -> World a
-advanceWorld w dt = w & worldObjs %~ fmap (`advanceObj` dt)
+advanceWorld :: (Num a) => a -> World a -> World a
+advanceWorld dt w = w & worldObjs %~ fmap (`advanceObj` dt)
 
 allPairs :: World a -> [WorldPair (ConstrainedPair a)]
 allPairs w = ifoldlOf (worldObjs.traversed) f [] w
