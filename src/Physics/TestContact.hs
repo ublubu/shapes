@@ -15,7 +15,7 @@ import Physics.Draw
 import qualified SDL.Draw as D
 import SDL.Event
 import GameInit
-import GameLoop
+import GameLoop hiding (testStep)
 import Geometry
 import Utils.Utils
 
