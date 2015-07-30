@@ -1,5 +1,8 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 module Utils.Utils where
 
+import Control.Lens
 import Control.Monad
 import Control.Monad.State hiding (state)
 import Data.Bits
@@ -152,3 +155,7 @@ flipExtract (Flip x) = x
 
 flipInjectF :: Functor f => Flipping (f a) -> f (Flipping a)
 flipInjectF x = fmap (flipWrap x) . flipExtract $ x
+
+ixZipWith :: (Ixed s, TraversableWithIndex (Index s) t) => (a -> Maybe (IxValue s) -> b) -> t a -> s -> t b
+ixZipWith f xs ys = xs & itraversed %@~ g
+  where g i x = f x (ys ^? ix i)

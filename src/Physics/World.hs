@@ -11,6 +11,7 @@ import Physics.Constraint hiding (solveConstraint)
 import qualified Physics.Constraint as C
 import Linear.Epsilon
 import Linear.Vector
+import Utils.Utils
 
 data World a = World { _worldObjs :: Seq (PhysicalObj a) } deriving Show
 makeLenses ''World;
@@ -26,8 +27,11 @@ ixWorldPair (i, j) f w = maybe (pure w) change pair
 
 testWorld = World (fromList [testObj, testObj])
 
+-- TODO: make ConstraintGen and External indexed functions (?) so there can be object-specific behavior.
 data WorldPair a = WorldPair (Int, Int) a deriving Show
-type External a = PhysicalObj a -> a -> PhysicalObj a
+type External a = a -> PhysicalObj a -> PhysicalObj a
+type WorldChanged a = World a -> World a -> Bool
+data WorldBehavior a = WorldBehavior [ConstraintGen a] [External a] (WorldChanged a) Int
 
 instance Functor WorldPair where
   fmap f (WorldPair ij x) = WorldPair ij (f x)
@@ -61,4 +65,26 @@ solveConstraints = foldl solveConstraint
 
 solveGens :: (Epsilon a, Floating a, Ord a) => [ConstraintGen a] -> World a -> World a
 solveGens gs w = solveConstraints w (constraints w gs)
+
+-- generate constraints
+-- apply externals
+-- solve constraints (sequential impulses until error is gone)
+-- update position
+updateWorld :: (Epsilon a, Floating a, Ord a, Num b, Ord b) => WorldBehavior a -> a -> World a -> World a
+updateWorld (WorldBehavior gens exts changed n) dt w = advanceWorld dt w''
+  where cs = constraints w gens
+        w' = foldl (\ww ext -> ww & worldObjs.traverse %~ ext dt) w exts
+        w'' = f n w'
+        f 0 ww = ww
+        f n' ww = if changed ww ww' then f (n' - 1) ww'
+                  else ww'
+          where ww' = solveConstraints ww cs
+
+worldChanged :: PhysObjChanged a -> WorldChanged a
+worldChanged objChanged w w' = anyOf traversed id (ixZipWith f os os')
+  where f o mo' = case mo' of
+          Just o' -> objChanged o o'
+          Nothing -> False
+        os = w ^. worldObjs
+        os' = w' ^. worldObjs
 
