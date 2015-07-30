@@ -20,6 +20,7 @@ import Physics.Transform
 import Physics.Geometry hiding (Contact)
 import Physics.Draw
 import Physics.DrawWorld
+import Physics.External
 import Physics.World hiding (testWorld)
 import qualified SDL.Draw as D
 import SDL.Event
@@ -53,6 +54,9 @@ vt = viewTransform (V2 400 300) (V2 20 20) (V2 0 0)
 
 initialState = TestState (World (fromList [boxA, boxB])) False
 
+worldDef :: WorldBehavior Double
+worldDef = WorldBehavior [generator] [constantForce (V2 0 (-0.5))] (const . const $ True) 5
+
 timeStep :: Num a => a
 timeStep = 10
 
@@ -69,14 +73,13 @@ renderContacts r ps = sequence_ . join $ fmap f ps
 testStep :: SDL.T.Renderer -> TestState -> Word32 -> IO TestState
 testStep r s0 _ = do
   events <- flushEvents
-  let s = foldl handleEvent s0 events & testWorld %~ advanceWorld dt
-      cs = fmap generateContacts <$> allPairs (view testWorld s)
-      s' = s & testWorld %~ solveGens [generator]
+  let cs = fmap generateContacts <$> allPairs (view testWorld s)
+      s = foldl handleEvent s0 events & testWorld %~ updateWorld worldDef dt
   D.withBlankScreen r (do
-                           renderTest r s
+                           renderTest r s0
                            D.setColor r pink
                            renderContacts r cs)
-  return s'
+  return s
   where dt = fromIntegral timeStep / 1000
 
 handleEvent :: TestState -> SDL.T.Event -> TestState
