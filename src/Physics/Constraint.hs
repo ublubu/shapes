@@ -114,11 +114,17 @@ constraintImpulse2 j lagr = j ^* lagr
 updateVelocity2_ :: (Num a) => V6 a -> M66 a -> V6 a -> V6 a
 updateVelocity2_ v im pc = v + (im !* pc)
 
+applyLagrangian2 :: (Fractional a) => M66 a -> V6 a -> a -> ConstrainedPair a -> ConstrainedPair a
+applyLagrangian2 im j lagr = constrainedVel6 %~ f
+  where f v6 = updateVelocity2_ v6 im (constraintImpulse2 j lagr)
+
+applyLagrangian2' :: (Fractional a) => a -> Constraint a -> ConstrainedPair a -> ConstrainedPair a
+applyLagrangian2' lagr (Constraint j _) cp = applyLagrangian2 im j lagr cp
+  where im = _constrainedInvMassM2 cp
+
 solveConstraint :: (Fractional a) => Constraint a -> ConstrainedPair a -> ConstrainedPair a
-solveConstraint c@(Constraint j b) cp = cp & constrainedVel6 %~ f
-  where f v6 = updateVelocity2_ v6 im pc
-        im = _constrainedInvMassM2 cp
-        pc = constraintImpulse2 j lagr
+solveConstraint c@(Constraint j _) cp = applyLagrangian2 im j lagr cp
+  where im = _constrainedInvMassM2 cp
         lagr = lagrangian2 cp c
 
 solveConstraint' :: (Physical a n, Fractional n) => Constraint n -> (a, a) -> (a, a)
