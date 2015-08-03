@@ -5,7 +5,6 @@ module Physics.TestWorld where
 import Control.Applicative
 import Control.Monad
 import Control.Lens
-import Data.Sequence
 import qualified Graphics.UI.SDL.Types as SDL.T
 import qualified Graphics.UI.SDL.Enum as SDL.E
 import qualified Graphics.UI.SDL.Timer as SDL.Timer
@@ -52,7 +51,7 @@ boxB = PhysicalObj { _physObjVel = V2 (-4) 0
 vt :: WorldTransform Double
 vt = viewTransform (V2 400 300) (V2 20 20) (V2 0 0)
 
-initialState = TestState (World (fromList [boxA, boxB])) False
+initialState = TestState (fromList [boxA, boxB]) False
 
 worldDef :: WorldBehavior Double
 worldDef = WorldBehavior [generator] [constantForce (V2 0 (-0.5))] (const . const $ True) 5

@@ -4,17 +4,24 @@ module Physics.World where
 
 import Control.Applicative
 import Control.Lens
+import qualified Data.IntMap.Strict as IM
 import Data.Maybe
-import Data.Sequence
-import Data.Sequence.Lens
 import Physics.Constraint hiding (solveConstraint)
 import qualified Physics.Constraint as C
 import Linear.Epsilon
 import Linear.Vector
 import Utils.Utils
 
-data World a = World { _worldObjs :: Seq (PhysicalObj a) } deriving Show
-makeLenses ''World;
+data World a = World { _worldObjs :: IM.IntMap (PhysicalObj a)
+                     , _worldNextKey :: Int } deriving Show
+makeLenses ''World
+
+emptyWorld :: World a
+emptyWorld = World IM.empty 0
+
+addObj :: World a -> PhysicalObj a -> World a
+addObj w o = w & worldObjs %~ IM.insert n o & worldNextKey .~ n + 1
+  where n = w ^. worldNextKey
 
 ixWorldPair :: Applicative f => (Int, Int) -> (ConstrainedPair a -> f (ConstrainedPair a)) -> World a -> f (World a)
 ixWorldPair (i, j) f w = maybe (pure w) change pair
@@ -25,7 +32,10 @@ ixWorldPair (i, j) f w = maybe (pure w) change pair
         change pair' = uncurry g <$> f pair'
           where g a b = set (worldObjs.ix j) b . set (worldObjs.ix i) a $ w
 
-testWorld = World (fromList [testObj, testObj])
+fromList :: [PhysicalObj a] -> World a
+fromList = foldl addObj emptyWorld
+
+testWorld = fromList [testObj, testObj]
 
 -- TODO: make ConstraintGen and External indexed functions (?) so there can be object-specific behavior.
 data WorldPair a = WorldPair (Int, Int) a deriving Show
@@ -43,9 +53,9 @@ advanceWorld :: (Num a) => a -> World a -> World a
 advanceWorld dt w = w & worldObjs %~ fmap (`advanceObj` dt)
 
 allPairs :: World a -> [WorldPair (ConstrainedPair a)]
-allPairs w = ifoldlOf (worldObjs.traversed) f [] w
-  where f i a b = ifoldlOf (worldObjs.slicedTo i) g a w
-          where g j ps b' = WorldPair (i, j) (b, b') : ps
+allPairs w = fst $ ifoldlOf (worldObjs.traversed) f ([], []) w
+  where f i (pairs, xs) x = (foldl g pairs xs, (i, x):xs)
+          where g ps (j, x') = WorldPair (i, j) (x, x') : ps
 
 getPair :: World a -> (Int, Int) -> ConstrainedPair a
 getPair w (i, j) = (f i, f j)
