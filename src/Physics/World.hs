@@ -12,18 +12,18 @@ import Linear.Epsilon
 import Linear.Vector
 import Utils.Utils
 
-data World a = World { _worldObjs :: IM.IntMap (PhysicalObj a)
+data World a = World { _worldObjs :: IM.IntMap a
                      , _worldNextKey :: Int } deriving Show
 makeLenses ''World
 
 emptyWorld :: World a
 emptyWorld = World IM.empty 0
 
-addObj :: World a -> PhysicalObj a -> World a
+addObj :: World a -> a -> World a
 addObj w o = w & worldObjs %~ IM.insert n o & worldNextKey .~ n + 1
   where n = w ^. worldNextKey
 
-ixWorldPair :: Applicative f => (Int, Int) -> (ConstrainedPair a -> f (ConstrainedPair a)) -> World a -> f (World a)
+ixWorldPair :: Applicative f => (Int, Int) -> ((a, a) -> f (a, a)) -> World a -> f (World a)
 ixWorldPair (i, j) f w = maybe (pure w) change pair
   where pair = do
           a <- w ^? worldObjs.ix i
@@ -32,16 +32,17 @@ ixWorldPair (i, j) f w = maybe (pure w) change pair
         change pair' = uncurry g <$> f pair'
           where g a b = set (worldObjs.ix j) b . set (worldObjs.ix i) a $ w
 
-fromList :: [PhysicalObj a] -> World a
+fromList :: [a] -> World a
 fromList = foldl addObj emptyWorld
 
 testWorld = fromList [testObj, testObj]
 
--- TODO: make ConstraintGen and External indexed functions (?) so there can be object-specific behavior.
 data WorldPair a = WorldPair (Int, Int) a deriving Show
-type External a = a -> PhysicalObj a -> PhysicalObj a
+type External' n = n -> PhysicalObj n -> PhysicalObj n
+type External n a = n -> a -> a
 type WorldChanged a = World a -> World a -> Bool
-data WorldBehavior a = WorldBehavior [ConstraintGen a] [External a] (WorldChanged a) Int
+data WorldBehavior n a = WorldBehavior [ConstraintGen n a] [External n a] (WorldChanged a) Int
+type ConstraintGen n a = (a, a) -> [Constraint' n]
 
 instance Functor WorldPair where
   fmap f (WorldPair ij x) = WorldPair ij (f x)
@@ -49,38 +50,42 @@ instance Functor WorldPair where
 fromPair :: WorldPair a -> a
 fromPair (WorldPair _ a) = a
 
-advanceWorld :: (Num a) => a -> World a -> World a
-advanceWorld dt w = w & worldObjs %~ fmap (`advanceObj` dt)
+advanceWorld :: (Physical a n, Num n) => n -> World a -> World a
+advanceWorld dt w = w & worldObjs.traverse.physObj %~ (`advanceObj` dt)
 
-allPairs :: World a -> [WorldPair (ConstrainedPair a)]
+allPairs :: World a -> [WorldPair (a, a)]
 allPairs w = fst $ ifoldlOf (worldObjs.traversed) f ([], []) w
   where f i (pairs, xs) x = (foldl g pairs xs, (i, x):xs)
           where g ps (j, x') = WorldPair (i, j) (x, x') : ps
 
-getPair :: World a -> (Int, Int) -> ConstrainedPair a
+getPair :: World a -> (Int, Int) -> (a, a)
 getPair w (i, j) = (f i, f j)
   where f k = fromJust $ w ^? worldObjs.(ix k)
 
-constraints :: (Epsilon a, Floating a, Ord a) => World a -> [ConstraintGen a] -> [WorldPair (Constraint' a)]
+wrapExternal :: (Physical a n) => External' n -> External n a
+wrapExternal f dt = over physObj (f dt)
+
+constraints :: (Physical a n, Epsilon n, Floating n, Ord n) => World a -> [ConstraintGen n a] -> [WorldPair (Constraint' n)]
 constraints w gens = foldl (\cs pair -> foldl (f pair) cs gens) [] (allPairs w)
   where f (WorldPair ij pair) cs gen = fmap (WorldPair ij) (gen pair) ++ cs
 
-solveConstraint :: (Epsilon a, Floating a, Ord a) => World a -> WorldPair (Constraint' a) -> World a
-solveConstraint w (WorldPair ij c') = w & ixWorldPair ij %~ C.solveConstraint c
-  where c = c' . fromJust $ (w ^? ixWorldPair ij)
+solveConstraint :: (Physical a n, Epsilon n, Floating n, Ord n) => World a -> WorldPair (Constraint' n) -> World a
+solveConstraint w (WorldPair ij c') = w & ixWorldPair ij %~ f
+  where f = C.solveConstraint' c
+        c = c' . pairMap (view physObj). fromJust $ (w ^? ixWorldPair ij)
 
 -- TODO: measure velocity change from each constraint solve to determine convergence
-solveConstraints :: (Epsilon a, Floating a, Ord a) => World a -> [WorldPair (Constraint' a)] -> World a
+solveConstraints :: (Physical a n, Epsilon n, Floating n, Ord n) => World a -> [WorldPair (Constraint' n)] -> World a
 solveConstraints = foldl solveConstraint
 
-solveGens :: (Epsilon a, Floating a, Ord a) => [ConstraintGen a] -> World a -> World a
+solveGens :: (Physical a n, Epsilon n, Floating n, Ord n) => [ConstraintGen n a] -> World a -> World a
 solveGens gs w = solveConstraints w (constraints w gs)
 
 -- generate constraints
 -- apply externals
 -- solve constraints (sequential impulses until error is gone)
 -- update position
-updateWorld :: (Epsilon a, Floating a, Ord a, Num b, Ord b) => WorldBehavior a -> a -> World a -> World a
+updateWorld :: (Physical a n, Epsilon n, Floating n, Ord n) => WorldBehavior n a -> n -> World a -> World a
 updateWorld (WorldBehavior gens exts changed n) dt w = advanceWorld dt w''
   where cs = constraints w gens
         w' = foldl (\ww ext -> ww & worldObjs.traverse %~ ext dt) w exts
@@ -90,10 +95,10 @@ updateWorld (WorldBehavior gens exts changed n) dt w = advanceWorld dt w''
                   else ww'
           where ww' = solveConstraints ww cs
 
-worldChanged :: PhysObjChanged a -> WorldChanged a
-worldChanged objChanged w w' = anyOf traversed id (ixZipWith f os os')
+worldChanged :: (Physical a n) => PhysObjChanged n -> WorldChanged a
+worldChanged objChanged w w' = anyOf traverse id (ixZipWith f os os')
   where f o mo' = case mo' of
-          Just o' -> objChanged o o'
+          Just o' -> objChanged (o ^. physObj) (o' ^. physObj)
           Nothing -> False
         os = w ^. worldObjs
         os' = w' ^. worldObjs

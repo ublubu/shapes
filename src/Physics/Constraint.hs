@@ -1,4 +1,4 @@
-{-# LANGUAGE DataKinds, TemplateHaskell #-}
+{-# LANGUAGE DataKinds, TemplateHaskell, FunctionalDependencies, FlexibleInstances #-}
 
 module Physics.Constraint where
 
@@ -29,6 +29,12 @@ data PhysicalObj a = PhysicalObj { _physObjVel :: V2 a
 
 makeLenses ''PhysicalObj
 
+class Physical p a | p -> a where
+  physObj :: Functor f => (PhysicalObj a -> f (PhysicalObj a)) -> p -> f p
+
+instance Physical (PhysicalObj a) a where
+  physObj = id
+
 _physObjVel3 :: PhysicalObj a -> V3 a
 _physObjVel3 po = (_physObjVel po) `append2` (_physObjRotVel po)
 
@@ -43,7 +49,6 @@ testPair = (testObj, testObj)
 data Constraint a = Constraint (V6 a) a
 type Constraint' a = ConstrainedPair a -> Constraint a
 type ConstrainedPair a = (PhysicalObj a, PhysicalObj a)
-type ConstraintGen a = ConstrainedPair a -> [Constraint' a]
 type PhysObjChanged a = PhysicalObj a -> PhysicalObj a -> Bool
 type ErrorMetric a = PhysicalObj a -> PhysicalObj a -> a
 
@@ -94,12 +99,12 @@ velocity2 a b = (va `append2` wa) `join33` (vb `append2` wb)
         wa = _physObjRotVel a
         wb = _physObjRotVel b
 
-lagrangian2 :: (Num a, Fractional a) => ConstrainedPair a -> Constraint a -> a
+lagrangian2 :: (Fractional a) => ConstrainedPair a -> Constraint a -> a
 lagrangian2 (o1, o2)(Constraint j b) = (-(j `dot` v + b)) / mc
   where v = velocity2 o1 o2
         mc = effMassM2 j o1 o2
 
-effMassM2 :: (Num a, Fractional a) => V6 a -> PhysicalObj a -> PhysicalObj a -> a
+effMassM2 :: (Fractional a) => V6 a -> PhysicalObj a -> PhysicalObj a -> a
 effMassM2 j a b = (j *! im) `dot` j
   where im = invMassM2 (_physObjMass a) (_physObjMass b)
 
@@ -110,12 +115,15 @@ constraintImpulse2 j lagr = j ^* lagr
 updateVelocity2_ :: (Num a) => V6 a -> M66 a -> V6 a -> V6 a
 updateVelocity2_ v im pc = v + (im !* pc)
 
-solveConstraint :: (Num a, Fractional a) => Constraint a -> ConstrainedPair a -> ConstrainedPair a
+solveConstraint :: (Fractional a) => Constraint a -> ConstrainedPair a -> ConstrainedPair a
 solveConstraint c@(Constraint j b) cp = cp & constrainedVel6 %~ f
   where f v6 = updateVelocity2_ v6 im pc
         im = _constrainedInvMassM2 cp
         pc = constraintImpulse2 j lagr
         lagr = lagrangian2 cp c
+
+solveConstraint' :: (Physical a n, Fractional n) => Constraint n -> (a, a) -> (a, a)
+solveConstraint' c = overWith physObj physObj (solveConstraint c)
 
 advanceObj :: (Num a) => PhysicalObj a -> a -> PhysicalObj a
 advanceObj obj dt = obj & physObjPos %~ f & physObjRotPos %~ g

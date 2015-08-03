@@ -30,7 +30,7 @@ import Utils.Utils
 
 pink = D.CustomRGBA 0xFF 0x3E 0x96 0xFF
 
-data TestState = TestState { _testWorld :: World Double
+data TestState = TestState { _testWorld :: World (PhysicalObj Double)
                            , _testFinished :: Bool }
 makeLenses ''TestState
 
@@ -53,7 +53,7 @@ vt = viewTransform (V2 400 300) (V2 20 20) (V2 0 0)
 
 initialState = TestState (fromList [boxA, boxB]) False
 
-worldDef :: WorldBehavior Double
+worldDef :: WorldBehavior Double (PhysicalObj Double)
 worldDef = WorldBehavior [generator] [constantForce (V2 0 (-0.5))] (const . const $ True) 5
 
 timeStep :: Num a => a

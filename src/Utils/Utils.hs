@@ -156,6 +156,13 @@ flipExtract (Flip x) = x
 flipInjectF :: Functor f => Flipping (f a) -> f (Flipping a)
 flipInjectF x = fmap (flipWrap x) . flipExtract $ x
 
+-- TODO: pull out the stuff that depends on lens.
+
 ixZipWith :: (Ixed s, TraversableWithIndex (Index s) t) => (a -> Maybe (IxValue s) -> b) -> t a -> s -> t b
 ixZipWith f xs ys = xs & itraversed %@~ g
   where g i x = f x (ys ^? ix i)
+
+-- TODO: can I get this to take a single Lens?
+overWith :: Getting a s a -> ASetter s t a b -> ((a, a) -> (b, b)) -> (s, s) -> (t, t)
+overWith g s f (x, y) = (x & s .~ a, y & s .~ b)
+  where (a, b) = f (x ^. g, y ^. g)

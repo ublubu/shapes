@@ -6,8 +6,8 @@ import Linear.Vector
 import Physics.Constraint
 import Physics.World
 
-constantForce :: (Num a, Fractional a) => V2 a -> External a
-constantForce f dt o = o & physObjVel %~ f'
+constantForce :: (Physical a n, Num n, Fractional n) => V2 n -> External n a
+constantForce f dt o = o & physObj.physObjVel %~ f'
   where f' v = v + (f ^* dt) ^/ m
-        m = o ^. physObjMass._1
+        m = o ^. physObj.physObjMass._1
 
