@@ -62,13 +62,15 @@ boxD = PhysicalObj { _physObjVel = V2 0 0
                    , _physObjHull = rectangleHull 0.4 3
                    , _physObjInvMass = toInvMass2 (1, 0) }
 
+contactGenerator = getGenerator (ContactBehavior 0.01 0.02)
+
 vt :: WorldTransform Double
 vt = viewTransform (V2 400 300) (V2 20 20) (V2 0 0)
 
 initialState = TestState (fromList [boxA, boxB, boxC, boxD]) False
 
 worldDef :: WorldBehavior Double (PhysicalObj Double)
-worldDef = WorldBehavior [generator] [constantAccel (V2 0 (-2))] (const . const $ True) 5
+worldDef = WorldBehavior [contactGenerator] [constantAccel (V2 0 (-2))] (const . const $ True) 5
 
 timeStep :: Num a => a
 timeStep = 10

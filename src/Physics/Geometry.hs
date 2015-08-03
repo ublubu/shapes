@@ -136,6 +136,11 @@ minOverlap ss edges sp = foldl1 f os
 minOverlap' :: (Floating a, Ord a) => ShapeInfo a -> ShapeInfo a -> Maybe (Overlap a)
 minOverlap' (sa, esa) (sb, _) = minOverlap sa esa sb
 
+contactDepth :: (Floating a) => Feature a (WV2 a) -> WP2 a -> a
+contactDepth (v, n) p = f v' - f p
+  where v' = wExtract (lmap vertex v)
+        f = wlift2_ afdot' n
+
 penetratingEdge :: (Floating a, Ord a) => Overlap a -> WorldT (P2 a, P2 a)
 penetratingEdge (Overlap (ve, n) depth (vp, b)) = if wlift2_ (<) bcn abn then wlift2 (,) b c
                                                   else wlift2 (,) a b
@@ -149,6 +154,7 @@ penetratedEdge (Overlap (ve, _) _ _) = wlift2 (,) a b
   where a = wExtract . lmap vertex $ ve
         b = wExtract . lmap (vertex . vNext) $ ve
 
+type ContactPoint a = (P2 a, a)
 data Contact a = Contact { contactPoints :: Either (P2 a) (P2 a, P2 a)
                          , contactNormal :: V2 a } deriving Show
 
@@ -169,14 +175,15 @@ clipEdge (a, b) n inc@(c, d) = do
         cd = toLine2 c d
 
 -- 'Flipping' indicates the direction of the collision. 'Same' means the first object overlaps into the second.
-contact :: (Floating a, Epsilon a, Ord a) => ShapeInfo a -> ShapeInfo a -> Maybe (Flipping (WorldT (Contact a)))
+contact :: (Floating a, Epsilon a, Ord a) => ShapeInfo a -> ShapeInfo a -> Maybe (Flipping (WorldT (Contact a), Feature a (WV2 a)))
 contact a b = either (fmap Same . contact_) (fmap Flip . contact_) =<< ovl
   where ovlab = minOverlap' a b
         ovlba = minOverlap' b a
         ovl = maybeBranch (\oab oba -> overlapDepth oab < overlapDepth oba) ovlab ovlba
 
-contact_ :: (Floating a, Epsilon a, Ord a) => Overlap a -> Maybe (WorldT (Contact a))
-contact_ ovl = wflip $ (wmap clipEdge edge) `wap` n `wap` pen
+contact_ :: (Floating a, Epsilon a, Ord a) => Overlap a -> Maybe (WorldT (Contact a), Feature a (WV2 a))
+contact_ ovl = fmap f (wflip $ (wmap clipEdge edge) `wap` n `wap` pen)
   where edge = penetratedEdge ovl
         pen = penetratingEdge ovl
         n = overlapNormal ovl
+        f c = (c, overlapEdge ovl)
