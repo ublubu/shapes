@@ -50,11 +50,11 @@ getGenerator :: (Epsilon a, Floating a, Ord a) => ContactBehavior a -> a -> Cons
 getGenerator beh dt cp = fmap f (generateContacts cp)
                where f c _ = toConstraint beh dt c
 
-toConstraint :: (Fractional a) => ContactBehavior a -> a -> Flipping (Contact a) -> Constraint a
+toConstraint :: (Fractional a, Ord a) => ContactBehavior a -> a -> Flipping (Contact a) -> Constraint a
 toConstraint beh dt c = flipExtractWith (id, f) (fmap (toConstraint_ beh dt) c)
   where f (Constraint j b) = Constraint (flip33 j) b
 
-toConstraint_ :: (Fractional a) => ContactBehavior a -> a -> Contact a -> Constraint a
+toConstraint_ :: (Fractional a, Ord a) => ContactBehavior a -> a -> Contact a -> Constraint a
 toConstraint_ beh dt c = Constraint (jacobian c) (baumgarte beh dt c)
 
 jacobian :: (Num a) => Contact a -> V6 a
@@ -67,8 +67,8 @@ jacobian (Contact a b p n _) = ja `join33` jb
 
 -- add extra energy if the penetration exceeds the allowed slop
 -- (i.e. subtract from C' = Jv + b in constraint C' <= 0)
-baumgarte :: (Fractional a) => ContactBehavior a -> a -> Contact a -> a
-baumgarte beh dt c = (b / dt) * (slop - d)
+baumgarte :: (Fractional a, Ord a) => ContactBehavior a -> a -> Contact a -> a
+baumgarte beh dt c = if (d > slop) then (b / dt) * (slop - d) else 0
   where b = contactBaumgarte beh
         slop = contactPenetrationSlop beh
         d = contactDepth c
