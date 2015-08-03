@@ -65,8 +65,10 @@ jacobian (Contact a b p n _) = ja `join33` jb
         xb = _physObjPos b
         p' = view _Point p
 
+-- add extra energy if the penetration exceeds the allowed slop
+-- (i.e. subtract from C' = Jv + b in constraint C' <= 0)
 baumgarte :: (Fractional a) => ContactBehavior a -> a -> Contact a -> a
-baumgarte beh dt c = (b / dt) * (d - slop)
+baumgarte beh dt c = (b / dt) * (slop - d)
   where b = contactBaumgarte beh
         slop = contactPenetrationSlop beh
         d = contactDepth c
