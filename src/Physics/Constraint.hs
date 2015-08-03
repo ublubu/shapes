@@ -19,13 +19,13 @@ import Physics.Geometry
 import Physics.Transform
 import Utils.Utils
 
-type MassInertia2 a = (a, a)
+type InvMass2 a = (a, a)
 data PhysicalObj a = PhysicalObj { _physObjVel :: V2 a
                                  , _physObjRotVel :: a
                                  , _physObjPos :: V2 a
                                  , _physObjRotPos :: a
                                  , _physObjHull :: ConvexHull a
-                                 , _physObjMass :: MassInertia2 a } deriving Show
+                                 , _physObjInvMass :: InvMass2 a } deriving Show
 
 makeLenses ''PhysicalObj
 
@@ -43,7 +43,7 @@ physObjVel3 f po = fmap g (f (_physObjVel3 po))
   where g v3' = po & physObjVel .~ v & physObjRotVel .~ vr
           where (v, vr) = split3 v3'
 
-testObj = PhysicalObj (V2 1 0) 0.5 (V2 0 0) 0 (rectangleHull 2 2) (2, 1)
+testObj = PhysicalObj (V2 1 0) 0.5 (V2 0 0) 0 (rectangleHull 2 2) (toInvMass2 (2, 1))
 testPair = (testObj, testObj)
 
 data Constraint a = Constraint (V6 a) a
@@ -60,31 +60,30 @@ constrainedVel6 f cp = fmap g (f (_constrainedVel6 cp))
   where g v6 = pairMap h (split33 v6) `pairAp` cp
         h v3 po = po & physObjVel3 .~ v3
 
-massM2 :: (Num a) => MassInertia2 a -> MassInertia2 a -> M66 a
-massM2 (ma, ia) (mb, ib) = listToV [ listToV [ma, 0, 0, 0, 0, 0]
+invMassM2 :: (Num a) => InvMass2 a -> InvMass2 a -> M66 a
+invMassM2 (ma, ia) (mb, ib) = listToV [ listToV [ma, 0, 0, 0, 0, 0]
                                   , listToV [0, ma, 0, 0, 0, 0]
                                   , listToV [0, 0, ia, 0, 0, 0]
                                   , listToV [0, 0, 0, mb, 0, 0]
                                   , listToV [0, 0, 0, 0, mb, 0]
                                   , listToV [0, 0, 0, 0, 0, ib] ]
 
-invMassM2 :: (Fractional a) => MassInertia2 a -> MassInertia2 a -> M66 a
-invMassM2 (_ma, _ia) (_mb, _ib) = listToV [ listToV [ma, 0, 0, 0, 0, 0]
-                                         , listToV [0, ma, 0, 0, 0, 0]
-                                         , listToV [0, 0, ia, 0, 0, 0]
-                                         , listToV [0, 0, 0, mb, 0, 0]
-                                         , listToV [0, 0, 0, 0, mb, 0]
-                                         , listToV [0, 0, 0, 0, 0, ib] ]
-  where ma = 1 / _ma
-        ia = 1 / _ia
-        mb = 1 / _mb
-        ib = 1 / _ib
+toInvMass2 :: (Fractional a, Eq a) => (a, a) -> (a, a)
+toInvMass2 = pairMap f
+  where f x = if x == 0 then 0
+              else 1 / x
 
-_constrainedMassM2 :: (Fractional a) => ConstrainedPair a -> M66 a
-_constrainedMassM2 cp = uncurry massM2 (pairMap (view physObjMass) cp)
+isStatic :: (Num a, Eq a) => InvMass2 a -> Bool
+isStatic = (== (0, 0))
+
+isStaticLin :: (Num a, Eq a) => InvMass2 a -> Bool
+isStaticLin = (0 ==) . fst
+
+isStaticRot :: (Num a, Eq a) => InvMass2 a -> Bool
+isStaticRot = (0 ==) . snd
 
 _constrainedInvMassM2 :: (Fractional a) => ConstrainedPair a -> M66 a
-_constrainedInvMassM2 cp = uncurry invMassM2 (pairMap (view physObjMass) cp)
+_constrainedInvMassM2 cp = uncurry invMassM2 (pairMap (view physObjInvMass) cp)
 
 _physObjTransform :: (Floating a, Ord a) => PhysicalObj a -> WorldTransform a
 _physObjTransform obj = toTransform (_physObjPos obj) (_physObjRotPos obj)
@@ -106,7 +105,7 @@ lagrangian2 (o1, o2)(Constraint j b) = (-(j `dot` v + b)) / mc
 
 effMassM2 :: (Fractional a) => V6 a -> PhysicalObj a -> PhysicalObj a -> a
 effMassM2 j a b = (j *! im) `dot` j
-  where im = invMassM2 (_physObjMass a) (_physObjMass b)
+  where im = curry _constrainedInvMassM2 a b
 
 constraintImpulse2 :: (Num a) => V6 a -> a -> V6 a
 constraintImpulse2 j lagr = j ^* lagr

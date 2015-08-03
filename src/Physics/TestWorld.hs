@@ -39,22 +39,36 @@ boxA = PhysicalObj { _physObjVel = V2 1 0
                    , _physObjPos = V2 (-5) 0
                    , _physObjRotPos = 0
                    , _physObjHull = rectangleHull 4 4
-                   , _physObjMass = (2, 1) }
+                   , _physObjInvMass = toInvMass2 (2, 1) }
 
 boxB = PhysicalObj { _physObjVel = V2 (-4) 0
                    , _physObjRotVel = 0
                    , _physObjPos = V2 5 2
                    , _physObjRotPos = 0
                    , _physObjHull = rectangleHull 2 2
-                   , _physObjMass = (1, 0.5) }
+                   , _physObjInvMass = toInvMass2 (1, 0.5) }
+
+boxC = PhysicalObj { _physObjVel = V2 0 0
+                   , _physObjRotVel = 0
+                   , _physObjPos = V2 0 (-6)
+                   , _physObjRotPos = 0
+                   , _physObjHull = rectangleHull 18 1
+                   , _physObjInvMass = toInvMass2 (0, 0) }
+
+boxD = PhysicalObj { _physObjVel = V2 0 0
+                   , _physObjRotVel = 0
+                   , _physObjPos = V2 (-5) (-4)
+                   , _physObjRotPos = 0
+                   , _physObjHull = rectangleHull 0.4 3
+                   , _physObjInvMass = toInvMass2 (1, 0) }
 
 vt :: WorldTransform Double
 vt = viewTransform (V2 400 300) (V2 20 20) (V2 0 0)
 
-initialState = TestState (fromList [boxA, boxB]) False
+initialState = TestState (fromList [boxA, boxB, boxC, boxD]) False
 
 worldDef :: WorldBehavior Double (PhysicalObj Double)
-worldDef = WorldBehavior [generator] [constantForce (V2 0 (-0.5))] (const . const $ True) 5
+worldDef = WorldBehavior [generator] [constantAccel (V2 0 (-2))] (const . const $ True) 5
 
 timeStep :: Num a => a
 timeStep = 10
