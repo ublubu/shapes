@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts, RankNTypes #-}
 
 module Utils.Utils where
 
@@ -162,7 +162,6 @@ ixZipWith :: (Ixed s, TraversableWithIndex (Index s) t) => (a -> Maybe (IxValue 
 ixZipWith f xs ys = xs & itraversed %@~ g
   where g i x = f x (ys ^? ix i)
 
--- TODO: can I get this to take a single Lens?
-overWith :: Getting a s a -> ASetter s t a b -> ((a, a) -> (b, b)) -> (s, s) -> (t, t)
-overWith g s f (x, y) = (x & s .~ a, y & s .~ b)
-  where (a, b) = f (x ^. g, y ^. g)
+overWith :: Lens' s a -> ((a, a) -> (a, a)) -> (s, s) -> (s, s)
+overWith l f (x, y) = (x & l .~ a, y & l .~ b)
+  where (a, b) = f (x ^. l, y ^. l)

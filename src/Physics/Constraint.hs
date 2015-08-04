@@ -128,7 +128,7 @@ solveConstraint c@(Constraint j _) cp = applyLagrangian2 im j lagr cp
         lagr = lagrangian2 cp c
 
 solveConstraint' :: (Physical a n, Fractional n) => Constraint n -> (a, a) -> (a, a)
-solveConstraint' c = overWith physObj physObj (solveConstraint c)
+solveConstraint' c = overWith physObj (solveConstraint c)
 
 advanceObj :: (Num a) => PhysicalObj a -> a -> PhysicalObj a
 advanceObj obj dt = obj & physObjPos %~ f & physObjRotPos %~ g

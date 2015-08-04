@@ -10,11 +10,14 @@ import qualified Graphics.UI.SDL.Enum as SDL.E
 import qualified Graphics.UI.SDL.Timer as SDL.Timer
 import GHC.Word
 import Linear.Affine
+import Linear.Epsilon
 import Linear.Matrix
 import Linear.V2
 import Physics.Constraint
 import Physics.Contact
+import Physics.ContactSolver
 import Physics.Linear
+import Physics.Solver
 import Physics.Transform
 import Physics.Geometry hiding (Contact)
 import Physics.Draw
@@ -30,7 +33,7 @@ import Utils.Utils
 
 pink = D.CustomRGBA 0xFF 0x3E 0x96 0xFF
 
-data TestState = TestState { _testWorld :: World (PhysicalObj Double)
+data TestState = TestState { _testWorld :: (World (PhysicalObj Double), WorldBehavior Double (PhysicalObj Double))
                            , _testFinished :: Bool }
 makeLenses ''TestState
 
@@ -62,15 +65,16 @@ boxD = PhysicalObj { _physObjVel = V2 0 0
                    , _physObjHull = rectangleHull 0.4 3
                    , _physObjInvMass = toInvMass2 (1, 0) }
 
-contactGenerator = getGenerator (ContactBehavior 0.01 0.02)
+initialWorld = fromList [boxA, boxB, boxC, boxD]
+initialBehavior = WorldBehavior [contactSolver] [constantAccel (V2 0 (-2))] (const . const $ True) 5
+
+contactSolver :: (Physical a n, Epsilon n, Floating n, Ord n) => PairSolver n Int a
+contactSolver = getSolver (ContactBehavior 0.01 0.02)
 
 vt :: WorldTransform Double
 vt = viewTransform (V2 400 300) (V2 20 20) (V2 0 0)
 
-initialState = TestState (fromList [boxA, boxB, boxC, boxD]) False
-
-worldDef :: WorldBehavior Double (PhysicalObj Double)
-worldDef = WorldBehavior [contactGenerator] [constantAccel (V2 0 (-2))] (const . const $ True) 5
+initialState = TestState (initialWorld, initialBehavior) False
 
 timeStep :: Num a => a
 timeStep = 10
@@ -78,7 +82,7 @@ timeStep = 10
 renderTest :: SDL.T.Renderer -> TestState -> IO ()
 renderTest r state = do
   D.setColor r D.Black
-  drawWorld r vt (_testWorld state)
+  drawWorld r vt (state ^. testWorld . _1)
 
 renderContacts :: SDL.T.Renderer -> [WorldPair [Flipping (Contact Double)]] -> IO ()
 renderContacts r ps = sequence_ . join $ fmap f ps
@@ -88,8 +92,8 @@ renderContacts r ps = sequence_ . join $ fmap f ps
 testStep :: SDL.T.Renderer -> TestState -> Word32 -> IO TestState
 testStep r s0 _ = do
   events <- flushEvents
-  let cs = fmap generateContacts <$> allPairs (view testWorld s)
-      s = foldl handleEvent s0 events & testWorld %~ updateWorld worldDef dt
+  let cs = fmap generateContacts <$> allPairs (s ^. testWorld . _1)
+      s = foldl handleEvent s0 events & testWorld %~ uncurry (updateWorld dt)
   D.withBlankScreen r (do
                            renderTest r s0
                            D.setColor r pink
