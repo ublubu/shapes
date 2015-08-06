@@ -15,7 +15,7 @@ import Linear.Matrix
 import Linear.V2
 import Physics.Constraint
 import Physics.Contact
-import Physics.ContactSolver
+import Physics.Solvers
 import Physics.Linear
 import Physics.Solver
 import Physics.Transform
@@ -66,10 +66,7 @@ boxD = PhysicalObj { _physObjVel = V2 0 0
                    , _physObjInvMass = toInvMass2 (1, 0) }
 
 initialWorld = fromList [boxA, boxB, boxC, boxD]
-initialBehavior = WorldBehavior [contactSolver] [constantAccel (V2 0 (-2))] (const . const $ True) 5
-
-contactSolver :: (Physical a n, Epsilon n, Floating n, Ord n) => PairSolver n Int a
-contactSolver = getSolver (ContactBehavior 0.01 0.02)
+initialBehavior = WorldBehavior [contactSolver (ContactBehavior 0.01 0.02)] [constantAccel (V2 0 (-2))] (const . const $ True) 5
 
 vt :: WorldTransform Double
 vt = viewTransform (V2 400 300) (V2 20 20) (V2 0 0)

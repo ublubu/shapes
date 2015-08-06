@@ -60,21 +60,24 @@ allPairs w = fst $ ifoldlOf (worldObjs.traversed) f ([], []) w
 wrapExternal :: (Physical a n) => External' n -> External n a
 wrapExternal f dt = over physObj (f dt)
 
-runSolvers :: [PairSolver n Int a] -> n -> World a -> (World a, [PairSolver n Int a])
-runSolvers ss dt ww = foldl f (ww, []) ss
+genSolvers :: n -> [PairSolver n Int a] -> [PairSolver n Int a]
+genSolvers dt = fmap (`solverGen` dt)
+
+runSolvers :: World a -> [PairSolver n Int a] -> (World a, [PairSolver n Int a])
+runSolvers ww ss = foldl f (ww, []) ss & _2 %~ reverse -- keep the solvers in the original order
   where f (w, ss') s = (w', s':ss')
-          where (w', s') = runSolver s dt w
+          where (w', s') = runSolver (w, s)
 
-runSolver :: PairSolver n Int a -> n -> World a -> (World a, PairSolver n Int a)
-runSolver s dt w = solveMany ijs s dt w
-  where ijs = fmap pairIndex (allPairs w)
+runSolver :: (World a, PairSolver n Int a) -> (World a, PairSolver n Int a)
+runSolver ws = solveMany ijs ws
+  where ijs = fmap pairIndex (allPairs (fst ws))
 
-solveMany :: [(Int, Int)] -> PairSolver n Int a -> n -> World a -> (World a, PairSolver n Int a)
-solveMany ijs s dt w = foldl f (w, s) ijs
-  where f (w, s) ij = solveOne ij s dt w
+solveMany :: [(Int, Int)] -> (World a, PairSolver n Int a) -> (World a, PairSolver n Int a)
+solveMany ijs ws = foldl f ws ijs
+  where f ws' ij = solveOne ij ws'
 
-solveOne :: (Int, Int) -> PairSolver n Int a -> n -> World a -> (World a, PairSolver n Int a)
-solveOne ij = solve' (worldObjs . pairiix ij)
+solveOne :: (Int, Int) -> (World a, PairSolver n Int a) -> (World a, PairSolver n Int a)
+solveOne ij = uncurry $ solve (worldObjs . pairiix ij)
 
 -- apply externals
 -- apply solvers (until convergence requirements are met)
@@ -86,7 +89,8 @@ updateWorld dt w_ wb_ = f (wb_ ^. worldMaxIterations) (ww_, wb_) & _1 %~ advance
         f n (w, wb) = if (wb ^. worldChanged) w (fst wwb') then f (n - 1) wwb'
                   else wwb'
           where wwb' = (w', wb & worldSolvers .~ ss')
-                  where (w', ss') = runSolvers (wb ^. worldSolvers) dt w
+                  where (w', ss') = runSolvers w solvers
+                        solvers = wb ^. worldSolvers & genSolvers dt
 
 getWorldChanged :: (Physical a n) => PhysObjChanged n -> WorldChanged a
 getWorldChanged objChanged w w' = anyOf traverse id (ixZipWith f os os')

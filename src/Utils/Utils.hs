@@ -9,6 +9,7 @@ import Data.Bits
 import Data.Maybe
 import Data.Monoid
 import Data.Tuple
+import qualified Data.IntMap.Strict as IM
 import Foreign.C.String
 import Foreign.C.Types
 import Foreign.Marshal.Alloc
@@ -165,3 +166,10 @@ ixZipWith f xs ys = xs & itraversed %@~ g
 overWith :: Lens' s a -> ((a, a) -> (a, a)) -> (s, s) -> (s, s)
 overWith l f (x, y) = (x & l .~ a, y & l .~ b)
   where (a, b) = f (x ^. l, y ^. l)
+
+findOrInsert :: IM.Key -> a -> IM.IntMap a -> (Maybe a, IM.IntMap a)
+findOrInsert = IM.insertLookupWithKey (\_ _ a -> a)
+
+findOrInsert' :: IM.Key -> a -> IM.IntMap a -> (a, IM.IntMap a)
+findOrInsert' k x t = (fromMaybe x mx, t')
+  where (mx, t') = findOrInsert k x t
