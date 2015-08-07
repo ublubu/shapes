@@ -173,3 +173,7 @@ findOrInsert = IM.insertLookupWithKey (\_ _ a -> a)
 findOrInsert' :: IM.Key -> a -> IM.IntMap a -> (a, IM.IntMap a)
 findOrInsert' k x t = (fromMaybe x mx, t')
   where (mx, t') = findOrInsert k x t
+
+posMod :: (Integral a) => a -> a -> a
+posMod x n = if res < 0 then res + n else res
+  where res = x `mod` n

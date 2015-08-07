@@ -1,8 +1,4 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE DataKinds, TypeOperators, KindSignatures, MultiParamTypeClasses, FlexibleInstances, RankNTypes #-}
 
 module Physics.Linear where
 
@@ -169,12 +165,24 @@ applyClip' (ClipBoth _) _ = Nothing
 applyClip' res seg = either (const Nothing) Just (applyClip res seg)
 
 -- remove clipped points
-applyClip'' :: ClipResult a -> (a, a) -> Maybe (Either a (a, a))
+applyClip'' :: ClipResult a -> (s, s) -> Maybe (Either s (s, s))
 applyClip'' res (a, b) = case res of
   ClipLeft _ -> Just $ Left b
   ClipRight _ -> Just $ Left a
   ClipBoth _ -> Nothing
   ClipNone -> Just $ Right (a, b)
+
+lApplyClip :: ASetter' s a -> ClipResult a -> (s, s) -> Either s (s, s)
+lApplyClip l res (a, b) = case res of
+  ClipLeft c -> Right (set l c a, b)
+  ClipRight c -> Right (a, set l c b)
+  ClipBoth c -> Left (set l c a) -- use the 'first' vertex by default
+  ClipNone -> Right (a, b)
+
+-- if the entire segment was behind the bound, return Nothing
+lApplyClip' :: ASetter' s a -> ClipResult a -> (s, s) -> Maybe (s, s)
+lApplyClip' _ (ClipBoth _) _ = Nothing
+lApplyClip' l res seg = either (const Nothing) Just (lApplyClip l res seg)
 
 clipSegment :: (Floating a, Epsilon a, Ord a) => Line2 a -> (Line2 a, (P2 a, P2 a)) -> ClipResult (P2 a)
 clipSegment boundary (incident, (a, b)) = case intersect2 boundary incident of
@@ -187,4 +195,3 @@ clipSegment boundary (incident, (a, b)) = case intersect2 boundary incident of
           a' = a `afdot` n
           b' = b `afdot` n
           c' = c `afdot` n
-

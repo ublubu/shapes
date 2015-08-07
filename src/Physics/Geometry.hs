@@ -11,6 +11,7 @@ import Control.Monad
 import Control.Applicative
 import qualified Control.Lens as L
 import Data.Either
+import Data.Either.Combinators
 import Data.Maybe
 import Data.List.Zipper
 import Linear.Affine
@@ -24,7 +25,7 @@ import Physics.Linear
 import Physics.Transform
 
 data ConvexHull a = ConvexHull { hullVertices :: [P2 a] } deriving Show
-data VertexView a = VertexView Int (Loop (P2 a)) deriving Show
+data VertexView a = VertexView Int (Loop (P2 a)) Int deriving Show
 
 instance (Floating a) => WorldTransformable (ConvexHull a) a where
   transform t (ConvexHull vs) = ConvexHull (fmap (transform t) vs)
@@ -39,22 +40,25 @@ rectangleHull w h = ConvexHull [ P $ V2 w2 h2
         h2 = h / 2
 
 vertices :: ConvexHull a -> VertexView a
-vertices (ConvexHull vs) = VertexView (length vs) (loopify vs)
+vertices (ConvexHull vs) = VertexView (length vs) (loopify vs) 0
 
 vPrev :: VertexView a -> VertexView a
-vPrev (VertexView n vs) = VertexView n (loopPrev vs)
+vPrev (VertexView n vs i) = VertexView n (loopPrev vs) (i - 1 `posMod` n)
 
 vNext :: VertexView a -> VertexView a
-vNext (VertexView n vs) = VertexView n (loopNext vs)
+vNext (VertexView n vs i) = VertexView n (loopNext vs) (i + 1 `posMod` n)
 
 vCount :: VertexView a -> Int
-vCount (VertexView n _) = n
+vCount (VertexView n _ _) = n
 
 vList :: VertexView a -> [VertexView a]
 vList v = take (vCount v) (iterate vNext v)
 
+vIndex :: VertexView a -> Int
+vIndex (VertexView _ _ i) = i
+
 vertexLoop :: VertexView a -> Loop (P2 a)
-vertexLoop (VertexView _ l) = l
+vertexLoop (VertexView _ l _) = l
 
 vertex :: VertexView a -> P2 a
 vertex = loopVal . vertexLoop
@@ -77,6 +81,11 @@ type Feature a b = (LocalT a (VertexView a), b)
 type Support a = WV2 a -> Feature a (WP2 a)
 
 type ShapeInfo a = (Support a, [Feature a (WV2 a)])
+
+data Overlap a = Overlap { overlapEdge :: Feature a (WV2 a) -- unit normal
+                         , overlapDepth :: a
+                         , overlapPenetrator :: ContactP2 a } -- vertex in world coords
+                 deriving Show
 
 shapeInfo :: (Epsilon a, Floating a, Ord a) => LocalT a (ConvexHull a) -> ShapeInfo a
 shapeInfo h = (sup, edges)
@@ -107,11 +116,6 @@ unitEdgeNormals v = fmap f vs
   where f v' = (v', wExtract (lmap unitEdgeNormal v'))
         vs = lfmap vList v
 
-data Overlap a = Overlap { overlapEdge :: Feature a (WV2 a) -- unit normal
-                         , overlapDepth :: a
-                         , overlapPenetrator :: Feature a (WP2 a) } -- vertex in world coords
-                 deriving Show
-
 overlapNormal :: Overlap a -> WV2 a
 overlapNormal = snd . overlapEdge
 
@@ -141,49 +145,70 @@ contactDepth (v, n) p = f v' - f p
   where v' = wExtract (lmap vertex v)
         f = wlift2_ afdot' n
 
-penetratingEdge :: (Floating a, Ord a) => Overlap a -> WorldT (P2 a, P2 a)
-penetratingEdge (Overlap (ve, n) depth (vp, b)) = if wlift2_ (<) bcn abn then wlift2 (,) b c
-                                                  else wlift2 (,) a b
-  where c = wExtract . lmap (vertex . vNext) $ vp
-        a = wExtract . lmap (vertex . vPrev) $ vp
-        abn = wmap abs $ wlift2 dot (wlift2 (.-.) b a) n
-        bcn = wmap abs $ wlift2 dot (wlift2 (.-.) c b) n
+contactP2 :: (Floating a) => LocalT a (VertexView a) -> ContactP2 a
+contactP2 v = (v, (wExtract . lmap vertex) v)
 
-penetratedEdge :: (Floating a) => Overlap a -> WorldT (P2 a, P2 a)
-penetratedEdge (Overlap (ve, _) _ _) = wlift2 (,) a b
-  where a = wExtract . lmap vertex $ ve
-        b = wExtract . lmap (vertex . vNext) $ ve
+penetratingEdge :: (Floating a, Ord a) => Overlap a -> (ContactP2 a, ContactP2 a)
+penetratingEdge (Overlap (ve, n) depth b@(vp, bb)) = if wlift2_ (<) bcn abn then (b, c)
+                                                  else (a, b)
+  where c@(vc, cc) = contactP2 (lmap vNext vp)
+        a@(va, aa) = contactP2 (lmap vPrev vp)
+        abn = wmap abs $ wlift2 dot (wlift2 (.-.) bb aa) n
+        bcn = wmap abs $ wlift2 dot (wlift2 (.-.) cc bb) n
 
-type ContactPoint a = (P2 a, a)
-data Contact a = Contact { contactPoints :: Either (P2 a) (P2 a, P2 a)
+penetratedEdge :: (Floating a) => Overlap a -> (ContactP2 a, ContactP2 a)
+penetratedEdge (Overlap (ve, _) _ _) = (a, b)
+  where a = contactP2 ve
+        b = contactP2 (lmap vNext ve)
+
+type ContactP2 a = Feature a (WP2 a)
+data Contact a = Contact { contactPoints :: Either (ContactP2 a) (ContactP2 a, ContactP2 a)
                          , contactNormal :: V2 a } deriving Show
 
-flattenContactPoints :: Contact a -> [P2 a]
+contactPoints' :: Contact a -> Either (P2 a) (P2 a, P2 a)
+contactPoints' = mapBoth f g . contactPoints
+  where f = L.view clens'
+        g = pairMap f
+
+clens :: L.Lens' (ContactP2 a) (WP2 a)
+clens = L._2
+
+clens' :: L.Lens' (ContactP2 a) (P2 a)
+clens' = L._2 . wlens
+
+featIndex :: Feature a b -> Int
+featIndex = lunsafe_ vIndex . fst
+
+flattenContactPoints :: Contact a -> [ContactP2 a]
 flattenContactPoints (Contact (Left p) _) = [p]
 flattenContactPoints (Contact (Right (p1, p2)) _) = [p1, p2]
 
-clipEdge :: (Floating a, Epsilon a, Ord a) => (P2 a, P2 a) -> V2 a -> (P2 a, P2 a) -> Maybe (Contact a)
-clipEdge (a, b) n inc@(c, d) = do
-  inc' <- applyClip' (clipSegment aBound (cd, inc)) inc
-  inc'' <- applyClip' (clipSegment bBound (cd, inc')) inc'
-  contacts <- applyClip'' (clipSegment abBound (cd, inc'')) inc''
+clipEdge :: (Floating a, Epsilon a, Ord a) => (ContactP2 a, ContactP2 a) -> V2 a -> (ContactP2 a, ContactP2 a) -> Maybe (Contact a)
+clipEdge (aa, bb) n inc_ = do
+  inc' <- lApplyClip' l (clipSegment aBound (cd', inc)) inc_
+  inc'' <- lApplyClip' l (clipSegment bBound (cd', f inc')) inc'
+  contacts <- applyClip'' (clipSegment abBound (cd', f inc'')) inc''
   return Contact { contactPoints = contacts
                   , contactNormal = n }
   where aBound = perpLine2 a b
         bBound = perpLine2 b a
         abBound = Line2 a (-n)
-        cd = toLine2 c d
+        cd' = toLine2 c d
+        inc@(c, d) = f inc_
+        (a, b) = f (aa, bb)
+        f = pairMap (L.view clens')
+        l = clens'
 
 -- 'Flipping' indicates the direction of the collision. 'Same' means the first object overlaps into the second.
-contact :: (Floating a, Epsilon a, Ord a) => ShapeInfo a -> ShapeInfo a -> Maybe (Flipping (WorldT (Contact a), Feature a (WV2 a)))
+contact :: (Floating a, Epsilon a, Ord a) => ShapeInfo a -> ShapeInfo a -> Maybe (Flipping (Contact a, Feature a (WV2 a)))
 contact a b = either (fmap Same . contact_) (fmap Flip . contact_) =<< ovl
   where ovlab = minOverlap' a b
         ovlba = minOverlap' b a
         ovl = maybeBranch (\oab oba -> overlapDepth oab < overlapDepth oba) ovlab ovlba
 
-contact_ :: (Floating a, Epsilon a, Ord a) => Overlap a -> Maybe (WorldT (Contact a), Feature a (WV2 a))
-contact_ ovl = fmap f (wflip $ (wmap clipEdge edge) `wap` n `wap` pen)
+contact_ :: (Floating a, Epsilon a, Ord a) => Overlap a -> Maybe (Contact a, Feature a (WV2 a))
+contact_ ovl = fmap f (clipEdge edge n pen)
   where edge = penetratedEdge ovl
         pen = penetratingEdge ovl
-        n = overlapNormal ovl
+        n = iExtract . overlapNormal $ ovl
         f c = (c, overlapEdge ovl)

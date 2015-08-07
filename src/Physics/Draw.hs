@@ -80,7 +80,7 @@ drawOverlap r ovl = do
         pen = extractPenetrator ovl
 
 extractContactPoints :: (Floating a) => LocalT a (Contact a) -> Either (P2 a) (P2 a, P2 a)
-extractContactPoints cont = either (Left . wExtract_) (Right . wExtract_) $ flipEither (lmap contactPoints cont)
+extractContactPoints cont = either (Left . wExtract_) (Right . wExtract_) $ flipEither (lmap contactPoints' cont)
   where flipEither :: LocalT a (Either b c) -> Either (LocalT a b) (LocalT a c)
         flipEither (LocalT t (Left x)) = Left (LocalT t x)
         flipEither (LocalT t (Right x)) = Right (LocalT t x)

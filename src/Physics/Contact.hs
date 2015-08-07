@@ -20,7 +20,8 @@ data Contact a = Contact { contactA :: PhysicalObj a
                          , contactB :: PhysicalObj a
                          , contactPoint :: P2 a
                          , contactNormal :: V2 a
-                         , contactDepth :: a } deriving Show
+                         , contactDepth :: a
+                         , contactIndex :: (Int, Int) } deriving Show
 data ContactBehavior a = ContactBehavior { contactBaumgarte :: a
                                          , contactPenetrationSlop :: a } deriving Show
 
@@ -33,15 +34,15 @@ generateContacts cp = case mc of Nothing -> []
                                  Just c -> flipInjectF $ flipMap f c cp
   where shapes = pairMap physicsShape cp
         mc = uncurry G.contact shapes
-        f (c', feat) (a', b') = fmap g ps
+        f (cc, feat) (a', b') = fmap g ps
           where ps = G.flattenContactPoints cc
-                cc = iExtract c'
                 n = G.contactNormal cc
                 g p = Contact { contactA = a'
                               , contactB = b'
-                              , contactPoint = p
+                              , contactPoint = p ^. G.clens'
                               , contactNormal = n
-                              , contactDepth = G.contactDepth feat (WorldT p)}
+                              , contactDepth = G.contactDepth feat (p ^. G.clens)
+                              , contactIndex = (G.featIndex feat, G.featIndex p)}
 
 generator :: (Epsilon a, Floating a, Ord a) => a -> ConstrainedPair a -> [Constraint' a]
 generator = getGenerator defaultContactBehavior
@@ -58,7 +59,7 @@ toConstraint_ :: (Fractional a, Ord a) => ContactBehavior a -> a -> Contact a ->
 toConstraint_ beh dt c = Constraint (jacobian c) (baumgarte beh dt c)
 
 jacobian :: (Num a) => Contact a -> V6 a
-jacobian (Contact a b p n _) = ja `join33` jb
+jacobian (Contact a b p n _ _) = ja `join33` jb
   where ja = (-n) `append2` ((xa - p') `cross22` n)
         jb = n `append2` ((p' - xb) `cross22` n)
         xa = _physObjPos a

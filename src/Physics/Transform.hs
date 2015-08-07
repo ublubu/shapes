@@ -1,9 +1,4 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE DataKinds, MultiParamTypeClasses, FlexibleInstances, FlexibleContexts, TypeFamilies, TypeSynonymInstances #-}
 
 module Physics.Transform where
 
@@ -145,3 +140,9 @@ lmap = fmap
 
 lfmap :: (Functor t) => (a -> t b) -> LocalT n a -> t (LocalT n b)
 lfmap f (LocalT t v) = fmap (LocalT t) (f v)
+
+lunsafe_ :: (a -> b) -> LocalT n a -> b
+lunsafe_ f (LocalT _ v) = f v
+
+wlens :: (Functor f) => (a -> f a) -> WorldT a -> f (WorldT a)
+wlens f = fmap WorldT . f . iExtract
