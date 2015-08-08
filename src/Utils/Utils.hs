@@ -2,6 +2,7 @@
 
 module Utils.Utils where
 
+import Control.Applicative
 import Control.Lens
 import Control.Monad
 import Control.Monad.State hiding (state)
@@ -146,6 +147,9 @@ flipExtractWith :: (a -> b, a -> b) -> Flipping a -> b
 flipExtractWith (f, _) (Same x) = f x
 flipExtractWith (_, f) (Flip x) = f x
 
+flipExtractPair :: (a -> (b, b)) -> Flipping a -> (b, b)
+flipExtractPair f = flipExtractWith (f, swap . f)
+
 instance Functor Flipping where
   fmap f (Same x) = Same (f x)
   fmap f (Flip x) = Flip (f x)
@@ -177,3 +181,16 @@ findOrInsert' k x t = (fromMaybe x mx, t')
 posMod :: (Integral a) => a -> a -> a
 posMod x n = if res < 0 then res + n else res
   where res = x `mod` n
+
+pairiix :: (Ixed m) => (Index m, Index m) -> IndexedTraversal' (Index m, Index m) m (IxValue m, IxValue m)
+pairiix ij f = pairix ij (indexed f ij)
+
+-- Applicative f => (IxValue m -> f (IxValue m)) -> m -> f m
+pairix :: (Ixed m) => (Index m, Index m) -> Traversal' m (IxValue m, IxValue m)
+pairix ij@(i, j) f t = maybe (pure t) change pair
+  where pair = do
+          a <- t ^? ix i
+          b <- t ^? ix j
+          return (a, b)
+        change pair' = uncurry g <$> indexed f ij pair'
+          where g a b = set (ix j) b . set (ix i) a $ t

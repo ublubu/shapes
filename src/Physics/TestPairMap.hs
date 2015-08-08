@@ -1,7 +1,7 @@
-module Physics.TestConstraintSolver where
+module Physics.TestPairMap where
 
 import qualified Data.IntMap.Strict as IM
-import Physics.ConstraintSolver
+import Physics.PairMap
 import Utils.Utils
 
 testMap :: IM.IntMap Double

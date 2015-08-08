@@ -11,8 +11,9 @@ import Linear.V2
 import Linear.Vector
 import Linear.Matrix
 import qualified Physics.Geometry as G
-import Physics.Linear
 import Physics.Constraint
+import Physics.ConstraintSolver
+import Physics.Linear
 import Physics.Transform
 import Utils.Utils
 
@@ -44,12 +45,12 @@ generateContacts cp = case mc of Nothing -> []
                               , contactDepth = G.contactDepth feat (p ^. G.clens)
                               , contactIndex = (G.featIndex feat, G.featIndex p)}
 
-generator :: (Epsilon a, Floating a, Ord a) => a -> ConstrainedPair a -> [Constraint' a]
+generator :: (Epsilon a, Floating a, Ord a) => ConstraintGen a
 generator = getGenerator defaultContactBehavior
 
-getGenerator :: (Epsilon a, Floating a, Ord a) => ContactBehavior a -> a -> ConstrainedPair a -> [Constraint' a]
+getGenerator :: (Epsilon a, Floating a, Ord a) => ContactBehavior a -> ConstraintGen a
 getGenerator beh dt cp = fmap f (generateContacts cp)
-               where f c _ = toConstraint beh dt c
+               where f c = (flipExtractPair contactIndex c, const $ toConstraint beh dt c)
 
 toConstraint :: (Fractional a, Ord a) => ContactBehavior a -> a -> Flipping (Contact a) -> Constraint a
 toConstraint beh dt c = flipExtractWith (id, f) (fmap (toConstraint_ beh dt) c)

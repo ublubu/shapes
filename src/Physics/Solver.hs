@@ -21,19 +21,6 @@ solverGen (Solver _ g) = g
 solverFunc :: Solver x k a -> SolverFunc x k a
 solverFunc (Solver f _) = f
 
-pairiix :: (Ixed m) => (Index m, Index m) -> IndexedTraversal' (Index m, Index m) m (IxValue m, IxValue m)
-pairiix ij f = pairix ij (indexed f ij)
-
--- Applicative f => (IxValue m -> f (IxValue m)) -> m -> f m
-pairix :: (Ixed m) => (Index m, Index m) -> Traversal' m (IxValue m, IxValue m)
-pairix ij@(i, j) f t = maybe (pure t) change pair
-  where pair = do
-          a <- t ^? ix i
-          b <- t ^? ix j
-          return (a, b)
-        change pair' = uncurry g <$> indexed f ij pair'
-          where g a b = set (ix j) b . set (ix i) a $ t
-
 makeSolver :: (k -> a -> s -> (a, s)) -> (x -> s -> s) -> s -> Solver x k a
 makeSolver f g s = Solver f' g'
   where f' k a = (a', makeSolver f g s')

@@ -8,7 +8,6 @@ import Control.Lens.Indexed
 import qualified Data.IntMap.Strict as IM
 import Data.Maybe
 import Physics.Constraint hiding (solveConstraint)
-import Physics.Solver
 import qualified Physics.Constraint as C
 import Linear.Epsilon
 import Linear.Vector
@@ -28,17 +27,15 @@ addObj w o = w & worldObjs %~ IM.insert n o & worldNextKey .~ n + 1
 fromList :: [a] -> World a
 fromList = foldl addObj emptyWorld
 
+worldPair :: (Int, Int) -> Traversal' (World a) (a, a)
+worldPair ij = worldObjs . pairiix ij
+
 testWorld = fromList [testObj, testObj]
 
 data WorldPair a = WorldPair (Int, Int) a deriving Show
 type External' n = n -> PhysicalObj n -> PhysicalObj n
 type External n a = n -> a -> a
 type WorldChanged a = World a -> World a -> Bool
-data WorldBehavior n a = WorldBehavior { _worldSolvers :: [PairSolver n Int a]
-                                       , _worldExternals :: [External n a]
-                                       , _worldChanged :: WorldChanged a
-                                       , _worldMaxIterations :: Int }
-makeLenses ''WorldBehavior
 
 instance Functor WorldPair where
   fmap f (WorldPair ij x) = WorldPair ij (f x)
@@ -57,40 +54,15 @@ allPairs w = fst $ ifoldlOf (worldObjs.traversed) f ([], []) w
   where f i (pairs, xs) x = (foldl g pairs xs, (i, x):xs)
           where g ps (j, x') = WorldPair (i, j) (x, x') : ps
 
+allKeys :: World a -> [(Int, Int)]
+allKeys = fmap pairIndex . allPairs
+
 wrapExternal :: (Physical a n) => External' n -> External n a
 wrapExternal f dt = over physObj (f dt)
 
-genSolvers :: n -> [PairSolver n Int a] -> [PairSolver n Int a]
-genSolvers dt = fmap (`solverGen` dt)
-
-runSolvers :: World a -> [PairSolver n Int a] -> (World a, [PairSolver n Int a])
-runSolvers ww ss = foldl f (ww, []) ss & _2 %~ reverse -- keep the solvers in the original order
-  where f (w, ss') s = (w', s':ss')
-          where (w', s') = runSolver (w, s)
-
-runSolver :: (World a, PairSolver n Int a) -> (World a, PairSolver n Int a)
-runSolver ws = solveMany ijs ws
-  where ijs = fmap pairIndex (allPairs (fst ws))
-
-solveMany :: [(Int, Int)] -> (World a, PairSolver n Int a) -> (World a, PairSolver n Int a)
-solveMany ijs ws = foldl f ws ijs
-  where f ws' ij = solveOne ij ws'
-
-solveOne :: (Int, Int) -> (World a, PairSolver n Int a) -> (World a, PairSolver n Int a)
-solveOne ij = uncurry $ solve (worldObjs . pairiix ij)
-
--- apply externals
--- apply solvers (until convergence requirements are met)
--- update position
-updateWorld :: (Physical a n, Epsilon n, Floating n, Ord n) => n -> World a -> WorldBehavior n a -> (World a, WorldBehavior n a)
-updateWorld dt w_ wb_ = f (wb_ ^. worldMaxIterations) (ww_, wb_) & _1 %~ advanceWorld dt
-  where ww_ = foldl (\ww ext -> ww & worldObjs.traverse %~ ext dt) w_ (wb_ ^. worldExternals)
-        f 0 wwb = wwb
-        f n (w, wb) = if (wb ^. worldChanged) w (fst wwb') then f (n - 1) wwb'
-                  else wwb'
-          where wwb' = (w', wb & worldSolvers .~ ss')
-                  where (w', ss') = runSolvers w solvers
-                        solvers = wb ^. worldSolvers & genSolvers dt
+applyExternals :: [External n a] -> n -> World a -> World a
+applyExternals exts dt w = foldl f w exts
+  where f w0 ext = w0 & worldObjs.traverse %~ ext dt
 
 getWorldChanged :: (Physical a n) => PhysObjChanged n -> WorldChanged a
 getWorldChanged objChanged w w' = anyOf traverse id (ixZipWith f os os')

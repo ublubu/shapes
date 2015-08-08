@@ -46,9 +46,12 @@ physObjVel3 f po = fmap g (f (_physObjVel3 po))
 testObj = PhysicalObj (V2 1 0) 0.5 (V2 0 0) 0 (rectangleHull 2 2) (toInvMass2 (2, 1))
 testPair = (testObj, testObj)
 
+-- TODO: between incremental solutions, jacobian is expected to remain constant?
+--       otherwise, how to clamp?
 data Constraint a = Constraint (V6 a) a
 type Constraint' a = ConstrainedPair a -> Constraint a
 type ConstrainedPair a = (PhysicalObj a, PhysicalObj a)
+type ConstraintResult a = (a, Constraint a)
 type PhysObjChanged a = PhysicalObj a -> PhysicalObj a -> Bool
 type ErrorMetric a = PhysicalObj a -> PhysicalObj a -> a
 
@@ -130,7 +133,23 @@ solveConstraint c@(Constraint j _) cp = applyLagrangian2 im j lagr cp
 solveConstraint' :: (Physical a n, Fractional n) => Constraint n -> (a, a) -> (a, a)
 solveConstraint' c = overWith physObj (solveConstraint c)
 
+constraintResult :: (Physical a n, Fractional n) => Constraint' n -> (a, a) -> ConstraintResult n
+constraintResult c' ab = (lagrangian2 cp c, c)
+  where cp = toCP ab
+        c = c' cp
+
+applyConstraintResult :: (Physical a n, Fractional n) => ConstraintResult n -> (a, a) -> (a, a)
+applyConstraintResult (lagr, Constraint j _) ab = overWith physObj f ab
+  where im = cpMap _constrainedInvMassM2 ab
+        f = applyLagrangian2 im j lagr
+
 advanceObj :: (Num a) => PhysicalObj a -> a -> PhysicalObj a
 advanceObj obj dt = obj & physObjPos %~ f & physObjRotPos %~ g
   where f pos = (dt *^ (obj ^. physObjVel)) + pos
         g ori = (dt * (obj ^. physObjRotVel)) + ori
+
+toCP :: (Physical a n) => (a, a) -> ConstrainedPair n
+toCP = pairMap (view physObj)
+
+cpMap :: (Physical a n) => (ConstrainedPair n -> b) -> (a, a) -> b
+cpMap f pair = f (toCP pair)

@@ -1,39 +1,67 @@
+{-# LANGUAGE FlexibleInstances, FlexibleContexts, RankNTypes #-}
+
 module Physics.ConstraintSolver where
 
 import Control.Lens
 import qualified Data.IntMap.Strict as IM
 import Data.Maybe
-import Linear.Epsilon
 import Physics.Constraint
-import Physics.Solver
+import Physics.PairMap
+import Physics.World hiding (solveOne, solveMany)
+import Physics.WorldSolver
 import Utils.Utils
 
-type ConstraintGen n = n -> ConstrainedPair n -> [Constraint' n]
-type PairMap a = IM.IntMap (IM.IntMap a)
+type ConstraintGen n = n -> ConstrainedPair n -> [(Key, Constraint' n)]
 
-findOrInsertPair :: (Int, Int) -> a -> PairMap a -> (Maybe a, PairMap a)
-findOrInsertPair (i, j) x t = (mx', IM.insert i tt' t)
-  where mtt = IM.lookup i t
-        (mx', tt') = case mtt of Just tt -> findOrInsert j x tt
-                                 Nothing -> (Nothing, IM.insert j x IM.empty)
-        t' = case mx' of Just _ -> t -- x was not inserted
-                         Nothing -> IM.insert i tt' t -- x was inserted, insert updated tt'
+type SolutionCache n = n
+type Cache a n = PairMap (SolutionCache n, Constraint' n)
+type State a n = (n, PairMap (Cache a n))
+type SolutionProcessor n = SolutionCache n -> ConstraintResult n -> (SolutionCache n, ConstraintResult n)
+type WorldLens2 k w a = WorldLens k w (a, a)
 
-findOrInsertPair' :: (Int, Int) -> a -> PairMap a -> (a, PairMap a)
-findOrInsertPair' ij x t = (fromMaybe x mx, t')
-  where (mx, t') = findOrInsertPair ij x t
+emptyState :: (Num n) => State a n
+emptyState = (0, IM.empty)
 
-constraintSolver :: (Physical a n, Epsilon n, Floating n, Ord n) => ConstraintGen n -> PairSolver n Int a
-constraintSolver gen = makeSolver f g (0, IM.empty)
-  where f k a s@(dt, cache) = (a', s')
-          where s' = s & _2 .~ cache'
-                solveOne a0 c' = solveConstraint' (cpMap c' a0) a0
-                a' = foldl solveOne a cs'
-                (cs', cache') = findOrInsertPair' k (cpMap (gen dt) a) cache
-        g dt s = (dt, IM.empty)
+init :: (Physical a n, Num n) => SolutionCache n -> ConstraintGen n -> WSGen (World a) Key (a, a) n (State a n)
+init cache0 g ks l w x s0 = foldl f (x, IM.empty) ks
+  where f s k = initOne cache0 g k l w x s0 s
 
-toCP :: (Physical a n) => (a, a) -> ConstrainedPair n
-toCP = pairMap (view physObj)
+initOne :: (Physical a n, Num n) => SolutionCache n -> ConstraintGen n -> Key -> WorldLens2 Key (World a) a -> World a -> n -> State a n -> State a n -> State a n
+initOne cache0 g k l w x s0 s = s & _2 %~ insertPair k cache
+  where ab = fromJust $ w ^? l k
+        cs' = g x (pairMap (^. physObj) ab)
+        caches0 = s0 ^. _2
+        cache = initCache cache0 (lookupPair k caches0) cs'
 
-cpMap :: (Physical a n) => (ConstrainedPair n -> b) -> (a, a) -> b
-cpMap f pair = f (toCP pair)
+initCache :: (Num n) => SolutionCache n -> Maybe (Cache a n) -> [(Key, Constraint' n)] -> Cache a n
+initCache cache0 (Just cache) cs' = foldl f IM.empty cs'
+  where f cache' (k, c') = insertPair k (sln', c') cache'
+          where sln' = case lookupPair k cache of
+                  Just (sln, _) -> sln
+                  Nothing -> cache0
+initCache cache0 Nothing cs' = foldl f IM.empty cs'
+  where f cache' (k, c') = insertPair k (cache0, c') cache'
+
+improve :: (Physical a n, Fractional n) => SolutionProcessor n -> WSFunc (World a) Key (a, a) (State a n)
+improve sp l w s = (w', s')
+  where (w', s') = foldl f (w, s) ks
+        f (w0, s0) k = improveOne sp k l w0 s0
+        ks = keys (snd s)
+
+improveOne :: (Physical a n, Fractional n) => SolutionProcessor n -> Key -> WorldLens2 Key (World a) a -> World a -> State a n -> (World a, State a n)
+improveOne sp k l w s = (w & l k .~ ab', s & _2 %~ insertPair k cache')
+  where cache = fromJust $ lookupPair k (snd s)
+        ab = fromJust $ w ^? l k
+        (ab', cache') = solveMany sp (keys cache) cache ab
+
+solveMany :: (Physical a n, Fractional n) => SolutionProcessor n -> [Key] -> Cache a n -> (a, a) -> ((a, a), Cache a n)
+solveMany sp ks cache ab = foldl f (ab, cache) ks
+  where f (ab0, cache0) k = (ab', insertPair k (sln', c') cache0)
+          where (ab', sln') = solveOne sp k c' ab0 sln0
+                (sln0, c') = fromJust $ lookupPair k cache0
+
+solveOne :: (Physical a n, Fractional n) => SolutionProcessor n -> Key -> Constraint' n -> (a, a) -> SolutionCache n -> ((a, a), SolutionCache n)
+solveOne sp k c' ab sln = (ab', sln')
+  where ab' = applyConstraintResult cr ab
+        cr = constraintResult c' ab
+        (sln', cr') = sp sln cr
