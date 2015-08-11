@@ -11,7 +11,7 @@ import Physics.World hiding (solveOne, solveMany)
 import Physics.WorldSolver
 import Utils.Utils
 
-type ConstraintGen n = n -> ConstrainedPair n -> [(Key, Constraint' n)]
+type ConstraintGen n a = n -> (a, a) -> [(Key, Constraint' n)]
 
 type SolutionCache n = n
 type Cache a n = PairMap (SolutionCache n, Constraint' n)
@@ -22,14 +22,14 @@ type WorldLens2 k w a = WorldLens k w (a, a)
 emptyState :: (Num n) => State a n
 emptyState = (0, IM.empty)
 
-init :: (Physical a n, Num n) => SolutionCache n -> ConstraintGen n -> WSGen (World a) Key (a, a) n (State a n)
+init :: (Physical a n, Num n) => SolutionCache n -> ConstraintGen n a -> WSGen (World a) Key (a, a) n (State a n)
 init cache0 g ks l w x s0 = foldl f (x, IM.empty) ks
   where f s k = initOne cache0 g k l w x s0 s
 
-initOne :: (Physical a n, Num n) => SolutionCache n -> ConstraintGen n -> Key -> WorldLens2 Key (World a) a -> World a -> n -> State a n -> State a n -> State a n
+initOne :: (Physical a n, Num n) => SolutionCache n -> ConstraintGen n a -> Key -> WorldLens2 Key (World a) a -> World a -> n -> State a n -> State a n -> State a n
 initOne cache0 g k l w x s0 s = s & _2 %~ insertPair k cache
   where ab = fromJust $ w ^? l k
-        cs' = g x (pairMap (^. physObj) ab)
+        cs' = g x ab
         caches0 = s0 ^. _2
         cache = initCache cache0 (lookupPair k caches0) cs'
 
