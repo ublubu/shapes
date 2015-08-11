@@ -62,6 +62,6 @@ solveMany sp ks cache ab = foldl f (ab, cache) ks
 
 solveOne :: (Physical a n, Fractional n) => SolutionProcessor n -> Key -> Constraint' n -> (a, a) -> SolutionCache n -> ((a, a), SolutionCache n)
 solveOne sp k c' ab sln = (ab', sln')
-  where ab' = applyConstraintResult cr ab
+  where ab' = applyConstraintResult cr' ab
         cr = constraintResult c' ab
         (sln', cr') = sp sln cr
