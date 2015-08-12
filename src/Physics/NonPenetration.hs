@@ -6,8 +6,8 @@ import Physics.Constraint
 import Physics.Contact
 import Physics.Linear
 
-toConstraint_ :: (Fractional a, Ord a) => ContactBehavior a -> a -> Contact a -> Constraint a
-toConstraint_ beh dt c = Constraint (jacobian c) (baumgarte beh dt c)
+toConstraint :: (Fractional a, Ord a) => ContactBehavior a -> a -> Contact a -> Constraint a
+toConstraint beh dt c = Constraint (jacobian c) (baumgarte beh dt c)
 
 jacobian :: (Num a) => Contact a -> V6 a
 jacobian (Contact a b p n _ _) = ja `join33` jb

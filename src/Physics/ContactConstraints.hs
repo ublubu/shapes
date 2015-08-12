@@ -16,6 +16,6 @@ getGenerator beh dt ab = fmap f (generateContacts (toCP ab))
                where f c = (flipExtractPair contactIndex c, const $ toConstraint beh dt c)
 
 toConstraint :: (Fractional a, Ord a) => ContactBehavior a -> a -> Flipping (Contact a) -> Constraint a
-toConstraint beh dt c = flipExtractWith (id, f) (fmap (NP.toConstraint_ beh dt) c)
+toConstraint beh dt c = flipExtractWith (id, f) (fmap (NP.toConstraint beh dt) c)
   where f (Constraint j b) = Constraint (flip33 j) b
 

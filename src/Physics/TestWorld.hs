@@ -69,12 +69,19 @@ boxD = PhysicalObj { _physObjVel = V2 0 0
 
 initialWorld = fromList [boxA, boxB, boxC, boxD]
 
+externals :: (Physical a n, Epsilon n, Floating n, Ord n) => [External n a]
+externals = [constantAccel (V2 0 (-2))]
+
+initialWorld' = fromList [boxA, boxB, boxC]
+
+externals' = []
+
 updateWorld :: (Physical a n, Epsilon n, Floating n, Ord n) => n -> World a -> State a n -> (World a, State a n)
 updateWorld dt w s = (advanceWorld dt w', s')
-  where w1 = applyExternals [constantAccel (V2 0 (-2))] dt w
+  where w1 = applyExternals externals dt w
         maxSolverIterations = 5
         worldChanged = const . const $ True
-        solver = S.contactSolver (ContactBehavior 0.01 0.02)
+        solver = S.contactSolver (ContactBehavior 0.00 0.00)
         (w', s') = wsolve' solver worldChanged maxSolverIterations (allKeys w1) worldPair w1 dt s
 
 vt :: WorldTransform Double
