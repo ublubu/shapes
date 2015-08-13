@@ -15,6 +15,7 @@ import Linear.Matrix
 import Linear.V2
 import Physics.Constraint
 import Physics.ConstraintSolver
+import Physics.ContactSolver
 import Physics.Contact
 import Physics.Linear
 import Physics.Solver
@@ -35,7 +36,7 @@ import Utils.Utils
 
 pink = D.CustomRGBA 0xFF 0x3E 0x96 0xFF
 
-data TestState = TestState { _testWorldState :: (World (PhysicalObj Double), State (PhysicalObj Double) Double)
+data TestState = TestState { _testWorldState :: (World (PhysicalObj Double), State Double (Cache Double (PhysicalObj Double)))
                            , _testFinished :: Bool }
 makeLenses ''TestState
 
@@ -76,7 +77,7 @@ initialWorld' = fromList [boxA, boxB, boxC]
 
 externals' = []
 
-updateWorld :: (Physical a n, Epsilon n, Floating n, Ord n) => n -> World a -> State a n -> (World a, State a n)
+updateWorld :: (Physical a n, Epsilon n, Floating n, Ord n) => n -> World a -> State n (Cache n a) -> (World a, State n (Cache n a))
 updateWorld dt w s = (advanceWorld dt w', s')
   where w1 = applyExternals externals dt w
         maxSolverIterations = 5

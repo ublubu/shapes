@@ -11,57 +11,36 @@ import Physics.World hiding (solveOne, solveMany)
 import Physics.WorldSolver
 import Utils.Utils
 
-type ConstraintGen n a = n -> (a, a) -> [(Key, Constraint' n)]
-
-type SolutionCache n = n
-type Cache a n = PairMap (SolutionCache n, Constraint' n)
-type State a n = (n, PairMap (Cache a n))
-type SolutionProcessor n = SolutionCache n -> ConstraintResult n -> (SolutionCache n, ConstraintResult n)
+type Generator n a c = n -> (a, a) -> Maybe c -> c
+type Applicator a c = (a, a) -> c -> ((a, a), c)
+type State n c = (n, PairMap c)
 type WorldLens2 k w a = WorldLens k w (a, a)
 
-emptyState :: (Num n) => State a n
+emptyState :: (Num n) => State n c
 emptyState = (0, IM.empty)
 
-init :: (Physical a n, Num n) => SolutionCache n -> ConstraintGen n a -> WSGen (World a) Key (a, a) n (State a n)
-init cache0 g ks l w x s0 = foldl f (x, IM.empty) ks
-  where f s k = initOne cache0 g k l w x s0 s
+-- s0 is the previous solver state
+-- result is next state
+init :: Generator n a c -> WSGen (World a) Key (a, a) n (State n c)
+init g ks l w x s0 = foldl f (x, IM.empty) ks
+  where f s k = initOne g k l w x s0 s
 
-initOne :: (Physical a n, Num n) => SolutionCache n -> ConstraintGen n a -> Key -> WorldLens2 Key (World a) a -> World a -> n -> State a n -> State a n -> State a n
-initOne cache0 g k l w x s0 s = s & _2 %~ insertPair k cache
+-- initialize one PairMap entry
+-- TODO: have Generator return (Maybe c) to avoid empty state entries
+initOne :: Generator n a c -> Key -> WorldLens2 Key (World a) a -> World a -> n -> State n c -> State n c -> State n c
+initOne g k l w x s_src s_accum = s_accum & _2 %~ insertPair k cache
   where ab = fromJust $ w ^? l k
-        cs' = g x ab
-        caches0 = s0 ^. _2
-        cache = initCache cache0 (lookupPair k caches0) cs'
+        caches0 = s_src ^. _2
+        cache = g x ab (lookupPair k caches0)
 
-initCache :: (Num n) => SolutionCache n -> Maybe (Cache a n) -> [(Key, Constraint' n)] -> Cache a n
-initCache cache0 (Just cache) cs' = foldl f IM.empty cs'
-  where f cache' (k, c') = insertPair k (sln', c') cache'
-          where sln' = case lookupPair k cache of
-                  Just (sln, _) -> sln
-                  Nothing -> cache0
-initCache cache0 Nothing cs' = foldl f IM.empty cs'
-  where f cache' (k, c') = insertPair k (cache0, c') cache'
-
-improve :: (Physical a n, Fractional n) => SolutionProcessor n -> WSFunc (World a) Key (a, a) (State a n)
-improve sp l w s = (w', s')
-  where (w', s') = foldl f (w, s) ks
-        f (w0, s0) k = improveOne sp k l w0 s0
+improve :: Applicator a c -> WSFunc (World a) Key (a, a) (State n c)
+improve f l w s = (w', s')
+  where (w', s') = foldl f' (w, s) ks
+        f' (w0, s0) k = improveOne f k l w0 s0
         ks = keys (snd s)
 
-improveOne :: (Physical a n, Fractional n) => SolutionProcessor n -> Key -> WorldLens2 Key (World a) a -> World a -> State a n -> (World a, State a n)
-improveOne sp k l w s = (w & l k .~ ab', s & _2 %~ insertPair k cache')
+improveOne :: Applicator a c -> Key -> WorldLens2 Key (World a) a -> World a -> State n c -> (World a, State n c)
+improveOne f k l w s = (w & l k .~ ab', s & _2 %~ insertPair k cache')
   where cache = fromJust $ lookupPair k (snd s)
         ab = fromJust $ w ^? l k
-        (ab', cache') = solveMany sp (keys cache) cache ab
-
-solveMany :: (Physical a n, Fractional n) => SolutionProcessor n -> [Key] -> Cache a n -> (a, a) -> ((a, a), Cache a n)
-solveMany sp ks cache ab = foldl f (ab, cache) ks
-  where f (ab0, cache0) k = (ab', insertPair k (sln', c') cache0)
-          where (ab', sln') = solveOne sp k c' ab0 sln0
-                (sln0, c') = fromJust $ lookupPair k cache0
-
-solveOne :: (Physical a n, Fractional n) => SolutionProcessor n -> Key -> Constraint' n -> (a, a) -> SolutionCache n -> ((a, a), SolutionCache n)
-solveOne sp k c' ab sln = (ab', sln')
-  where ab' = applyConstraintResult cr' ab
-        cr = constraintResult c' ab
-        (sln', cr') = sp sln cr
+        (ab', cache') = f ab cache
