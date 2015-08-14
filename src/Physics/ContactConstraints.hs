@@ -8,10 +8,10 @@ import Physics.Linear
 import qualified Physics.NonPenetration as NP
 import Utils.Utils
 
-generator :: (Physical a n, Epsilon n, Floating n, Ord n) => ConstraintGen' n a
+generator :: (Physical n a, Epsilon n, Floating n, Ord n) => ConstraintGen' n a
 generator = getGenerator defaultContactBehavior
 
-getGenerator :: (Physical a n, Epsilon n, Floating n, Ord n) => ContactBehavior n -> ConstraintGen' n a
+getGenerator :: (Physical n a, Epsilon n, Floating n, Ord n) => ContactBehavior n -> ConstraintGen' n a
 getGenerator beh dt ab = fmap f (generateContacts (toCP ab))
                where f c = (flipExtractPair contactIndex c, ContactResult (const $ toConstraint beh dt c))
 

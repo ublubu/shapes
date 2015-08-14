@@ -11,7 +11,7 @@ import qualified Physics.SolutionProcessors as SP
 import Physics.World
 import Physics.WorldSolver
 
-contactSolver :: (Physical a n, Epsilon n, Floating n, Ord n) => C.ContactBehavior n -> WSolver (World a) Key (a, a) n (CS.State n (ContS.Cache n a))
+contactSolver :: (Physical n a, Epsilon n, Floating n, Ord n) => C.ContactBehavior n -> WSolver (World a) Key (a, a) n (CS.State n (ContS.Cache n a))
 contactSolver beh = (g, f)
   where gen = ContS.generator (CC.getGenerator beh)
         g = CS.init gen

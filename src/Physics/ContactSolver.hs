@@ -31,7 +31,7 @@ instance Applicative ContactResult where
 emptySln :: (Num n) => SolutionCache n
 emptySln = ContactResult 0
 
-generator :: (Physical a n, Num n) => ConstraintGen' n a -> CS.Generator n a (Cache n a)
+generator :: (Physical n a, Num n) => ConstraintGen' n a -> CS.Generator n a (Cache n a)
 generator cg dt ab mc = initCache emptySln mc (cg dt ab)
 
 -- copy the last frame's SolutionCache if it exists
@@ -45,20 +45,20 @@ initCache cache0 (Just cache) cgs = foldl f IM.empty cgs
 initCache cache0 Nothing cgs = foldl f IM.empty cgs
   where f cache' (k, cg) = insertPair k (cache0, cg) cache'
 
-applicator :: (Physical a n, Fractional n) => SolutionProcessor n -> CS.Applicator a (Cache n a)
+applicator :: (Physical n a, Fractional n) => SolutionProcessor n -> CS.Applicator a (Cache n a)
 applicator sp ab cache = solveMany sp (keys cache) cache ab
 
-solveMany :: (Physical a n, Fractional n) => SolutionProcessor n -> [Key] -> Cache n a -> (a, a) -> ((a, a), Cache n a)
+solveMany :: (Physical n a, Fractional n) => SolutionProcessor n -> [Key] -> Cache n a -> (a, a) -> ((a, a), Cache n a)
 solveMany sp ks cache ab = foldl f (ab, cache) ks
   where f (ab0, cache0) k = (ab', insertPair k (sln', c') cache0)
           where (ab', sln') = solveOne sp k c' ab0 sln0
                 (sln0, c') = fromJust $ lookupPair k cache0
 
-solveOne :: (Physical a n, Fractional n) => SolutionProcessor n -> Key -> ConstraintGen n a -> (a, a) -> SolutionCache n -> ((a, a), SolutionCache n)
+solveOne :: (Physical n a, Fractional n) => SolutionProcessor n -> Key -> ConstraintGen n a -> (a, a) -> SolutionCache n -> ((a, a), SolutionCache n)
 solveOne sp k cg ab sln = (ab', sln')
   where ab' = applyContactConstraintResult cr' ab
         cr = fmap (`constraintResult` ab) cg
         (sln', cr') = sp sln cr
 
-applyContactConstraintResult :: (Physical a n, Fractional n) => ContactResult (ConstraintResult n) -> (a, a) -> (a, a)
+applyContactConstraintResult :: (Physical n a, Fractional n) => ContactResult (ConstraintResult n) -> (a, a) -> (a, a)
 applyContactConstraintResult (ContactResult cr) = applyConstraintResult cr

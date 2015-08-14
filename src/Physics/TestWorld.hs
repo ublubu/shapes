@@ -70,14 +70,14 @@ boxD = PhysicalObj { _physObjVel = V2 0 0
 
 initialWorld = fromList [boxA, boxB, boxC, boxD]
 
-externals :: (Physical a n, Epsilon n, Floating n, Ord n) => [External n a]
+externals :: (Physical n a, Epsilon n, Floating n, Ord n) => [External n a]
 externals = [constantAccel (V2 0 (-2))]
 
 initialWorld' = fromList [boxA, boxB, boxC]
 
 externals' = []
 
-updateWorld :: (Physical a n, Epsilon n, Floating n, Ord n) => n -> World a -> State n (Cache n a) -> (World a, State n (Cache n a))
+updateWorld :: (Physical n a, Epsilon n, Floating n, Ord n) => n -> World a -> State n (Cache n a) -> (World a, State n (Cache n a))
 updateWorld dt w s = (advanceWorld dt w', s')
   where w1 = applyExternals externals dt w
         maxSolverIterations = 5

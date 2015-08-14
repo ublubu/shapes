@@ -46,7 +46,7 @@ fromPair (WorldPair _ a) = a
 pairIndex :: WorldPair a -> (Int, Int)
 pairIndex (WorldPair ij _) = ij
 
-advanceWorld :: (Physical a n, Num n) => n -> World a -> World a
+advanceWorld :: (Physical n a, Num n) => n -> World a -> World a
 advanceWorld dt w = w & worldObjs.traverse.physObj %~ (`advanceObj` dt)
 
 allPairs :: World a -> [WorldPair (a, a)]
@@ -57,14 +57,14 @@ allPairs w = fst $ ifoldlOf (worldObjs.traversed) f ([], []) w
 allKeys :: World a -> [(Int, Int)]
 allKeys = fmap pairIndex . allPairs
 
-wrapExternal :: (Physical a n) => External' n -> External n a
+wrapExternal :: (Physical n a) => External' n -> External n a
 wrapExternal f dt = over physObj (f dt)
 
 applyExternals :: [External n a] -> n -> World a -> World a
 applyExternals exts dt w = foldl f w exts
   where f w0 ext = w0 & worldObjs.traverse %~ ext dt
 
-getWorldChanged :: (Physical a n) => PhysObjChanged n -> WorldChanged a
+getWorldChanged :: (Physical n a) => PhysObjChanged n -> WorldChanged a
 getWorldChanged objChanged w w' = anyOf traverse id (ixZipWith f os os')
   where f o mo' = case mo' of
           Just o' -> objChanged (o ^. physObj) (o' ^. physObj)

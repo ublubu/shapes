@@ -29,10 +29,10 @@ data PhysicalObj a = PhysicalObj { _physObjVel :: V2 a
 
 makeLenses ''PhysicalObj
 
-class Physical p a | p -> a where
+class Physical a p | p -> a where
   physObj :: Functor f => (PhysicalObj a -> f (PhysicalObj a)) -> p -> f p
 
-instance Physical (PhysicalObj a) a where
+instance Physical a (PhysicalObj a) where
   physObj = id
 
 _physObjVel3 :: PhysicalObj a -> V3 a
@@ -129,15 +129,15 @@ solveConstraint c@(Constraint j _) cp = applyLagrangian2 im j lagr cp
   where im = _constrainedInvMassM2 cp
         lagr = lagrangian2 cp c
 
-solveConstraint' :: (Physical a n, Fractional n) => Constraint n -> (a, a) -> (a, a)
+solveConstraint' :: (Physical n a, Fractional n) => Constraint n -> (a, a) -> (a, a)
 solveConstraint' c = overWith physObj (solveConstraint c)
 
-constraintResult :: (Physical a n, Fractional n) => Constraint' n -> (a, a) -> ConstraintResult n
+constraintResult :: (Physical n a, Fractional n) => Constraint' n -> (a, a) -> ConstraintResult n
 constraintResult c' ab = (lagrangian2 cp c, c)
   where cp = toCP ab
         c = c' cp
 
-applyConstraintResult :: (Physical a n, Fractional n) => ConstraintResult n -> (a, a) -> (a, a)
+applyConstraintResult :: (Physical n a, Fractional n) => ConstraintResult n -> (a, a) -> (a, a)
 applyConstraintResult (lagr, Constraint j _) ab = overWith physObj f ab
   where im = cpMap _constrainedInvMassM2 ab
         f = applyLagrangian2 im j lagr
@@ -147,8 +147,8 @@ advanceObj obj dt = obj & physObjPos %~ f & physObjRotPos %~ g
   where f pos = (dt *^ (obj ^. physObjVel)) + pos
         g ori = (dt * (obj ^. physObjRotVel)) + ori
 
-toCP :: (Physical a n) => (a, a) -> ConstrainedPair n
+toCP :: (Physical n a) => (a, a) -> ConstrainedPair n
 toCP = pairMap (view physObj)
 
-cpMap :: (Physical a n) => (ConstrainedPair n -> b) -> (a, a) -> b
+cpMap :: (Physical n a) => (ConstrainedPair n -> b) -> (a, a) -> b
 cpMap f pair = f (toCP pair)

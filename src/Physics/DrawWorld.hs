@@ -28,5 +28,5 @@ drawObj r vt o = drawConvexHull r hull
   where hull = transform vt . transform t $ (o ^. physObjHull)
         t = toTransform (o ^. physObjPos) (o ^. physObjRotPos)
 
-drawWorld :: (Physical a n, RealFrac n, Floating n) => SDL.T.Renderer -> WorldTransform n -> World a -> IO ()
+drawWorld :: (Physical n a, RealFrac n, Floating n) => SDL.T.Renderer -> WorldTransform n -> World a -> IO ()
 drawWorld r vt w = sequenceOf_ traverse (fmap (drawObj r vt . (view physObj)) (w ^. worldObjs))
