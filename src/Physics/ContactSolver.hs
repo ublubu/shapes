@@ -44,7 +44,7 @@ initCache :: (Num n) => SolutionCache n -> Maybe (Cache n a) -> [(Key, Constrain
 initCache cache0 (Just cache) cgs = foldl f IM.empty cgs
   where f cache' (k, cg) = insertPair k (sln', cg) cache'
           where sln' = case lookupPair k cache of
-                  Just (sln, _) -> sln
+                  Just (sln, _) -> cache0 --sln
                   Nothing -> cache0
 initCache cache0 Nothing cgs = foldl f IM.empty cgs
   where f cache' (k, cg) = insertPair k (cache0, cg) cache'
