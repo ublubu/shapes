@@ -18,6 +18,7 @@ import Physics.ConstraintSolver
 import Physics.ContactSolver
 import Physics.Contact
 import Physics.Linear
+import Physics.Object
 import Physics.Solver
 import qualified Physics.Solvers as S
 import Physics.Transform
@@ -34,76 +35,26 @@ import GameLoop hiding (testStep)
 import Geometry
 import Utils.Utils
 
+import qualified Physics.Scenes.Rolling as Scene
+
 pink = D.CustomRGBA 0xFF 0x3E 0x96 0xFF
-
-data WorldObj n = WorldObj { _worldPhysObj :: PhysicalObj n
-                           , _worldObjMu :: n }
-makeLenses ''WorldObj
-
-instance Physical n (WorldObj n) where
-  physObj = worldPhysObj
-
-instance Contactable n (WorldObj n) where
-  contactMu = _worldObjMu
 
 data TestState = TestState { _testWorldState :: (World (WorldObj Double), State Double (Cache Double (WorldObj Double)))
                            , _testFinished :: Bool }
 makeLenses ''TestState
 
-boxA = PhysicalObj { _physObjVel = V2 1 0
-                   , _physObjRotVel = 0
-                   , _physObjPos = V2 (-5) 0
-                   , _physObjRotPos = 0
-                   , _physObjHull = rectangleHull 4 4
-                   , _physObjInvMass = toInvMass2 (2, 1) }
-
-boxB = PhysicalObj { _physObjVel = V2 (-4) 0
-                   , _physObjRotVel = 0
-                   , _physObjPos = V2 5 2
-                   , _physObjRotPos = 0
-                   , _physObjHull = rectangleHull 2 2
-                   , _physObjInvMass = toInvMass2 (1, 0.5) }
-
-boxC = PhysicalObj { _physObjVel = V2 0 0
-                   , _physObjRotVel = 0
-                   , _physObjPos = V2 0 (-6)
-                   , _physObjRotPos = 0
-                   , _physObjHull = rectangleHull 18 1
-                   , _physObjInvMass = toInvMass2 (0, 0) }
-
-boxD = PhysicalObj { _physObjVel = V2 0 0
-                   , _physObjRotVel = 0
-                   , _physObjPos = V2 (-5) (-4)
-                   , _physObjRotPos = 0
-                   , _physObjHull = rectangleHull 0.4 3
-                   , _physObjInvMass = toInvMass2 (1, 0) }
-
-boxA' = WorldObj boxA 0.2
-boxB' = WorldObj boxB 0.2
-boxC' = WorldObj boxC 0.2
-boxD' = WorldObj boxD 0.2
-
-initialWorld = fromList [boxA', boxB', boxC', boxD']
-
-externals :: (Physical n a, Epsilon n, Floating n, Ord n) => [External n a]
-externals = [constantAccel (V2 0 (-2))]
-
-initialWorld' = fromList [boxA, boxB, boxC]
-
-externals' = []
-
 updateWorld :: (Contactable n a, Epsilon n, Floating n, Ord n) => n -> World a -> State n (Cache n a) -> (World a, State n (Cache n a))
 updateWorld dt w s = (advanceWorld dt w', s')
-  where w1 = applyExternals externals dt w
+  where w1 = applyExternals Scene.externals dt w
         maxSolverIterations = 5
         worldChanged = const . const $ True
-        solver = S.contactSolver (ContactBehavior 0.00 0.00)
+        solver = S.contactSolver Scene.contactBehavior
         (w', s') = wsolve' solver worldChanged maxSolverIterations (allKeys w1) worldPair w1 dt s
 
 vt :: WorldTransform Double
 vt = viewTransform (V2 400 300) (V2 20 20) (V2 0 0)
 
-initialState = TestState (initialWorld, emptyState) False
+initialState = TestState (Scene.world, emptyState) False
 
 timeStep :: Num a => a
 timeStep = 10

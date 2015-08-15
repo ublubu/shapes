@@ -7,19 +7,12 @@
 
 module Physics.Geometry where
 
-import Control.Monad
-import Control.Applicative
 import qualified Control.Lens as L
-import Data.Either
 import Data.Either.Combinators
-import Data.Maybe
-import Data.List.Zipper
 import Linear.Affine
 import Linear.Epsilon
-import Linear.Matrix
 import Linear.Metric
 import Linear.V2
-import Linear.Vector
 import Utils.Utils
 import Physics.Linear
 import Physics.Transform
