@@ -132,6 +132,9 @@ solveConstraint c@(Constraint j _) cp = applyLagrangian2 im j lagr cp
 solveConstraint' :: (Physical n a, Fractional n) => Constraint n -> (a, a) -> (a, a)
 solveConstraint' c = overWith physObj (solveConstraint c)
 
+constraint :: (Physical n a, Fractional n) => Constraint' n -> (a, a) -> Constraint n
+constraint c' = c' . toCP
+
 constraintResult :: (Physical n a, Fractional n) => Constraint' n -> (a, a) -> ConstraintResult n
 constraintResult c' ab = (lagrangian2 cp c, c)
   where cp = toCP ab

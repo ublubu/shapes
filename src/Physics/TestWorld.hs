@@ -35,7 +35,7 @@ import GameLoop hiding (testStep)
 import Geometry
 import Utils.Utils
 
-import qualified Physics.Scenes.Rolling as Scene
+import qualified Physics.Scenes.FourBoxesTwoStatic as Scene
 
 pink = D.CustomRGBA 0xFF 0x3E 0x96 0xFF
 
@@ -48,7 +48,7 @@ updateWorld dt w s = (advanceWorld dt w', s')
   where w1 = applyExternals Scene.externals dt w
         maxSolverIterations = 5
         worldChanged = const . const $ True
-        solver = S.contactSolver Scene.contactBehavior
+        solver = S.contactSolver' Scene.contactBehavior
         (w', s') = wsolve' solver worldChanged maxSolverIterations (allKeys w1) worldPair w1 dt s
 
 vt :: WorldTransform Double

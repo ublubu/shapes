@@ -16,3 +16,8 @@ contactSolver beh = (g, f)
         g = CS.init gen
         app = ContS.applicator SP.contact
         f = CS.improve app
+
+contactSolver' :: (ContS.Contactable n a, Epsilon n, Floating n, Ord n) => C.ContactBehavior n -> WSolver' (World a) Key (a, a) n (CS.State n (ContS.Cache n a))
+contactSolver' beh = (g, f0, f)
+  where (g, f) = contactSolver beh
+        f0 = CS.improve ContS.applicator'

@@ -44,13 +44,21 @@ initCache :: (Num n) => SolutionCache n -> Maybe (Cache n a) -> [(Key, Constrain
 initCache cache0 (Just cache) cgs = foldl f IM.empty cgs
   where f cache' (k, cg) = insertPair k (sln', cg) cache'
           where sln' = case lookupPair k cache of
-                  Just (sln, _) -> cache0 --sln
+                  Just (sln, _) -> sln
                   Nothing -> cache0
 initCache cache0 Nothing cgs = foldl f IM.empty cgs
   where f cache' (k, cg) = insertPair k (cache0, cg) cache'
 
 applicator :: (Contactable n a, Fractional n) => SolutionProcessor n a -> CS.Applicator a (Cache n a)
 applicator sp ab cache = solveMany sp (keys cache) cache ab
+
+applicator' :: (Contactable n a, Fractional n) => CS.Applicator a (Cache n a)
+applicator' ab cache = (foldl f ab (keys cache), cache)
+  where f ab0 k = ab'
+          where (sln, cg) = fromJust $ lookupPair k cache
+                c = fmap (`constraint` ab0) cg
+                cr = (,) <$> sln <*> c
+                ab' = applyContactConstraintResult cr ab0
 
 solveMany :: (Contactable n a, Fractional n) => SolutionProcessor n a -> [Key] -> Cache n a -> (a, a) -> ((a, a), Cache n a)
 solveMany sp ks cache ab = foldl f (ab, cache) ks
