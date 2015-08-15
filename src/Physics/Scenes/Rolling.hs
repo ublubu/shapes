@@ -16,14 +16,14 @@ shapeA = PhysicalObj { _physObjVel = V2 0 0
                    , _physObjPos = V2 0 (-6)
                    , _physObjRotPos = 0
                    , _physObjHull = ConvexHull [ P $ V2 9 (-0.5)
-                                               , P $ V2 (-9) (-0.5)
-                                               , P $ V2 (-9) 7.5 ]
+                                               , P $ V2 (-9) 10
+                                               , P $ V2 (-9) (-0.5)]
                    , _physObjInvMass = toInvMass2 (0, 0) }
 
 shapeB :: (Fractional a, Eq a) => PhysicalObj a
 shapeB = PhysicalObj { _physObjVel = V2 0 0
-                   , _physObjRotVel = (-0.5)
-                   , _physObjPos = V2 (-7) 7
+                   , _physObjRotVel = (-7)
+                   , _physObjPos = V2 (-7) 12
                    , _physObjRotPos = 0
                    , _physObjHull = ConvexHull [ P $ V2 2 1
                                                , P $ V2 1 2
@@ -36,10 +36,10 @@ shapeB = PhysicalObj { _physObjVel = V2 0 0
                    , _physObjInvMass = toInvMass2 (1, 0.5) }
 
 shapeA' :: (Fractional a, Eq a) => WorldObj a
-shapeA' = WorldObj shapeA 0
+shapeA' = WorldObj shapeA 0.5
 
 shapeB' :: (Fractional a, Eq a) => WorldObj a
-shapeB' = WorldObj shapeB 0
+shapeB' = WorldObj shapeB 0.5
 
 world :: (Fractional a, Eq a) => World (WorldObj a)
 world = fromList [shapeA', shapeB']
