@@ -6,16 +6,18 @@ import Physics.ContactSolver
 import Physics.Contact
 import Physics.Linear
 import qualified Physics.NonPenetration as NP
+import qualified Physics.Friction as F
 import Utils.Utils
 
-generator :: (Physical n a, Epsilon n, Floating n, Ord n) => ConstraintGen' n a
+generator :: (Contactable n a, Epsilon n, Floating n, Ord n) => ConstraintGen' n a
 generator = getGenerator defaultContactBehavior
 
 getGenerator :: (Physical n a, Epsilon n, Floating n, Ord n) => ContactBehavior n -> ConstraintGen' n a
 getGenerator beh dt ab = fmap f (generateContacts (toCP ab))
-               where f c = (flipExtractPair contactIndex c, ContactResult (const $ toConstraint beh dt c))
+  where f c = (flipExtractPair contactIndex c, ContactResult (np c) (fr c))
+        np c _ = flipConstraint $ fmap (NP.toConstraint beh dt) c
+        fr c _ = flipConstraint $ fmap (F.toConstraint beh dt) c
 
-toConstraint :: (Fractional a, Ord a) => ContactBehavior a -> a -> Flipping (Contact a) -> Constraint a
-toConstraint beh dt c = flipExtractWith (id, f) (fmap (NP.toConstraint beh dt) c)
+flipConstraint :: Flipping (Constraint a) -> Constraint a
+flipConstraint = flipExtractWith (id, f)
   where f (Constraint j b) = Constraint (flip33 j) b
-

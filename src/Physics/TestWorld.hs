@@ -1,4 +1,4 @@
-{-# LANGUAGE PatternSynonyms, TemplateHaskell #-}
+{-# LANGUAGE PatternSynonyms, TemplateHaskell, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses #-}
 
 module Physics.TestWorld where
 
@@ -36,7 +36,17 @@ import Utils.Utils
 
 pink = D.CustomRGBA 0xFF 0x3E 0x96 0xFF
 
-data TestState = TestState { _testWorldState :: (World (PhysicalObj Double), State Double (Cache Double (PhysicalObj Double)))
+data WorldObj n = WorldObj { _worldPhysObj :: PhysicalObj n
+                           , _worldObjMu :: n }
+makeLenses ''WorldObj
+
+instance Physical n (WorldObj n) where
+  physObj = worldPhysObj
+
+instance Contactable n (WorldObj n) where
+  contactMu = _worldObjMu
+
+data TestState = TestState { _testWorldState :: (World (WorldObj Double), State Double (Cache Double (WorldObj Double)))
                            , _testFinished :: Bool }
 makeLenses ''TestState
 
@@ -68,7 +78,12 @@ boxD = PhysicalObj { _physObjVel = V2 0 0
                    , _physObjHull = rectangleHull 0.4 3
                    , _physObjInvMass = toInvMass2 (1, 0) }
 
-initialWorld = fromList [boxA, boxB, boxC, boxD]
+boxA' = WorldObj boxA 0.2
+boxB' = WorldObj boxB 0.2
+boxC' = WorldObj boxC 0.2
+boxD' = WorldObj boxD 0.2
+
+initialWorld = fromList [boxA', boxB', boxC', boxD']
 
 externals :: (Physical n a, Epsilon n, Floating n, Ord n) => [External n a]
 externals = [constantAccel (V2 0 (-2))]
@@ -77,7 +92,7 @@ initialWorld' = fromList [boxA, boxB, boxC]
 
 externals' = []
 
-updateWorld :: (Physical n a, Epsilon n, Floating n, Ord n) => n -> World a -> State n (Cache n a) -> (World a, State n (Cache n a))
+updateWorld :: (Contactable n a, Epsilon n, Floating n, Ord n) => n -> World a -> State n (Cache n a) -> (World a, State n (Cache n a))
 updateWorld dt w s = (advanceWorld dt w', s')
   where w1 = applyExternals externals dt w
         maxSolverIterations = 5
@@ -106,7 +121,7 @@ renderContacts r ps = sequence_ . join $ fmap f ps
 testStep :: SDL.T.Renderer -> TestState -> Word32 -> IO TestState
 testStep r s0 _ = do
   events <- flushEvents
-  let cs = fmap generateContacts <$> allPairs (s ^. testWorldState . _1)
+  let cs = fmap (generateContacts . toCP) <$> allPairs (s ^. testWorldState . _1)
       s = foldl handleEvent s0 events & testWorldState %~ uncurry (updateWorld dt)
   D.withBlankScreen r (do
                            renderTest r s0

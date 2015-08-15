@@ -90,7 +90,6 @@ afdot a b = view _Point a `dot` b
 afdot' :: (Num a) => Diff V2 a -> P2 a -> a
 afdot' = flip afdot
 
-
 class AffineTrans t a where
   afmul :: M33 a -> t -> t
 
