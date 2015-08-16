@@ -7,7 +7,7 @@ import Physics.Contact
 import Physics.Object
 import Physics.World
 
-data Scene p a b c = Scene { _scWorld :: World (WorldObj a)
-                           , _scExts :: [External b p]
-                           , _scContactBeh :: ContactBehavior c }
+data Scene a p = Scene { _scWorld :: World (WorldObj a)
+                       , _scExts :: [External a p]
+                       , _scContactBeh :: ContactBehavior a }
 makeLenses ''Scene

@@ -40,5 +40,5 @@ externals = []
 contactBehavior :: (Floating a) => ContactBehavior a
 contactBehavior = ContactBehavior 0.01 0.02
 
-scene :: (Fractional a, Eq a, Physical b p, Epsilon b, Floating b, Ord b, Floating c) => Scene p a b c
+scene :: (Physical a p, Epsilon a, Floating a, Ord a, Eq a) => Scene a p
 scene = Scene world externals contactBehavior

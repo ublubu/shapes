@@ -43,11 +43,11 @@ pink = D.CustomRGBA 0xFF 0x3E 0x96 0xFF
 
 data TestState = TestState { _testWorldState :: (World (WorldObj Double), State Double (Cache Double (WorldObj Double)))
                            , _testFinished :: Bool
-                           , _testScene :: Scene (WorldObj Double) Double Double Double
+                           , _testScene :: Scene Double (WorldObj Double)
                            , _testSceneIndex :: Int }
 makeLenses ''TestState
 
-updateWorld :: (Contactable n a, Epsilon n, Floating n, Ord n) => Scene a n n n -> n -> World a -> State n (Cache n a) -> (World a, State n (Cache n a))
+updateWorld :: (Contactable n a, Epsilon n, Floating n, Ord n) => Scene n a -> n -> World a -> State n (Cache n a) -> (World a, State n (Cache n a))
 updateWorld scene dt w s = (advanceWorld dt w', s')
   where w1 = applyExternals (scene ^. scExts) dt w
         maxSolverIterations = 5
@@ -96,7 +96,7 @@ handleEvent s0 _ = s0
 
 handleKeypress :: TestState -> SDL.E.Scancode -> TestState
 handleKeypress state SDL.E.SDL_SCANCODE_R = initialState (state ^. testSceneIndex)
-handleKeypress state SDL.E.SDL_SCANCODE_N = initialState ((state ^. testSceneIndex + 1) `mod` length (scenes :: [Scene (WorldObj Double) Double Double Double]))
+handleKeypress state SDL.E.SDL_SCANCODE_N = initialState ((state ^. testSceneIndex + 1) `mod` length (scenes :: [Scene Double (WorldObj Double)]))
 handleKeypress state _ = state
 
 testMain :: SDL.T.Renderer -> IO ()

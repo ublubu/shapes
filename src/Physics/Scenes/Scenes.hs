@@ -8,9 +8,9 @@ import qualified Physics.Scenes.TwoFlyingBoxes as S0
 import qualified Physics.Scenes.FourBoxesTwoStatic as S1
 import qualified Physics.Scenes.Rolling as S2
 
-scenes :: (Fractional a, Eq a, Physical b p, Epsilon b, Floating b, Ord b, Floating c) => [Scene p a b c]
+scenes :: (Physical a p, Epsilon a, Floating a, Ord a, Eq a) => [Scene a p]
 scenes = [S0.scene, S1.scene, S2.scene]
 
-nextScene :: Int -> [Scene p a b c] -> (Int, Scene p a b c)
+nextScene :: Int -> [Scene a p] -> (Int, Scene a p)
 nextScene i ss = (i', ss !! i')
   where i' = posMod (i + 1) (length ss)
