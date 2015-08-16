@@ -4,10 +4,10 @@ import Linear.Epsilon
 import Linear.V2
 import Physics.Constraint
 import Physics.Contact
-import Physics.External
 import Physics.Geometry
 import Physics.Object
 import Physics.World
+import Physics.Scenes.Scene
 
 boxA :: (Fractional a, Eq a) => PhysicalObj a
 boxA = PhysicalObj { _physObjVel = V2 1 0
@@ -39,3 +39,6 @@ externals = []
 
 contactBehavior :: (Floating a) => ContactBehavior a
 contactBehavior = ContactBehavior 0.01 0.02
+
+scene :: (Fractional a, Eq a, Physical b p, Epsilon b, Floating b, Ord b, Floating c) => Scene p a b c
+scene = Scene world externals contactBehavior

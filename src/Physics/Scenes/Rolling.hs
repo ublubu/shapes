@@ -8,8 +8,8 @@ import Physics.Contact
 import Physics.External
 import Physics.Geometry
 import Physics.Object
-import Physics.Scenes.Scene
 import Physics.World
+import Physics.Scenes.Scene
 
 shapeA :: (Fractional a, Eq a) => PhysicalObj a
 shapeA = PhysicalObj { _physObjVel = V2 0 0
@@ -23,7 +23,7 @@ shapeA = PhysicalObj { _physObjVel = V2 0 0
 
 shapeB :: (Fractional a, Eq a) => PhysicalObj a
 shapeB = PhysicalObj { _physObjVel = V2 0 0
-                     , _physObjRotVel = (-3)
+                     , _physObjRotVel = -3
                      , _physObjPos = V2 (-7) 12
                      , _physObjRotPos = 0
                      , _physObjHull = ConvexHull [ P $ V2 2 1

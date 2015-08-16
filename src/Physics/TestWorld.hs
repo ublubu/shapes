@@ -36,13 +36,15 @@ import Geometry
 import Utils.Utils
 
 import Physics.Scenes.Scene
+import Physics.Scenes.Scenes
 import qualified Physics.Scenes.Rolling as SC
 
 pink = D.CustomRGBA 0xFF 0x3E 0x96 0xFF
 
 data TestState = TestState { _testWorldState :: (World (WorldObj Double), State Double (Cache Double (WorldObj Double)))
                            , _testFinished :: Bool
-                           , _testScene :: Scene (WorldObj Double) Double Double Double }
+                           , _testScene :: Scene (WorldObj Double) Double Double Double
+                           , _testSceneIndex :: Int }
 makeLenses ''TestState
 
 updateWorld :: (Contactable n a, Epsilon n, Floating n, Ord n) => Scene a n n n -> n -> World a -> State n (Cache n a) -> (World a, State n (Cache n a))
@@ -56,8 +58,9 @@ updateWorld scene dt w s = (advanceWorld dt w', s')
 vt :: WorldTransform Double
 vt = viewTransform (V2 400 300) (V2 20 20) (V2 0 0)
 
-initialState :: Scene (WorldObj Double) Double Double Double -> TestState
-initialState scene = TestState (scene ^. scWorld, emptyState) False scene
+initialState :: Int -> TestState
+initialState i = TestState (scene ^. scWorld, emptyState) False scene i
+  where scene = scenes !! i
 
 timeStep :: Num a => a
 timeStep = 10
@@ -92,10 +95,11 @@ handleEvent s0 (SDL.T.KeyboardEvent evtType _ _ _ _ key)
 handleEvent s0 _ = s0
 
 handleKeypress :: TestState -> SDL.E.Scancode -> TestState
-handleKeypress state SDL.E.SDL_SCANCODE_R = initialState (state ^. testScene)
+handleKeypress state SDL.E.SDL_SCANCODE_R = initialState (state ^. testSceneIndex)
+handleKeypress state SDL.E.SDL_SCANCODE_N = initialState ((state ^. testSceneIndex + 1) `mod` length (scenes :: [Scene (WorldObj Double) Double Double Double]))
 handleKeypress state _ = state
 
 testMain :: SDL.T.Renderer -> IO ()
 testMain r = do
   t0 <- SDL.Timer.getTicks
-  timedRunUntil t0 timeStep (initialState SC.scene)  _testFinished (testStep r)
+  timedRunUntil t0 timeStep (initialState 0) _testFinished (testStep r)
