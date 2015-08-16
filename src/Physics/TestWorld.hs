@@ -11,7 +11,7 @@ import qualified Graphics.UI.SDL.Timer as SDL.Timer
 import GHC.Word
 import Linear.Affine
 import Linear.Epsilon
-import Linear.Matrix
+import Linear.Matrix hiding (trace)
 import Linear.V2
 import Physics.Constraint
 import Physics.ConstraintSolver
@@ -50,7 +50,7 @@ makeLenses ''TestState
 updateWorld :: (Contactable n a, Epsilon n, Floating n, Ord n) => Scene n a -> n -> World a -> State n (Cache n a) -> (World a, State n (Cache n a))
 updateWorld scene dt w s = (advanceWorld dt w', s')
   where w1 = applyExternals (scene ^. scExts) dt w
-        maxSolverIterations = 5
+        maxSolverIterations = 2
         worldChanged = const . const $ True
         solver = S.contactSolver' (scene ^. scContactBeh)
         (w', s') = wsolve' solver worldChanged maxSolverIterations (allKeys w1) worldPair w1 dt s

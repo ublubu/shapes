@@ -40,7 +40,11 @@ boxStack bottom vel n = box2w2h' bottom vel : boxStack bottom' vel (n - 1)
 
 world :: (Fractional a, Eq a) => World (WorldObj a)
 world = fromList ([boxFloor'] ++ boxStack (0, -4.5) (0, 0) 5 ++ [box2w2h' (8, 0) (-6, 0)])
---world = fromList ([boxFloor'] ++ boxStack (0, -4.5) 8 ++ boxStack (6, -4.5) 9)
+
+world' :: (Fractional a, Eq a) => World (WorldObj a)
+world' = fromList ([boxFloor'] ++ boxStack (0, -4.5) (0, 0) 5
+                   ++ boxStack (2, -4.5) (0, 0) 5
+                   ++ boxStack (4, -4.5) (0, 0) 5)
 
 externals :: (Physical n a, Epsilon n, Floating n, Ord n) => [External n a]
 externals = [constantAccel (V2 0 (-2))]
@@ -50,3 +54,6 @@ contactBehavior = ContactBehavior 0.01 0.02
 
 scene :: (Physical a p, Epsilon a, Floating a, Ord a, Eq a) => Scene a p
 scene = Scene world externals contactBehavior
+
+scene' :: (Physical a p, Epsilon a, Floating a, Ord a, Eq a) => Scene a p
+scene' = Scene world' externals contactBehavior
