@@ -8,6 +8,7 @@ import Physics.Contact
 import Physics.External
 import Physics.Geometry
 import Physics.Object
+import Physics.Scenes.Scene
 import Physics.World
 
 shapeA :: (Fractional a, Eq a) => PhysicalObj a
@@ -49,3 +50,6 @@ externals = [constantAccel (V2 0 (-4))]
 
 contactBehavior :: (Floating a) => ContactBehavior a
 contactBehavior = ContactBehavior 0.01 0.02
+
+scene :: (Fractional a, Eq a, Physical b p, Epsilon b, Floating b, Ord b, Floating c) => Scene p a b c
+scene = Scene world externals contactBehavior

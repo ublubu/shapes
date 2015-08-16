@@ -35,26 +35,29 @@ import GameLoop hiding (testStep)
 import Geometry
 import Utils.Utils
 
-import qualified Physics.Scenes.FourBoxesTwoStatic as Scene
+import Physics.Scenes.Scene
+import qualified Physics.Scenes.Rolling as SC
 
 pink = D.CustomRGBA 0xFF 0x3E 0x96 0xFF
 
 data TestState = TestState { _testWorldState :: (World (WorldObj Double), State Double (Cache Double (WorldObj Double)))
-                           , _testFinished :: Bool }
+                           , _testFinished :: Bool
+                           , _testScene :: Scene (WorldObj Double) Double Double Double }
 makeLenses ''TestState
 
-updateWorld :: (Contactable n a, Epsilon n, Floating n, Ord n) => n -> World a -> State n (Cache n a) -> (World a, State n (Cache n a))
-updateWorld dt w s = (advanceWorld dt w', s')
-  where w1 = applyExternals Scene.externals dt w
+updateWorld :: (Contactable n a, Epsilon n, Floating n, Ord n) => Scene a n n n -> n -> World a -> State n (Cache n a) -> (World a, State n (Cache n a))
+updateWorld scene dt w s = (advanceWorld dt w', s')
+  where w1 = applyExternals (scene ^. scExts) dt w
         maxSolverIterations = 5
         worldChanged = const . const $ True
-        solver = S.contactSolver' Scene.contactBehavior
+        solver = S.contactSolver' (scene ^. scContactBeh)
         (w', s') = wsolve' solver worldChanged maxSolverIterations (allKeys w1) worldPair w1 dt s
 
 vt :: WorldTransform Double
 vt = viewTransform (V2 400 300) (V2 20 20) (V2 0 0)
 
-initialState = TestState (Scene.world, emptyState) False
+initialState :: Scene (WorldObj Double) Double Double Double -> TestState
+initialState scene = TestState (scene ^. scWorld, emptyState) False scene
 
 timeStep :: Num a => a
 timeStep = 10
@@ -73,7 +76,7 @@ testStep :: SDL.T.Renderer -> TestState -> Word32 -> IO TestState
 testStep r s0 _ = do
   events <- flushEvents
   let cs = fmap (generateContacts . toCP) <$> allPairs (s ^. testWorldState . _1)
-      s = foldl handleEvent s0 events & testWorldState %~ uncurry (updateWorld dt)
+      s = foldl handleEvent s0 events & testWorldState %~ uncurry (updateWorld (s0 ^. testScene) dt)
   D.withBlankScreen r (do
                            renderTest r s0
                            D.setColor r pink
@@ -89,10 +92,10 @@ handleEvent s0 (SDL.T.KeyboardEvent evtType _ _ _ _ key)
 handleEvent s0 _ = s0
 
 handleKeypress :: TestState -> SDL.E.Scancode -> TestState
-handleKeypress state SDL.E.SDL_SCANCODE_R = initialState
+handleKeypress state SDL.E.SDL_SCANCODE_R = initialState (state ^. testScene)
 handleKeypress state _ = state
 
 testMain :: SDL.T.Renderer -> IO ()
 testMain r = do
   t0 <- SDL.Timer.getTicks
-  timedRunUntil t0 timeStep initialState _testFinished (testStep r)
+  timedRunUntil t0 timeStep (initialState SC.scene)  _testFinished (testStep r)
