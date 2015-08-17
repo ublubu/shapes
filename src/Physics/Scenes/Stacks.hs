@@ -33,18 +33,21 @@ box2w2h' center velocity = WorldObj (box2w2h center velocity) 0.2
 boxFloor' :: (Fractional a, Eq a) => WorldObj a
 boxFloor' = WorldObj boxFloor 0.2
 
-boxStack :: (Fractional a, Eq a) => (a, a) -> (a, a) -> a -> [WorldObj a]
-boxStack _ _ 0 = []
-boxStack bottom vel n = box2w2h' bottom vel : boxStack bottom' vel (n - 1)
-  where bottom' = bottom & _2 %~ (+2)
+boxStack :: (Fractional a, Eq a) => (a, a) -> (a, a) -> a -> Int -> [WorldObj a]
+boxStack _ _ _ 0 = []
+boxStack bottom vel spacing n = box2w2h' bottom vel : boxStack bottom' vel spacing (n - 1)
+  where bottom' = bottom & _2 %~ (+ (2 + spacing))
 
 world :: (Fractional a, Eq a) => World (WorldObj a)
-world = fromList ([boxFloor'] ++ boxStack (0, -4.5) (0, 0) 5 ++ [box2w2h' (8, 0) (-6, 0)])
+world = fromList ([boxFloor'] ++ boxStack (8, -4.5) (-1, 0) 0 5 ++ boxStack (5.5, -4.5) (-2, 0) 0 5)
 
 world' :: (Fractional a, Eq a) => World (WorldObj a)
-world' = fromList ([boxFloor'] ++ boxStack (0, -4.5) (0, 0) 5
-                   ++ boxStack (2, -4.5) (0, 0) 5
-                   ++ boxStack (4, -4.5) (0, 0) 5)
+world' = fromList ([boxFloor'] ++ boxStack (0, -4.5) (0, 0) 0 5++ [box2w2h' (8, 0) (-6, 0)])
+
+world'' :: (Fractional a, Eq a) => World (WorldObj a)
+world'' = fromList ([boxFloor'] ++ boxStack (0, -4.5) (0, 0) 1 5
+                   ++ boxStack (2, -4.5) (0, 0) 1 5
+                   ++ boxStack (4, -4.5) (0, 0) 1 5)
 
 externals :: (Physical n a, Epsilon n, Floating n, Ord n) => [External n a]
 externals = [constantAccel (V2 0 (-2))]
@@ -57,3 +60,6 @@ scene = Scene world externals contactBehavior
 
 scene' :: (Physical a p, Epsilon a, Floating a, Ord a, Eq a) => Scene a p
 scene' = Scene world' externals contactBehavior
+
+scene'' :: (Physical a p, Epsilon a, Floating a, Ord a, Eq a) => Scene a p
+scene'' = Scene world'' externals contactBehavior

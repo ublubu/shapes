@@ -5,6 +5,7 @@ module Physics.TestWorld where
 import Control.Applicative
 import Control.Monad
 import Control.Lens
+import Data.Bits
 import qualified Graphics.UI.SDL.Types as SDL.T
 import qualified Graphics.UI.SDL.Enum as SDL.E
 import qualified Graphics.UI.SDL.Timer as SDL.Timer
@@ -90,14 +91,16 @@ testStep r s0 _ = do
 handleEvent :: TestState -> SDL.T.Event -> TestState
 handleEvent s0 (SDL.T.QuitEvent _ _) = s0 { _testFinished = True }
 handleEvent s0 (SDL.T.KeyboardEvent evtType _ _ _ _ key)
-  | evtType == SDL.E.SDL_KEYDOWN = handleKeypress s0 (SDL.T.keysymScancode key)
+  | evtType == SDL.E.SDL_KEYDOWN = handleKeypress s0 (SDL.T.keysymScancode key) (fromIntegral $ SDL.T.keysymMod key)
   | otherwise = s0
 handleEvent s0 _ = s0
 
-handleKeypress :: TestState -> SDL.E.Scancode -> TestState
-handleKeypress state SDL.E.SDL_SCANCODE_R = initialState (state ^. testSceneIndex)
-handleKeypress state SDL.E.SDL_SCANCODE_N = initialState ((state ^. testSceneIndex + 1) `mod` length (scenes :: [Scene Double (WorldObj Double)]))
-handleKeypress state _ = state
+handleKeypress :: TestState -> SDL.E.Scancode -> SDL.E.Keymod -> TestState
+handleKeypress state SDL.E.SDL_SCANCODE_R _ = initialState (state ^. testSceneIndex)
+handleKeypress state SDL.E.SDL_SCANCODE_N km
+  | km .&. SDL.E.KMOD_SHIFT > 0 = initialState ((state ^. testSceneIndex - 1) `posMod` length (scenes :: [Scene Double (WorldObj Double)]))
+  | otherwise = initialState ((state ^. testSceneIndex + 1) `mod` length (scenes :: [Scene Double (WorldObj Double)]))
+handleKeypress state _ _ = state
 
 testMain :: SDL.T.Renderer -> IO ()
 testMain r = do

@@ -10,7 +10,7 @@ import qualified Physics.Scenes.Rolling as S2
 import qualified Physics.Scenes.Stacks as S3
 
 scenes :: (Physical a p, Epsilon a, Floating a, Ord a, Eq a) => [Scene a p]
-scenes = [S0.scene, S1.scene, S2.scene, S3.scene, S3.scene']
+scenes = [S0.scene, S1.scene, S2.scene, S3.scene, S3.scene', S3.scene'']
 
 nextScene :: Int -> [Scene a p] -> (Int, Scene a p)
 nextScene i ss = (i', ss !! i')
