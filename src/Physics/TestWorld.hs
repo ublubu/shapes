@@ -14,6 +14,7 @@ import Linear.Affine
 import Linear.Epsilon
 import Linear.Matrix hiding (trace)
 import Linear.V2
+import Physics.Broadphase
 import Physics.Constraint
 import Physics.ConstraintSolver
 import Physics.ContactSolver
@@ -54,7 +55,7 @@ updateWorld scene dt w s = (advanceWorld dt w', s')
         maxSolverIterations = 2
         worldChanged = const . const $ True
         solver = S.contactSolver' (scene ^. scContactBeh)
-        (w', s') = wsolve' solver worldChanged maxSolverIterations (allKeys w1) worldPair w1 dt s
+        (w', s') = wsolve' solver worldChanged maxSolverIterations (culledKeys w1) worldPair w1 dt s
 
 vt :: WorldTransform Double
 vt = viewTransform (V2 400 300) (V2 20 20) (V2 0 0)
@@ -79,7 +80,7 @@ renderContacts r ps = sequence_ . join $ fmap f ps
 testStep :: SDL.T.Renderer -> TestState -> Word32 -> IO TestState
 testStep r s0 _ = do
   events <- flushEvents
-  let cs = fmap (generateContacts . toCP) <$> allPairs (s ^. testWorldState . _1)
+  let cs = fmap (generateContacts . toCP) <$> culledPairs (s ^. testWorldState . _1)
       s = foldl handleEvent s0 events & testWorldState %~ uncurry (updateWorld (s0 ^. testScene) dt)
   D.withBlankScreen r (do
                            renderTest r s0
