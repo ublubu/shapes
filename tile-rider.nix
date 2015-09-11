@@ -1,7 +1,5 @@
-{ mkDerivation, base, containers, lens, linear, ListZipper, monad-extras, mtl
-, sdl2, stdenv, vector, SDL2, zippers, either
-, cabal-install, alex, happy, ghc-mod, hlint, stylish-haskell, hasktags
-, emacs
+{ mkDerivation, base, containers, either, lens, linear, ListZipper
+, monad-extras, mtl, sdl2, stdenv, vector, zippers
 }:
 mkDerivation {
   pname = "tile-rider";
@@ -9,11 +7,9 @@ mkDerivation {
   src = ./.;
   isLibrary = false;
   isExecutable = true;
-  buildDepends = [
-    SDL2 base containers lens linear ListZipper monad-extras mtl sdl2 vector zippers either
-  ];
-  buildTools = [
-    emacs cabal-install alex happy ghc-mod hlint stylish-haskell hasktags
+  executableHaskellDepends = [
+    base containers either lens linear ListZipper monad-extras mtl sdl2
+    vector zippers
   ];
   homepage = "https://github.com/ublubu/tile-rider";
   description = "a simple puzzle game in Haskell with SDL2";
