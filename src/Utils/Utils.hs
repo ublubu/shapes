@@ -2,22 +2,16 @@
 
 module Utils.Utils where
 
-import Control.Applicative
 import Control.Lens
 import Control.Monad
 import Control.Monad.State hiding (state)
-import Data.Bits
 import Data.Maybe
-import Data.Monoid
 import Data.Tuple
 import qualified Data.IntMap.Strict as IM
 import Foreign.C.String
-import Foreign.C.Types
-import Foreign.Marshal.Alloc
 import Foreign.Marshal.Utils
 import Foreign.Ptr
 import Foreign.Storable
-import GHC.Word
 
 with2 :: (Storable a, Storable b) => a -> b -> (Ptr a -> Ptr b -> IO c) -> IO c
 with2 a b f = with a $ \a' -> with b (f a')

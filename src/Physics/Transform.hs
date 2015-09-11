@@ -2,16 +2,9 @@
 
 module Physics.Transform where
 
-import Control.Monad
-import Control.Applicative
-import Data.Maybe
-import Data.List.Zipper
 import Linear.Affine
-import Linear.Epsilon
 import Linear.Matrix
-import Linear.Metric
 import Linear.V2
-import Linear.Vector
 import Utils.Utils
 import Physics.Linear
 

@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 -- The name of the package.
-name:                tile-rider
+name:                shapes
 
 -- The package version.  See the Haskell package versioning policy (PVP) 
 -- for standards guiding when and how versions should be incremented.
@@ -13,13 +13,13 @@ name:                tile-rider
 version:             0.1.0.0
 
 -- A short (one-line) description of the package.
-synopsis:            a simple puzzle game in Haskell with SDL2
+synopsis:            physics engine and other tools for 2D shapes
 
 -- A longer description of the package.
 -- description:         
 
 -- URL for the project homepage or repository.
-homepage:            https://github.com/ublubu/tile-rider
+homepage:            https://github.com/ublubu/shapes
 
 -- The license under which the package is released.
 -- license:             
@@ -48,24 +48,49 @@ extra-source-files:  README.md
 -- Constraint on the version of Cabal needed to build this package.
 cabal-version:       >=1.10
 
-executable side-scroller
-  -- .hs or .lhs file containing the Main module.
-  main-is:             SideScroller.hs
-  
+library
+  exposed-modules:     Physics.Broadphase
+                     , Physics.Constraint
+                     , Physics.ConstraintError
+                     , Physics.ConstraintSolver
+                     , Physics.Contact
+                     , Physics.ContactConstraints
+                     , Physics.ContactSolver
+                     , Physics.External
+                     , Physics.Friction
+                     , Physics.Geometry
+                     , Physics.Labels
+                     , Physics.Linear
+                     , Physics.NonPenetration
+                     , Physics.Object
+                     , Physics.PairMap
+                     , Physics.SolutionProcessors
+                     , Physics.Solver
+                     , Physics.Solvers
+                     , Physics.TestGeometry
+                     , Physics.TestPairMap
+                     , Physics.TestSolver
+                     , Physics.Transform
+                     , Physics.World
+                     , Physics.WorldSolver
+                     , Utils.Utils
+
   -- Modules included in this executable, other than Main.
   -- other-modules:       
   
   -- LANGUAGE extensions used by modules in this package.
-  -- other-extensions:    
+  other-extensions:    DataKinds
+                     , MultiParamTypeClasses
+                     , FlexibleInstances
+                     , FlexibleContexts
+                     , TypeFamilies
+                     , TypeSynonymInstances
   
   -- Other library packages from which modules are imported.
   build-depends:       base >=4.7 && <4.9
                      , containers >= 0.5
                      , containers >= 0.5.5.1
-                     , sdl2 >=1.3.0
-                     --, sdl2-image >= 0.1.2.0
                      , mtl
-                     , ListZipper
                      , monad-extras >= 0.5.9
                      , linear >= 1.19
                      , lens >= 4.12
@@ -78,31 +103,3 @@ executable side-scroller
   
   -- Base language which the package is written in.
   default-language:    Haskell2010
-
-
-executable tile-rider
-  -- .hs or .lhs file containing the Main module.
-  main-is:             TileRider.hs
-  
-  -- Modules included in this executable, other than Main.
-  -- other-modules:       
-  
-  -- LANGUAGE extensions used by modules in this package.
-  -- other-extensions:    
-  
-  -- Other library packages from which modules are imported.
-  build-depends:       base >=4.7 && <4.9
-                     , containers >= 0.5.5.1
-                     , lens >= 4.12
-                     , sdl2 >=1.3.0
-                     --, sdl2-image >= 0.1.2.0
-                     , mtl
-                     , ListZipper
-                     , monad-extras >= 0.5.9
-  
-  -- Directories containing source files.
-  hs-source-dirs:      src
-  
-  -- Base language which the package is written in.
-  default-language:    Haskell2010
-  
