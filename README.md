@@ -1,4 +1,4 @@
-# tile-rider
-a simple puzzle game in Haskell with SDL2
+# shapes
+physics engine and other tools for 2D shapes
 
-https://www.youtube.com/playlist?list=PLmozfF6FosKjmPMnlPoVbWosiExbD0SUF
+https://youtu.be/-2e-YW07bo0?list=PLmozfF6FosKjmPMnlPoVbWosiExbD0SUF
