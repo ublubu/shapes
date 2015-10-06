@@ -88,14 +88,10 @@ library
   
   -- Other library packages from which modules are imported.
   build-depends:       base >=4.7 && <4.9
-                     , containers >= 0.5
                      , containers >= 0.5.5.1
-                     , mtl
-                     , monad-extras >= 0.5.9
                      , linear >= 1.19
                      , lens >= 4.12
                      , vector
-                     , zippers
                      , either >= 4.4
   
   -- Directories containing source files.
