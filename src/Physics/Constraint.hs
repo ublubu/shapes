@@ -2,7 +2,7 @@
 
 module Physics.Constraint where
 
-import Control.Lens
+import Control.Lens hiding (transform)
 import Data.Vector
 import Data.Maybe
 import Linear.Affine
@@ -36,7 +36,7 @@ instance Physical a (PhysicalObj a) where
   physObj = id
 
 _physObjVel3 :: PhysicalObj a -> V3 a
-_physObjVel3 po = (_physObjVel po) `append2` (_physObjRotVel po)
+_physObjVel3 po = _physObjVel po `append2` _physObjRotVel po
 
 physObjVel3 :: Functor f => (V3 a -> f (V3 a)) -> PhysicalObj a -> f (PhysicalObj a)
 physObjVel3 f po = fmap g (f (_physObjVel3 po))
@@ -49,15 +49,14 @@ testPair = (testObj, testObj)
 -- TODO: between incremental solutions, jacobian is expected to remain constant?
 --       otherwise, how to clamp?
 data Constraint a = Constraint !(V6 a) !a
-type Constraint' a = ConstrainedPair a -> Constraint a
-type ConstrainedPair a = (PhysicalObj a, PhysicalObj a)
+type Constraint' a p = (p, p) -> Constraint a
 type ConstraintResult a = (a, Constraint a)
 type PhysObjChanged a = PhysicalObj a -> PhysicalObj a -> Bool
 
-_constrainedVel6 :: ConstrainedPair a -> V6 a
+_constrainedVel6 :: (PhysicalObj a, PhysicalObj a) -> V6 a
 _constrainedVel6 cp = uncurry join33 (pairMap (view physObjVel3) cp)
 
-constrainedVel6 :: Functor f => (V6 a -> f (V6 a)) -> ConstrainedPair a -> f (ConstrainedPair a)
+constrainedVel6 :: (Functor f) => (V6 a -> f (V6 a)) -> (PhysicalObj a, PhysicalObj a) -> f (PhysicalObj a, PhysicalObj a)
 constrainedVel6 f cp = fmap g (f (_constrainedVel6 cp))
   where g v6 = pairMap h (split33 v6) `pairAp` cp
         h v3 po = po & physObjVel3 .~ v3
@@ -84,14 +83,14 @@ isStaticLin = (0 ==) . fst
 isStaticRot :: (Num a, Eq a) => InvMass2 a -> Bool
 isStaticRot = (0 ==) . snd
 
-_constrainedInvMassM2 :: (Fractional a) => ConstrainedPair a -> M66 a
+_constrainedInvMassM2 :: (Fractional a) => (PhysicalObj a, PhysicalObj a) -> M66 a
 _constrainedInvMassM2 cp = uncurry invMassM2 (pairMap (view physObjInvMass) cp)
 
 _physObjTransform :: (Floating a, Ord a) => PhysicalObj a -> WorldTransform a
 _physObjTransform obj = toTransform (_physObjPos obj) (_physObjRotPos obj)
 
 physicsShape :: (Epsilon a, Floating a, Ord a) => PhysicalObj a -> ShapeInfo a
-physicsShape obj = shapeInfo (LocalT (_physObjTransform obj) (_physObjHull obj))
+physicsShape obj = shapeInfo (transform (_physObjTransform obj) (_physObjHull obj))
 
 velocity2 :: PhysicalObj a -> PhysicalObj a -> V6 a
 velocity2 a b = (va `append2` wa) `join33` (vb `append2` wb)
@@ -100,10 +99,11 @@ velocity2 a b = (va `append2` wa) `join33` (vb `append2` wb)
         wa = _physObjRotVel a
         wb = _physObjRotVel b
 
-lagrangian2 :: (Fractional a) => ConstrainedPair a -> Constraint a -> a
-lagrangian2 (o1, o2)(Constraint j b) = (-(j `dot` v + b)) / mc
+lagrangian2 :: (Fractional a, Physical a p) => (p, p) -> Constraint a -> a
+lagrangian2 os (Constraint j b) = (-(j `dot` v + b)) / mc
   where v = velocity2 o1 o2
         mc = effMassM2 j o1 o2
+        (o1, o2) = _physPair os
 
 effMassM2 :: (Fractional a) => V6 a -> PhysicalObj a -> PhysicalObj a -> a
 effMassM2 j a b = (j *! im) `dot` j
@@ -116,33 +116,30 @@ constraintImpulse2 j lagr = j ^* lagr
 updateVelocity2_ :: (Num a) => V6 a -> M66 a -> V6 a -> V6 a
 updateVelocity2_ v im pc = v + (im !* pc)
 
-applyLagrangian2 :: (Fractional a) => M66 a -> V6 a -> a -> ConstrainedPair a -> ConstrainedPair a
+applyLagrangian2 :: (Fractional a) => M66 a -> V6 a -> a -> (PhysicalObj a, PhysicalObj a) -> (PhysicalObj a, PhysicalObj a)
 applyLagrangian2 im j lagr = constrainedVel6 %~ f
   where f v6 = updateVelocity2_ v6 im (constraintImpulse2 j lagr)
 
-applyLagrangian2' :: (Fractional a) => a -> Constraint a -> ConstrainedPair a -> ConstrainedPair a
+applyLagrangian2' :: (Fractional a) => a -> Constraint a -> (PhysicalObj a, PhysicalObj a) -> (PhysicalObj a, PhysicalObj a)
 applyLagrangian2' lagr (Constraint j _) cp = applyLagrangian2 im j lagr cp
   where im = _constrainedInvMassM2 cp
 
-solveConstraint :: (Fractional a) => Constraint a -> ConstrainedPair a -> ConstrainedPair a
-solveConstraint c@(Constraint j _) cp = applyLagrangian2 im j lagr cp
-  where im = _constrainedInvMassM2 cp
-        lagr = lagrangian2 cp c
+solveConstraint :: (Fractional a, Physical a p) => Constraint a -> (p, p) -> (p, p)
+solveConstraint c@(Constraint j _) cp = cp & physPair %~ applyLagrangian2 im j lagr
+  where im = _constrainedInvMassM2 cp'
+        lagr = lagrangian2 cp' c
+        cp' = _physPair cp
 
 solveConstraint' :: (Physical n a, Fractional n) => Constraint n -> (a, a) -> (a, a)
 solveConstraint' c = overWith physObj (solveConstraint c)
 
-constraint :: (Physical n a, Fractional n) => Constraint' n -> (a, a) -> Constraint n
-constraint c' = c' . toCP
-
-constraintResult :: (Physical n a, Fractional n) => Constraint' n -> (a, a) -> ConstraintResult n
-constraintResult c' ab = (lagrangian2 cp c, c)
-  where cp = toCP ab
-        c = c' cp
+constraintResult :: (Physical n a, Fractional n) => Constraint' n a -> (a, a) -> ConstraintResult n
+constraintResult c' ab = (lagrangian2 ab c, c)
+  where c = c' ab
 
 applyConstraintResult :: (Physical n a, Fractional n) => ConstraintResult n -> (a, a) -> (a, a)
 applyConstraintResult (lagr, Constraint j _) ab = overWith physObj f ab
-  where im = cpMap _constrainedInvMassM2 ab
+  where im = physPairMap _constrainedInvMassM2 ab
         f = applyLagrangian2 im j lagr
 
 advanceObj :: (Num a) => PhysicalObj a -> a -> PhysicalObj a
@@ -150,8 +147,12 @@ advanceObj obj dt = obj & physObjPos %~ f & physObjRotPos %~ g
   where f pos = (dt *^ (obj ^. physObjVel)) + pos
         g ori = (dt * (obj ^. physObjRotVel)) + ori
 
-toCP :: (Physical n a) => (a, a) -> ConstrainedPair n
-toCP = pairMap (view physObj)
+_physPair :: (Physical n a) => (a, a) -> (PhysicalObj n, PhysicalObj n)
+_physPair = pairMap (view physObj)
 
-cpMap :: (Physical n a) => (ConstrainedPair n -> b) -> (a, a) -> b
-cpMap f pair = f (toCP pair)
+physPair :: (Functor f, Physical a p) => ((PhysicalObj a, PhysicalObj a) -> f (PhysicalObj a, PhysicalObj a)) -> (p, p) -> f (p, p)
+physPair f os = fmap g (f $ _physPair os)
+  where g xy = pairMap (set physObj) xy `pairAp` os
+
+physPairMap :: (Physical n a) => ((PhysicalObj n, PhysicalObj n) -> b) -> (a, a) -> b
+physPairMap f pair = f (_physPair pair)

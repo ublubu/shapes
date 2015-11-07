@@ -42,19 +42,19 @@ boxD = PhysicalObj { _physObjVel = V2 0 0
                    , _physObjHull = rectangleHull 0.4 3
                    , _physObjInvMass = toInvMass2 (1, 0) }
 
-boxA' :: (Fractional a, Eq a) => WorldObj a
-boxA' = WorldObj boxA 0.2
+boxA' :: (Epsilon a, Floating a, Ord a) => WorldObj a
+boxA' = makeWorldObj boxA 0.2
 
-boxB' :: (Fractional a, Eq a) => WorldObj a
-boxB' = WorldObj boxB 0.2
+boxB' :: (Epsilon a, Floating a, Ord a) => WorldObj a
+boxB' = makeWorldObj boxB 0.2
 
-boxC' :: (Fractional a, Eq a) => WorldObj a
-boxC' = WorldObj boxC 0.2
+boxC' :: (Epsilon a, Floating a, Ord a) => WorldObj a
+boxC' = makeWorldObj boxC 0.2
 
-boxD' :: (Fractional a, Eq a) => WorldObj a
-boxD' = WorldObj boxD 0.2
+boxD' :: (Epsilon a, Floating a, Ord a) => WorldObj a
+boxD' = makeWorldObj boxD 0.2
 
-world :: (Fractional a, Eq a) => World (WorldObj a)
+world :: (Epsilon a, Floating a, Ord a) => World (WorldObj a)
 world = fromList [boxA', boxB', boxC', boxD']
 
 externals :: (Physical n a, Epsilon n, Floating n, Ord n) => [External n a]

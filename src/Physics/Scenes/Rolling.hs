@@ -36,13 +36,13 @@ shapeB = PhysicalObj { _physObjVel = V2 0 0
                                                  , P $ V2 2 (-1) ]
                      , _physObjInvMass = toInvMass2 (1, 0.5) }
 
-shapeA' :: (Fractional a, Eq a) => WorldObj a
-shapeA' = WorldObj shapeA 0.5
+shapeA' :: (Epsilon a, Floating a, Ord a) => WorldObj a
+shapeA' = makeWorldObj shapeA 0.5
 
-shapeB' :: (Fractional a, Eq a) => WorldObj a
-shapeB' = WorldObj shapeB 0.5
+shapeB' :: (Epsilon a, Floating a, Ord a) => WorldObj a
+shapeB' = makeWorldObj shapeB 0.5
 
-world :: (Fractional a, Eq a) => World (WorldObj a)
+world :: (Epsilon a, Floating a, Ord a) => World (WorldObj a)
 world = fromList [shapeA', shapeB']
 
 externals :: (Physical n a, Epsilon n, Floating n, Ord n) => [External n a]

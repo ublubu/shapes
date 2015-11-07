@@ -13,19 +13,19 @@ testHull = rectangleHull 4 2
 testView :: VertexView Double
 testView = vertices testHull
 
-testFeature :: Feature Double (WP2 Double)
+testFeature :: Feature Double (P2 Double)
 testFeature = (feat, p)
-  where feat = LocalT idTransform testView
-        p = WorldT (vertex testView)
+  where feat = testView
+        p = vertex testView
 
 testResult :: P2 Double
-testResult = view (_2 . wlens) testFeature
+testResult = view _2 testFeature
 
-testFeature' :: Feature Double (WP2 Double)
-testFeature' = set (_2 . wlens) (P $ V2 0 0) testFeature
+testFeature' :: Feature Double (P2 Double)
+testFeature' = set _2 (P $ V2 0 0) testFeature
 
-testPoint :: WP2 Double
-testPoint = WorldT (P $ V2 0 0)
+testPoint :: P2 Double
+testPoint = P $ V2 0 0
 
-testPoint' :: WP2 Double
-testPoint' = set wlens (P $ V2 1 0) testPoint
+testPoint' :: P2 Double
+testPoint' = P $ V2 1 0

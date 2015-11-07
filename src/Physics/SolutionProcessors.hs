@@ -1,7 +1,7 @@
 module Physics.SolutionProcessors where
 
-import Control.Applicative
 import Physics.Constraint
+import Physics.Contact
 import Physics.ContactSolver
 import Physics.Friction
 

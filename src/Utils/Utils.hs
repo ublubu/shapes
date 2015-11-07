@@ -38,9 +38,18 @@ takeIfAll p (x:xs)
 cycles :: [a] -> [[a]]
 cycles xs = folds tail (cycle xs) xs
 
-data Loop a = Loop { loopPrev :: (Loop a)
+data Loop a = Loop { loopPrev :: Loop a
                    , loopVal :: !a
-                   , loopNext :: (Loop a) } deriving Show
+                   , loopNext :: Loop a }
+
+-- TODO: for debugging only
+instance (Show a, Eq a) => Show (Loop a) where
+  show l = "loopify [" ++ f l [] ++ "]"
+    where f x seen = if loopVal y `elem` seen' then show val
+                     else show val ++ ", " ++ f y seen'
+            where y = loopNext x
+                  seen' = val:seen
+                  val = loopVal x
 
 loopify :: [a] -> Loop a
 loopify [] = error "can't have an empty loop"

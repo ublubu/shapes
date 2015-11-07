@@ -7,19 +7,17 @@ import Control.Lens
 import qualified Data.IntMap.Strict as IM
 import Data.Maybe
 import Physics.Constraint
+import Physics.Contact
 import Physics.PairMap
 import Physics.World hiding (solveOne, solveMany)
 import Physics.WorldSolver
 import qualified Physics.ConstraintSolver as CS
 import Utils.Utils
 
-class (Physical a p) => Contactable a p where
-  contactMu :: p -> a
-
 data ContactResult x = ContactResult { _contactNonPen :: !x
                                      , _contactFriction :: !x } deriving Show
 makeLenses ''ContactResult
-type ConstraintGen n a = ContactResult (Constraint' n)
+type ConstraintGen n a = ContactResult (Constraint' n a)
 type SolutionCache n = ContactResult n
 type ConstraintGen' n a = n -> (a, a) -> [(Key, ConstraintGen n a)]
 type Cache n a = PairMap (SolutionCache n, ConstraintGen n a)
@@ -56,7 +54,7 @@ applicator' :: (Contactable n a, Fractional n) => CS.Applicator a (Cache n a)
 applicator' ab cache = (foldl f ab (keys cache), cache)
   where f ab0 k = ab'
           where (sln, cg) = fromJust $ lookupPair k cache
-                c = fmap (`constraint` ab0) cg
+                c = fmap ($ ab0) cg
                 cr = (,) <$> sln <*> c
                 ab' = applyContactConstraintResult cr ab0
 

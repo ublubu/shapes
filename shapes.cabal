@@ -73,6 +73,12 @@ library
                      , Physics.Transform
                      , Physics.World
                      , Physics.WorldSolver
+                     , Physics.Scenes.FourBoxesTwoStatic
+                     , Physics.Scenes.Rolling
+                     , Physics.Scenes.Scene
+                     , Physics.Scenes.Scenes
+                     , Physics.Scenes.Stacks
+                     , Physics.Scenes.TwoFlyingBoxes
                      , Utils.Utils
 
   -- Modules included in this executable, other than Main.
