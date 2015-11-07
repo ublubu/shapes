@@ -38,9 +38,9 @@ takeIfAll p (x:xs)
 cycles :: [a] -> [[a]]
 cycles xs = folds tail (cycle xs) xs
 
-data Loop a = Loop { loopPrev :: Loop a
-                   , loopVal :: a
-                   , loopNext :: Loop a } deriving Show
+data Loop a = Loop { loopPrev :: (Loop a)
+                   , loopVal :: !a
+                   , loopNext :: (Loop a) } deriving Show
 
 loopify :: [a] -> Loop a
 loopify [] = error "can't have an empty loop"
@@ -68,7 +68,7 @@ folds :: (b -> b) -> b -> [a] -> [b]
 folds _ _ [] = []
 folds f a0 (_:xs) = a0 : folds f (f a0) xs
 
-data Flipping a = Same a | Flip a deriving Show
+data Flipping a = Same !a | Flip !a deriving Show
 
 -- TODO: write an iso for Flipping and Either
 flipAsEither :: Flipping a -> Either a a

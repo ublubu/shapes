@@ -17,14 +17,14 @@ import Physics.Linear
 import Physics.Transform
 import Utils.Utils
 
-data Contact a = Contact { contactA :: PhysicalObj a
-                         , contactB :: PhysicalObj a
-                         , contactPoint :: P2 a
-                         , contactNormal :: V2 a
-                         , contactDepth :: a
-                         , contactIndex :: (Int, Int) } deriving Show
-data ContactBehavior a = ContactBehavior { contactBaumgarte :: a
-                                         , contactPenetrationSlop :: a } deriving Show
+data Contact a = Contact { contactA :: !(PhysicalObj a)
+                         , contactB :: !(PhysicalObj a)
+                         , contactPoint :: !(P2 a)
+                         , contactNormal :: !(V2 a)
+                         , contactDepth :: !a
+                         , contactIndex :: !(Int, Int) } deriving Show
+data ContactBehavior a = ContactBehavior { contactBaumgarte :: !a
+                                         , contactPenetrationSlop :: !a } deriving Show
 
 defaultContactBehavior :: (Num a) => ContactBehavior a
 defaultContactBehavior = ContactBehavior { contactBaumgarte = 0

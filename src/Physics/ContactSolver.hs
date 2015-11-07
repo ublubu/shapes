@@ -16,8 +16,8 @@ import Utils.Utils
 class (Physical a p) => Contactable a p where
   contactMu :: p -> a
 
-data ContactResult x = ContactResult { _contactNonPen :: x
-                                     , _contactFriction :: x }
+data ContactResult x = ContactResult { _contactNonPen :: !x
+                                     , _contactFriction :: !x } deriving Show
 makeLenses ''ContactResult
 type ConstraintGen n a = ContactResult (Constraint' n)
 type SolutionCache n = ContactResult n

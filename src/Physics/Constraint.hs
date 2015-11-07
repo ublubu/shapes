@@ -20,12 +20,12 @@ import Physics.Transform
 import Utils.Utils
 
 type InvMass2 a = (a, a)
-data PhysicalObj a = PhysicalObj { _physObjVel :: V2 a
-                                 , _physObjRotVel :: a
-                                 , _physObjPos :: V2 a
-                                 , _physObjRotPos :: a
-                                 , _physObjHull :: ConvexHull a
-                                 , _physObjInvMass :: InvMass2 a } deriving Show
+data PhysicalObj a = PhysicalObj { _physObjVel :: !(V2 a)
+                                 , _physObjRotVel :: !a
+                                 , _physObjPos :: !(V2 a)
+                                 , _physObjRotPos :: !a
+                                 , _physObjHull :: !(ConvexHull a)
+                                 , _physObjInvMass :: !(InvMass2 a) } deriving Show
 
 makeLenses ''PhysicalObj
 
@@ -48,7 +48,7 @@ testPair = (testObj, testObj)
 
 -- TODO: between incremental solutions, jacobian is expected to remain constant?
 --       otherwise, how to clamp?
-data Constraint a = Constraint (V6 a) a
+data Constraint a = Constraint !(V6 a) !a
 type Constraint' a = ConstrainedPair a -> Constraint a
 type ConstrainedPair a = (PhysicalObj a, PhysicalObj a)
 type ConstraintResult a = (a, Constraint a)

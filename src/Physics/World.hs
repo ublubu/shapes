@@ -2,19 +2,13 @@
 
 module Physics.World where
 
-import Control.Applicative
 import Control.Lens
-import Control.Lens.Indexed
 import qualified Data.IntMap.Strict as IM
-import Data.Maybe
 import Physics.Constraint hiding (solveConstraint)
-import qualified Physics.Constraint as C
-import Linear.Epsilon
-import Linear.Vector
 import Utils.Utils
 
-data World a = World { _worldObjs :: IM.IntMap a
-                     , _worldNextKey :: Int } deriving Show
+data World a = World { _worldObjs :: !(IM.IntMap a)
+                     , _worldNextKey :: !Int } deriving Show
 makeLenses ''World
 
 emptyWorld :: World a

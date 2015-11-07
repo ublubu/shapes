@@ -39,11 +39,11 @@ joinTransforms' = foldl1 joinTransforms
 invertTransform :: WorldTransform a -> WorldTransform a
 invertTransform (f, g) = (g, f)
 
-data LocalT a b = LocalT (WorldTransform a) b deriving Show
+data LocalT a b = LocalT !(WorldTransform a) !b deriving Show
 type LV2 a = LocalT a (V2 a)
 type LP2 a = LocalT a (P2 a)
 
-data WorldT a = WorldT a deriving Show
+data WorldT a = WorldT !a deriving Show
 type WV2 a = WorldT (V2 a)
 type WP2 a = WorldT (Point V2 a)
 
@@ -52,6 +52,9 @@ iExtract (WorldT x) = x
 
 iInject :: a -> WorldT a
 iInject = WorldT
+
+iInject_ :: Num a => b -> LocalT a b
+iInject_ = LocalT idTransform
 
 instance Functor (LocalT a) where
   fmap f (LocalT t v) = LocalT t (f v)

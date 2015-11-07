@@ -125,8 +125,8 @@ horizontalizer22 d@(V2 a o) = rotate22_ cosv (-sinv)
         cosv = a / h
         h = norm d
 
-data Line2 a = Line2 { linePoint :: P2 a
-                     , lineNormal :: V2 a }
+data Line2 a = Line2 { linePoint :: !(P2 a)
+                     , lineNormal :: !(V2 a) }
 
 toLine2 :: (Num a) => P2 a -> P2 a -> Line2 a
 toLine2 a b = Line2 { linePoint = a
@@ -147,7 +147,7 @@ intersect2 (Line2 p n) (Line2 p' n') = do
 center2 :: (Fractional a) => P2 a -> P2 a -> P2 a
 center2 a b = fmap (/2) (a + b)
 
-data ClipResult a = ClipLeft a | ClipRight a | ClipBoth a | ClipNone
+data ClipResult a = ClipLeft !a | ClipRight !a | ClipBoth !a | ClipNone
 
 -- replace clipped points with the intersection point
 -- if both points were clipped (entire segment behind the bound) return just the intersection

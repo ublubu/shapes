@@ -6,8 +6,8 @@ import Control.Lens
 import Physics.Constraint
 import Physics.ContactSolver
 
-data WorldObj n = WorldObj { _worldPhysObj :: PhysicalObj n
-                           , _worldObjMu :: n }
+data WorldObj n = WorldObj { _worldPhysObj :: !(PhysicalObj n)
+                           , _worldObjMu :: !n } deriving Show
 makeLenses ''WorldObj
 
 instance Physical n (WorldObj n) where

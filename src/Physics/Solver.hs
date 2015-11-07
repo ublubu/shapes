@@ -5,7 +5,7 @@ module Physics.Solver where
 import Control.Applicative
 import Control.Lens
 
-data Solver x k a = Solver (SolverFunc x k a) (SolverGen x k a)
+data Solver x k a = Solver !(SolverFunc x k a) !(SolverGen x k a)
 type SolverGen x k a = x -> Solver x k a
 type SolverFunc x k a = k -> a -> (a, Solver x k a)
 type PairSolver x k a = Solver x (k, k) (a, a)
