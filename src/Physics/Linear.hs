@@ -90,6 +90,17 @@ afdot a b = view _Point a `dot` b
 afdot' :: (Num a) => Diff V2 a -> P2 a -> a
 afdot' = flip afdot
 
+data Diag6 a = Diag6 (V6 a)
+
+toDiag6 :: [a] -> Diag6 a
+toDiag6 = Diag6 . listToV
+
+mulDiag6 :: (Num a) => V6 a -> Diag6 a -> V6 a
+mulDiag6 v (Diag6 d) = (*) <$> v <*> d
+
+mulDiag6' :: (Num a) => Diag6 a -> V6 a -> V6 a
+mulDiag6' = flip mulDiag6
+
 class AffineTrans t a where
   afmul :: M33 a -> t -> t
 

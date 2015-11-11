@@ -61,13 +61,8 @@ constrainedVel6 f cp = fmap g (f (_constrainedVel6 cp))
   where g v6 = pairMap h (split33 v6) `pairAp` cp
         h v3 po = po & physObjVel3 .~ v3
 
-invMassM2 :: (Num a) => InvMass2 a -> InvMass2 a -> M66 a
-invMassM2 (ma, ia) (mb, ib) = listToV [ listToV [ma, 0, 0, 0, 0, 0]
-                                  , listToV [0, ma, 0, 0, 0, 0]
-                                  , listToV [0, 0, ia, 0, 0, 0]
-                                  , listToV [0, 0, 0, mb, 0, 0]
-                                  , listToV [0, 0, 0, 0, mb, 0]
-                                  , listToV [0, 0, 0, 0, 0, ib] ]
+invMassM2 :: (Num a) => InvMass2 a -> InvMass2 a -> Diag6 a
+invMassM2 (ma, ia) (mb, ib) = toDiag6 [ma, ma, ia, mb, mb, ib]
 
 toInvMass2 :: (Fractional a, Eq a) => (a, a) -> (a, a)
 toInvMass2 = pairMap f
@@ -83,7 +78,7 @@ isStaticLin = (0 ==) . fst
 isStaticRot :: (Num a, Eq a) => InvMass2 a -> Bool
 isStaticRot = (0 ==) . snd
 
-_constrainedInvMassM2 :: (Fractional a) => (PhysicalObj a, PhysicalObj a) -> M66 a
+_constrainedInvMassM2 :: (Fractional a) => (PhysicalObj a, PhysicalObj a) -> Diag6 a
 _constrainedInvMassM2 cp = uncurry invMassM2 (pairMap (view physObjInvMass) cp)
 
 _physObjTransform :: (Floating a, Ord a) => PhysicalObj a -> WorldTransform a
@@ -106,17 +101,17 @@ lagrangian2 os (Constraint j b) = (-(j `dot` v + b)) / mc
         (o1, o2) = _physPair os
 
 effMassM2 :: (Fractional a) => V6 a -> PhysicalObj a -> PhysicalObj a -> a
-effMassM2 j a b = (j *! im) `dot` j
+effMassM2 j a b = (j `mulDiag6` im) `dot` j
   where im = curry _constrainedInvMassM2 a b
 
 constraintImpulse2 :: (Num a) => V6 a -> a -> V6 a
 constraintImpulse2 j lagr = j ^* lagr
 
 -- pc = impulse from constraint forces
-updateVelocity2_ :: (Num a) => V6 a -> M66 a -> V6 a -> V6 a
-updateVelocity2_ v im pc = v + (im !* pc)
+updateVelocity2_ :: (Num a) => V6 a -> Diag6 a -> V6 a -> V6 a
+updateVelocity2_ v im pc = v + (im `mulDiag6'` pc)
 
-applyLagrangian2 :: (Fractional a) => M66 a -> V6 a -> a -> (PhysicalObj a, PhysicalObj a) -> (PhysicalObj a, PhysicalObj a)
+applyLagrangian2 :: (Fractional a) => Diag6 a -> V6 a -> a -> (PhysicalObj a, PhysicalObj a) -> (PhysicalObj a, PhysicalObj a)
 applyLagrangian2 im j lagr = constrainedVel6 %~ f
   where f v6 = updateVelocity2_ v6 im (constraintImpulse2 j lagr)
 
