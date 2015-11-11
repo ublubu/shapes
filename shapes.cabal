@@ -113,7 +113,10 @@ executable shapes-prof
   ghc-options:         -O2
                        -threaded
                        -fprof-auto
-                       "-with-rtsopts=-N -p -s -h -i0.1"
+                       -fexcess-precision
+                       -optc-O3
+                       -optc-ffast-math
+                       "-with-rtsopts=-N -p -s -hd -i0.1"
   
   -- Modules included in this executable, other than Main.
   -- other-modules:       
