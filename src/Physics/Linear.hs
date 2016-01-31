@@ -148,10 +148,9 @@ perpLine2 a b = Line2 { linePoint = a
                       , lineNormal = b .-. a }
 
 -- solving some `mx = b` up in here
-intersect2 :: (Floating a, Epsilon a) => Line2 a -> Line2 a -> Maybe (P2 a)
-intersect2 (Line2 p n) (Line2 p' n') = do
-  m' <- inv22 m
-  return $ P (m' !* b)
+intersect2 :: (Floating a, Epsilon a) => Line2 a -> Line2 a -> P2 a
+intersect2 (Line2 p n) (Line2 p' n') =
+  P ((inv22 m) !* b)
   where b = V2 (p `afdot` n) (p' `afdot` n')
         m = V2 n n'
 
@@ -195,13 +194,13 @@ lApplyClip' _ (ClipBoth _) _ = Nothing
 lApplyClip' l res seg = either (const Nothing) Just (lApplyClip l res seg)
 
 clipSegment :: (Floating a, Epsilon a, Ord a) => Line2 a -> (Line2 a, (P2 a, P2 a)) -> ClipResult (P2 a)
-clipSegment boundary (incident, (a, b)) = case intersect2 boundary incident of
-  Nothing -> ClipNone
-  Just c | a' < c' -> if b' < c' then ClipBoth c
-                      else ClipLeft c
-         | b' < c' -> ClipRight c
-         | otherwise -> ClipNone
-    where n = lineNormal boundary
-          a' = a `afdot` n
-          b' = b `afdot` n
-          c' = c `afdot` n
+clipSegment boundary (incident, (a, b))
+  | a' < c' = if b' < c' then ClipBoth c
+              else ClipLeft c
+  | b' < c' = ClipRight c
+  | otherwise = ClipNone
+  where c = intersect2 boundary incident
+        n = lineNormal boundary
+        a' = a `afdot` n
+        b' = b `afdot` n
+        c' = c `afdot` n

@@ -4,6 +4,7 @@ module Main where
 
 import Control.Monad
 import Control.Lens
+import Criterion.Main
 import GHC.Word
 import Linear.Epsilon
 import Linear.V2
@@ -51,4 +52,5 @@ initialState :: EngineState Double
 initialState = SP ((scene'' :: Scene Double (WorldObj Double)) ^. scWorld) emptyState
 
 main :: IO ()
-main = print . fst' $ stepWorld 10000 initialState
+main = defaultMain [ bench "updateWorld" $ whnf (show . fst' . stepWorld 1) s]
+  where s = stepWorld 1000 initialState
