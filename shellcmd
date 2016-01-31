@@ -1,1 +1,0 @@
-nix-shell "<nixpkgs>" -A haskellPackages.shapes.env
