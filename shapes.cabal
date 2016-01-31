@@ -93,12 +93,12 @@ library
                      , TypeSynonymInstances
   
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.7 && <4.9
-                     , containers >= 0.5.5.1
-                     , linear >= 1.19
-                     , lens >= 4.12
+  build-depends:       base
+                     , containers
+                     , linear
+                     , lens
                      , vector
-                     , either >= 4.4
+                     , either
   
   -- Directories containing source files.
   hs-source-dirs:      src
@@ -124,12 +124,12 @@ executable shapes-prof
   -- other-extensions:    
   
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.7 && <4.9
-                     , containers >= 0.5.5.1
-                     , linear >= 1.19
-                     , lens >= 4.12
+  build-depends:       base
+                     , containers
+                     , linear
+                     , lens
                      , vector
-                     , either >= 4.4
+                     , either
                      , criterion
   
   -- Directories containing source files.
