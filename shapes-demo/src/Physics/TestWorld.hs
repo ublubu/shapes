@@ -40,7 +40,7 @@ makeLenses ''TestState
 updateWorld :: (Epsilon n, Floating n, Ord n) => Scene n (WorldObj n) -> n -> (World (WorldObj n), State n (Cache n (WorldObj n))) -> (World (WorldObj n), State n (Cache n (WorldObj n)))
 updateWorld scene dt (w, s) = (w''', s')
   where w1 = applyExternals (scene ^. scExts) dt w
-        maxSolverIterations = 1
+        maxSolverIterations = 3
         worldChanged = const . const $ True
         solver = S.contactSolver' (scene ^. scContactBeh)
         (w', s') = wsolve' solver worldChanged maxSolverIterations (culledKeys w1) worldPair w1 dt s

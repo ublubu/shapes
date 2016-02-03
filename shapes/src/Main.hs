@@ -49,8 +49,7 @@ stepWorld 0 !s = s
 stepWorld !x !s = stepWorld (x - 1) $ updateWorld scene'' 0.01 s
 
 initialState :: EngineState Double
-initialState = SP ((scene'' :: Scene Double (WorldObj Double)) ^. scWorld) emptyState
+initialState = SP ((scene''' :: Scene Double (WorldObj Double)) ^. scWorld) emptyState
 
 main :: IO ()
-main = defaultMain [ bench "updateWorld" $ whnf (show . fst' . stepWorld 1) s]
-  where s = stepWorld 1000 initialState
+main = defaultMain [ bench "updateWorld" $ whnf (show . fst' . stepWorld 1) initialState]

@@ -57,6 +57,19 @@ world'' = fromList ([boxFloor']
                    ++ boxStack (1, 1) (3.5, -4.5) (0, 0) 1 7
                    ++ boxStack (1, 1) (4.5, -4.5) (0, 0) 1 7)
 
+world''' :: (Epsilon a, Floating a, Ord a) => World (WorldObj a)
+world''' = fromList ([boxFloor']
+                   ++ boxStack (1, 1) (-4.5, -5) (0, 0) 0 10
+                   ++ boxStack (1, 1) (-3.5, -5) (0, 0) 0 10
+                   ++ boxStack (1, 1) (-2.5, -5) (0, 0) 0 10
+                   ++ boxStack (1, 1) (-1.5, -5) (0, 0) 0 10
+                   ++ boxStack (1, 1) (-0.5, -5) (0, 0) 0 10
+                   ++ boxStack (1, 1) (0.5, -5) (0, 0) 0 10
+                   ++ boxStack (1, 1) (1.5, -5) (0, 0) 0 10
+                   ++ boxStack (1, 1) (2.5, -5) (0, 0) 0 10
+                   ++ boxStack (1, 1) (3.5, -5) (0, 0) 0 10
+                   ++ boxStack (1, 1) (4.5, -5) (0, 0) 0 10)
+
 externals :: (Physical n a, Epsilon n, Floating n, Ord n) => [External n a]
 externals = [constantAccel (V2 0 (-2))]
 
@@ -71,3 +84,6 @@ scene' = Scene world' externals contactBehavior
 
 scene'' :: (Physical a p, Epsilon a, Floating a, Ord a, Eq a) => Scene a p
 scene'' = Scene world'' externals contactBehavior
+
+scene''' :: (Physical a p, Epsilon a, Floating a, Ord a, Eq a) => Scene a p
+scene''' = Scene world''' externals contactBehavior
