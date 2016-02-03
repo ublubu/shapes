@@ -6,11 +6,12 @@ import Control.Lens
 import Linear.Epsilon
 import Physics.Constraint
 import Physics.Contact
+import Physics.ConvexHull
 import Physics.Geometry
 
 data WorldObj n = WorldObj { _worldPhysObj :: !(PhysicalObj n)
                            , _worldObjMu :: !n
-                           , _worldShape :: !(ShapeInfo n) }
+                           , _worldShape :: !(ConvexHull n) }
 makeLenses ''WorldObj
 
 instance (Show n) => Show (WorldObj n) where

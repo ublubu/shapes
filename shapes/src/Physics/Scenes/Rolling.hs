@@ -16,9 +16,9 @@ shapeA = PhysicalObj { _physObjVel = V2 0 0
                      , _physObjRotVel = 0
                      , _physObjPos = V2 0 (-6)
                      , _physObjRotPos = 0
-                     , _physObjHull = ConvexHull [ P $ V2 9 (-0.5)
-                                                 , P $ V2 (-9) 10
-                                                 , P $ V2 (-9) (-0.5)]
+                     , _physObjHull = [ P $ V2 9 (-0.5)
+                                      , P $ V2 (-9) 10
+                                      , P $ V2 (-9) (-0.5)]
                      , _physObjInvMass = toInvMass2 (0, 0) }
 
 shapeB :: (Fractional a, Eq a) => PhysicalObj a
@@ -26,14 +26,14 @@ shapeB = PhysicalObj { _physObjVel = V2 0 0
                      , _physObjRotVel = -3
                      , _physObjPos = V2 (-7) 12
                      , _physObjRotPos = 0
-                     , _physObjHull = ConvexHull [ P $ V2 2 1
-                                                 , P $ V2 1 2
-                                                 , P $ V2 (-1) 2
-                                                 , P $ V2 (-2) 1
-                                                 , P $ V2 (-2) (-1)
-                                                 , P $ V2 (-1) (-2)
-                                                 , P $ V2 1 (-2)
-                                                 , P $ V2 2 (-1) ]
+                     , _physObjHull = [ P $ V2 2 1
+                                      , P $ V2 1 2
+                                      , P $ V2 (-1) 2
+                                      , P $ V2 (-2) 1
+                                      , P $ V2 (-2) (-1)
+                                      , P $ V2 (-1) (-2)
+                                      , P $ V2 1 (-2)
+                                      , P $ V2 2 (-1) ]
                      , _physObjInvMass = toInvMass2 (1, 0.5) }
 
 shapeA' :: (Epsilon a, Floating a, Ord a) => WorldObj a

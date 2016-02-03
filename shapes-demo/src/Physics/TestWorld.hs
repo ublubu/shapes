@@ -62,10 +62,10 @@ renderTest r state = do
   setColor r black
   drawWorld r vt (state ^. testWorldState . _1)
 
-renderContacts :: R.Renderer -> [WorldPair [Flipping (Contact Double)]] -> IO ()
-renderContacts r ps = sequence_ . join $ fmap f ps
-  where f (WorldPair _ fcs) = fmap g fcs
-        g = drawContact' r . LocalT vt . flipExtract
+--renderContacts :: R.Renderer -> [WorldPair [Flipping (Contact Double)]] -> IO ()
+--renderContacts r ps = sequence_ . join $ fmap f ps
+  --where f (WorldPair _ fcs) = fmap g fcs
+        --g = drawContact' r . LocalT vt . flipExtract
 
 testStep :: R.Renderer -> TestState -> Word32 -> IO TestState
 testStep r s0 _ = do

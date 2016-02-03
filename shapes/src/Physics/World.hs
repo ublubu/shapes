@@ -4,6 +4,7 @@ module Physics.World where
 
 import Control.Lens
 import qualified Data.IntMap.Strict as IM
+import Linear.Epsilon
 import Physics.Constraint hiding (solveConstraint)
 import Utils.Utils
 
@@ -24,6 +25,7 @@ fromList = foldl addObj emptyWorld
 worldPair :: (Int, Int) -> Traversal' (World a) (a, a)
 worldPair ij = worldObjs . pairiix ij
 
+testWorld :: (Epsilon a, Floating a, Ord a) => World (PhysicalObj a)
 testWorld = fromList [testObj, testObj]
 
 data WorldPair a = WorldPair (Int, Int) a deriving Show

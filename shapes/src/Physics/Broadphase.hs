@@ -1,12 +1,16 @@
+{-# LANGUAGE RecordWildCards #-}
 module Physics.Broadphase where
 
 import Control.Lens
+import Data.Array (elems)
 import qualified Data.IntMap.Strict as IM
 import Data.Maybe
 import Linear.Affine
 import Linear.V2
 import Physics.Contact
+import Physics.ConvexHull
 import Physics.Geometry
+import Physics.Linear
 import Physics.World
 
 type Aabb n = V2 (n, n)
@@ -14,12 +18,12 @@ type Aabb n = V2 (n, n)
 aabbCheck :: (Ord n) => Aabb n -> Aabb n -> Bool
 aabbCheck (V2 x y) (V2 x' y') = overlapTest x x' && overlapTest y y'
 
-toAabb :: (Ord n) => ShapeInfo n -> Aabb n
-toAabb (_, feats) = foldl1 mergeAabb aabbs
-  where aabbs = fmap toAabb_ feats
+toAabb :: (Ord n) => ConvexHull n -> Aabb n
+toAabb ConvexHull{..} = foldl1 mergeAabb aabbs
+  where aabbs = fmap toAabb_ (elems _hullVertices)
 
-toAabb_ :: Feature n (V2 n) -> Aabb n
-toAabb_ = fmap (\a -> (a, a)) . view _Point . vertex . fst
+toAabb_ :: P2 n -> Aabb n
+toAabb_ = fmap (\a -> (a, a)) . view _Point
 
 mergeAabb :: (Ord n) => Aabb n -> Aabb n -> Aabb n
 mergeAabb a b = mergeRange <$> a <*> b

@@ -14,6 +14,7 @@ import Linear.V4
 import Linear.Vector
 import Linear.Matrix
 import Linear.Metric
+import Physics.ConvexHull
 import Physics.Linear
 import Physics.Geometry
 import Physics.Transform
@@ -24,7 +25,7 @@ data PhysicalObj a = PhysicalObj { _physObjVel :: !(V2 a)
                                  , _physObjRotVel :: !a
                                  , _physObjPos :: !(V2 a)
                                  , _physObjRotPos :: !a
-                                 , _physObjHull :: !(ConvexHull a)
+                                 , _physObjHull :: !(Vertices a)
                                  , _physObjInvMass :: !(InvMass2 a) } deriving Show
 
 makeLenses ''PhysicalObj
@@ -43,7 +44,10 @@ physObjVel3 f po = fmap g (f (_physObjVel3 po))
   where g v3' = po & physObjVel .~ v & physObjRotVel .~ vr
           where (v, vr) = split3 v3'
 
-testObj = PhysicalObj (V2 1 0) 0.5 (V2 0 0) 0 (rectangleHull 2 2) (toInvMass2 (2, 1))
+testObj :: (Epsilon a, Floating a, Ord a) => PhysicalObj a
+testObj = PhysicalObj (V2 1 0) 0.5 (V2 0 0) 0 (rectangleVertices 2 2) (toInvMass2 (2, 1))
+
+testPair :: (Epsilon a, Floating a, Ord a) => (PhysicalObj a, PhysicalObj a)
 testPair = (testObj, testObj)
 
 -- TODO: between incremental solutions, jacobian is expected to remain constant?
@@ -84,8 +88,8 @@ _constrainedInvMassM2 cp = uncurry invMassM2 (pairMap (view physObjInvMass) cp)
 _physObjTransform :: (Floating a, Ord a) => PhysicalObj a -> WorldTransform a
 _physObjTransform obj = toTransform (_physObjPos obj) (_physObjRotPos obj)
 
-physicsShape :: (Epsilon a, Floating a, Ord a) => PhysicalObj a -> ShapeInfo a
-physicsShape obj = shapeInfo (transform (_physObjTransform obj) (_physObjHull obj))
+physicsShape :: (Epsilon a, Floating a, Ord a) => PhysicalObj a -> ConvexHull a
+physicsShape obj = listToHull (transform (_physObjTransform obj) (_physObjHull obj))
 
 velocity2 :: PhysicalObj a -> PhysicalObj a -> V6 a
 velocity2 a b = (va `append2` wa) `join33` (vb `append2` wb)

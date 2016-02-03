@@ -56,6 +56,7 @@ library
                      , Physics.Contact
                      , Physics.ContactConstraints
                      , Physics.ContactSolver
+                     , Physics.ConvexHull
                      , Physics.External
                      , Physics.Friction
                      , Physics.Geometry
@@ -93,7 +94,8 @@ library
                      , TypeSynonymInstances
   
   -- Other library packages from which modules are imported.
-  build-depends:       base
+  build-depends:       array
+                     , base
                      , containers
                      , linear
                      , lens
@@ -124,7 +126,8 @@ executable shapes-prof
   -- other-extensions:    
   
   -- Other library packages from which modules are imported.
-  build-depends:       base
+  build-depends:       array
+                     , base
                      , containers
                      , linear
                      , lens

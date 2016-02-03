@@ -4,6 +4,7 @@ import Linear.Epsilon
 import Linear.V2
 import Physics.Constraint
 import Physics.Contact
+import Physics.ConvexHull
 import Physics.Geometry
 import Physics.Object
 import Physics.World
@@ -14,7 +15,7 @@ boxA = PhysicalObj { _physObjVel = V2 1 0
                    , _physObjRotVel = 0
                    , _physObjPos = V2 (-5) 0
                    , _physObjRotPos = 0
-                   , _physObjHull = rectangleHull 4 4
+                   , _physObjHull = rectangleVertices 4 4
                    , _physObjInvMass = toInvMass2 (2, 1) }
 
 boxB :: (Fractional a, Eq a) => PhysicalObj a
@@ -22,7 +23,7 @@ boxB = PhysicalObj { _physObjVel = V2 (-4) 0
                    , _physObjRotVel = 0
                    , _physObjPos = V2 5 2
                    , _physObjRotPos = 0
-                   , _physObjHull = rectangleHull 2 2
+                   , _physObjHull = rectangleVertices 2 2
                    , _physObjInvMass = toInvMass2 (1, 0.5) }
 
 boxA' :: (Epsilon a, Floating a, Ord a) => WorldObj a

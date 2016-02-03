@@ -4,6 +4,7 @@ import Linear.Affine
 import Linear.V2
 import qualified SDL.Video.Renderer as R
 import qualified Physics.Contact as C
+import Physics.ConvexHull
 import Physics.Transform
 import Physics.Linear
 import Physics.Geometry
@@ -33,9 +34,10 @@ drawPoint r p = R.drawPoint r (toRenderable p)
 drawThickPoint :: (RealFrac a) => R.Renderer -> P2 a -> IO ()
 drawThickPoint r p = R.fillRect r (Just . toRenderable $ centeredRectangle p (V2 4 4))
 
-drawConvexHull :: (RealFrac a) => R.Renderer -> ConvexHull a -> IO ()
-drawConvexHull r h = sequence_ (fmap f (vList $ vertices h))
-  where f v = drawLine r (vertex v) (vertex $ vNext v)
+drawConvexHull :: (RealFrac a) => R.Renderer -> Vertices a -> IO ()
+drawConvexHull r vertices = sequence_ (fmap f segments)
+  where f (v1, v2) = drawLine r v1 v2
+        segments = zip vertices (tail vertices ++ [head vertices])
 
 --extractDepth :: (Floating a, Ord a) => LocalT a (Overlap a) -> V2 a
 --extractDepth = wExtract_ . lmap f
@@ -65,34 +67,34 @@ drawConvexHull r h = sequence_ (fmap f (vList $ vertices h))
         --c' = c .+^ depth
         --pen = extractPenetrator ovl
 
-extractContactPoints :: (Floating a) => LocalT a (Contact a) -> Either (P2 a) (P2 a, P2 a)
-extractContactPoints cont = either (Left . wExtract_) (Right . wExtract_) $ flipEither (lmap contactPoints' cont)
-  where flipEither :: LocalT a (Either b c) -> Either (LocalT a b) (LocalT a c)
-        flipEither (LocalT t (Left x)) = Left (LocalT t x)
-        flipEither (LocalT t (Right x)) = Right (LocalT t x)
+--extractContactPoints :: (Floating a) => LocalT a (Contact a) -> Either (P2 a) (P2 a, P2 a)
+--extractContactPoints cont = either (Left . wExtract_) (Right . wExtract_) $ flipEither (lmap contactPoints' cont)
+  --where flipEither :: LocalT a (Either b c) -> Either (LocalT a b) (LocalT a c)
+        --flipEither (LocalT t (Left x)) = Left (LocalT t x)
+        --flipEither (LocalT t (Right x)) = Right (LocalT t x)
 
-extractContactNormal :: (Floating a) => LocalT a (Contact a) -> V2 a
-extractContactNormal = wExtract_ . lmap contactNormal
+--extractContactNormal :: (Floating a) => LocalT a (Contact a) -> V2 a
+--extractContactNormal = wExtract_ . lmap contactNormal
 
-drawContact' :: (Floating a, RealFrac a, Show a) => R.Renderer -> LocalT a (C.Contact a) -> IO ()
-drawContact' r cont = do
-  drawThickPoint r p
-  drawLine r p (p .+^ n)
-  where p = wExtract_ . lmap C.contactPoint $ cont
-        n = wExtract_ . lmap C.contactNormal $ cont
+--drawContact' :: (Floating a, RealFrac a, Show a) => R.Renderer -> LocalT a (C.Contact a) -> IO ()
+--drawContact' r cont = do
+  --drawThickPoint r p
+  --drawLine r p (p .+^ n)
+  --where p = wExtract_ . lmap C.contactPoint $ cont
+        --n = wExtract_ . lmap C.contactNormal $ cont
 
-drawContact :: (Floating a, RealFrac a) => R.Renderer -> LocalT a (Contact a) -> IO ()
-drawContact r cont = do
-  (c, c') <- either f g ps
-  drawLine r c c'
-  where f a = do
-          drawThickPoint r a
-          return (a, a .+^ n)
-        g (a, b) = do
-          drawThickPoint r a
-          drawThickPoint r b
-          return (c, c')
-            where c = center2 a b
-                  c' = c .+^ n
-        ps = extractContactPoints cont
-        n = extractContactNormal cont
+--drawContact :: (Floating a, RealFrac a) => R.Renderer -> LocalT a (Contact a) -> IO ()
+--drawContact r cont = do
+  --(c, c') <- either f g ps
+  --drawLine r c c'
+  --where f a = do
+          --drawThickPoint r a
+          --return (a, a .+^ n)
+        --g (a, b) = do
+          --drawThickPoint r a
+          --drawThickPoint r b
+          --return (c, c')
+            --where c = center2 a b
+                  --c' = c .+^ n
+        --ps = extractContactPoints cont
+        --n = extractContactNormal cont
