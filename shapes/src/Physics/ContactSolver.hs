@@ -1,10 +1,16 @@
-{-# LANGUAGE FlexibleInstances, FlexibleContexts, RankNTypes, MultiParamTypeClasses, TemplateHaskell #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Physics.ContactSolver where
 
 import Control.Applicative
 import Control.Lens
 import qualified Data.IntMap.Strict as IM
+import Data.List (foldl')
 import Data.Maybe
 import Physics.Constraint
 import Physics.Contact
@@ -17,11 +23,36 @@ import Utils.Utils
 data ContactResult x = ContactResult { _contactNonPen :: !x
                                      , _contactFriction :: !x } deriving Show
 makeLenses ''ContactResult
+
+-- use to generate constraints (jacobians)
 type ConstraintGen n a = ContactResult (Constraint' n a)
-type SolutionCache n = ContactResult n
-type ConstraintGen' n a = n -> (a, a) -> [(Key, ConstraintGen n a)]
-type Cache n a = PairMap (SolutionCache n, ConstraintGen n a)
-type SolutionProcessor n a = SolutionCache n -> ContactResult (ConstraintResult n) -> (a, a) -> (SolutionCache n, ContactResult (ConstraintResult n))
+
+-- cache constraint impulses
+--type SolutionCache n = ContactResult n
+
+-- ConstraintGen' = dt -> (obj1, obj2) -> ([((featIndex1, featIndex2), ConstraintGen)], new ConstraintGen')
+newtype ConstraintGen' n a =
+  ConstraintGen' { _cgen' :: (n -> Key -> (a, a) -> ([(Key, ConstraintGen n a)], ConstraintGen' n a)) }
+makeLenses ''ConstraintGen'
+
+-- per-contact (feature pair) cache:
+type FeaturePairCaches n a = PairMap (ContactResult n, ConstraintGen n a)
+
+data WorldCache n a = WorldCache { _wcDt :: n
+                                 , _wcCgen' :: ConstraintGen' n a}
+makeLenses ''WorldCache
+
+wcApplyCgen' :: WorldCache n a
+             -> Key
+             -> (a, a)
+             -> ([(Key, ConstraintGen n a)], WorldCache n a)
+wcApplyCgen' worldCache@WorldCache{..} pairKey ab =
+  (featurePairCgens, worldCache & wcCgen' .~ newCgen')
+  where (featurePairCgens, newCgen') = (_cgen' _wcCgen') _wcDt pairKey ab
+
+-- apply rules to total constraint impulse
+-- (previously accumulated impulse) -> (current iteration's sln) -> (objects) -> (new accumulated impulse, incremental sln to apply)
+type SolutionProcessor n a = ContactResult n -> ContactResult (ConstraintResult n) -> (a, a) -> (ContactResult n, ContactResult (ConstraintResult n))
 
 instance Functor ContactResult where
   fmap f (ContactResult a b) = ContactResult (f a) (f b)
@@ -30,45 +61,83 @@ instance Applicative ContactResult where
   pure f = ContactResult f f
   (ContactResult f g) <*> (ContactResult x y) = ContactResult (f x) (g y)
 
-emptySln :: (Num n) => SolutionCache n
+emptySln :: (Num n) => ContactResult n
 emptySln = ContactResult 0 0
 
-generator :: (Contactable n a, Num n) => ConstraintGen' n a -> CS.Generator n a (Cache n a)
-generator cg dt ab mc = initCache emptySln mc (cg dt ab)
+-- copy the last frame's cached solution if it exists
+-- cache the ConstraintGens for this frame
+updatePairCache :: [(Key, ConstraintGen n a)]
+                   -> ContactResult n
+                   -> Maybe (FeaturePairCaches n a)
+                   -> Maybe (FeaturePairCaches n a)
+updatePairCache [] _ _ = Nothing -- no contacts this frame = clear everything
+updatePairCache featurePairCgens emptySolution (Just featurePairCaches0) =
+  Just $ foldl' f IM.empty featurePairCgens
+  where f !featurePairCaches (!pairKey, !cgen) =
+          insertPair pairKey (sln', cgen) featurePairCaches
+          where sln' = fromMaybe emptySolution (fmap fst $ lookupPair pairKey featurePairCaches0)
+updatePairCache featurePairCgens emptySolution Nothing =
+  Just $ foldl' f IM.empty featurePairCgens
+  where f !featurePairCaches (!pairKey, !cgen) =
+          insertPair pairKey (emptySolution, cgen) featurePairCaches
 
--- copy the last frame's SolutionCache if it exists
--- generate and cache new ConstraintGens
-initCache :: (Num n) => SolutionCache n -> Maybe (Cache n a) -> [(Key, ConstraintGen n a)] -> Cache n a
-initCache cache0 (Just cache) cgs = foldl f IM.empty cgs
-  where f cache' (k, cg) = insertPair k (sln', cg) cache'
-          where sln' = case lookupPair k cache of
-                  Just (sln, _) -> sln
-                  Nothing -> cache0
-initCache cache0 Nothing cgs = foldl f IM.empty cgs
-  where f cache' (k, cg) = insertPair k (cache0, cg) cache'
+pairCacheInitializer :: (Num n)
+                     => CS.PairCacheInitializer a (FeaturePairCaches n a) (WorldCache n a)
+pairCacheInitializer pairKey ab mFeaturePairCaches worldCache =
+  (mFeaturePairCaches', worldCache')
+  where mFeaturePairCaches' = updatePairCache featurePairCgens emptySln mFeaturePairCaches
+        (featurePairCgens, worldCache') = wcApplyCgen' worldCache pairKey ab
 
-applicator :: (Contactable n a, Fractional n) => SolutionProcessor n a -> CS.Applicator a (Cache n a)
-applicator sp ab cache = solveMany sp (keys cache) cache ab
+worldCacheInitializer :: CS.WorldCacheInitializer a n (WorldCache n a)
+worldCacheInitializer pairKeys l world dt worldCache = worldCache & wcDt .~ dt
 
-applicator' :: (Contactable n a, Fractional n) => CS.Applicator a (Cache n a)
-applicator' ab cache = (foldl f ab (keys cache), cache)
-  where f ab0 k = ab'
-          where (sln, cg) = fromJust $ lookupPair k cache
-                c = fmap ($ ab0) cg
-                cr = (,) <$> sln <*> c
-                ab' = applyContactConstraintResult cr ab0
+-- TODO: traverse/fold these IntMaps directly instead of folding over keys
+--       to get rid of some of these fromJusts (also in ConstraintSolver)
+pairUpdater :: (Contactable n a, Fractional n)
+            => SolutionProcessor n a
+            -> CS.PairUpdater a (FeaturePairCaches n a) (WorldCache n a)
+pairUpdater slnProc pairKey ab0 featurePairCaches0 worldCache0 =
+  (ab', featurePairCaches', worldCache0)
+  where (ab', featurePairCaches') =
+          solveMany slnProc (keys featurePairCaches0) featurePairCaches0 ab0
 
-solveMany :: (Contactable n a, Fractional n) => SolutionProcessor n a -> [Key] -> Cache n a -> (a, a) -> ((a, a), Cache n a)
-solveMany sp ks cache ab = foldl f (ab, cache) ks
-  where f (ab0, cache0) k = (ab', insertPair k (sln', c') cache0)
-          where (ab', sln') = solveOne sp k c' ab0 sln0
-                (sln0, c') = fromJust $ lookupPair k cache0
+-- apply the cached solutions
+cacheApplicator :: (Contactable n a, Fractional n)
+                => CS.PairUpdater a (FeaturePairCaches n a) (WorldCache n a)
+cacheApplicator pairKey ab0 featurePairCaches0 worldCache0 =
+  (foldl' f ab0 (keys featurePairCaches0), featurePairCaches0, worldCache0)
+  where f !ab !featurePairKey = applyContactConstraintResult constraintResult ab
+          where (sln, cgen) = fromJust $ lookupPair featurePairKey featurePairCaches0
+                constraint = fmap ($ ab0) cgen
+                constraintResult = (,) <$> sln <*> constraint
 
-solveOne :: (Contactable n a, Fractional n) => SolutionProcessor n a -> Key -> ConstraintGen n a -> (a, a) -> SolutionCache n -> ((a, a), SolutionCache n)
+solveMany :: (Contactable n a, Fractional n)
+          => SolutionProcessor n a
+          -> [Key]
+          -> FeaturePairCaches n a
+          -> (a, a)
+          -> ((a, a), FeaturePairCaches n a)
+solveMany slnProc featurePairKeys featurePairCaches0 ab0 =
+  foldl f (ab0, featurePairCaches0) featurePairKeys
+  where f (ab, featurePairCaches) featurePairKey =
+          (ab', insertPair featurePairKey (sln', cgen) featurePairCaches)
+          where (ab', sln') = solveOne slnProc featurePairKey cgen ab sln
+                (sln, cgen) = fromJust $ lookupPair featurePairKey featurePairCaches
+
+solveOne :: (Contactable n a, Fractional n)
+         => SolutionProcessor n a
+         -> Key
+         -> ConstraintGen n a
+         -> (a, a)
+         -> ContactResult n
+         -> ((a, a), ContactResult n)
 solveOne sp k cg ab sln = (ab', sln')
   where ab' = applyContactConstraintResult cr' ab
         cr = fmap (`constraintResult` ab) cg
         (sln', cr') = sp sln cr ab
 
-applyContactConstraintResult :: (Contactable n a, Fractional n) => ContactResult (ConstraintResult n) -> (a, a) -> (a, a)
+applyContactConstraintResult :: (Contactable n a, Fractional n)
+                             => ContactResult (ConstraintResult n)
+                             -> (a, a)
+                             -> (a, a)
 applyContactConstraintResult (ContactResult cr cr') = applyConstraintResult cr' . applyConstraintResult cr

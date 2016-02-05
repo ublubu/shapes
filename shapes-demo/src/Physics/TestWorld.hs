@@ -31,19 +31,24 @@ import Utils.Utils
 import Physics.Scenes.Scene
 import Physics.Scenes.Scenes
 
-data TestState = TestState { _testWorldState :: (World (WorldObj Double), State Double (Cache Double (WorldObj Double)))
+data SP a b = SP { _spFst :: !a
+                 , _spSnd :: !b
+                 }
+makeLenses ''SP
+
+type EngineState n = SP (World (WorldObj n)) (S.ContactSolverState n (WorldObj n))
+data TestState = TestState { _testWorldState :: EngineState Double
                            , _testFinished :: Bool
                            , _testScene :: Scene Double (WorldObj Double)
                            , _testSceneIndex :: Int }
 makeLenses ''TestState
 
-updateWorld :: (Epsilon n, Floating n, Ord n) => Scene n (WorldObj n) -> n -> (World (WorldObj n), State n (Cache n (WorldObj n))) -> (World (WorldObj n), State n (Cache n (WorldObj n)))
-updateWorld scene dt (w, s) = (w''', s')
+updateWorld :: (Epsilon n, Floating n, Ord n) => Scene n (WorldObj n) -> n -> EngineState n -> EngineState n
+updateWorld scene dt (SP w s) = SP w''' s'
   where w1 = applyExternals (scene ^. scExts) dt w
         maxSolverIterations = 3
         worldChanged = const . const $ True
-        solver = S.contactSolver' (scene ^. scContactBeh)
-        (w', s') = wsolve' solver worldChanged maxSolverIterations (culledKeys w1) worldPair w1 dt s
+        (w', s') = wsolve' S.contactSolver' worldChanged maxSolverIterations (culledKeys w1) worldPair w1 dt s
         w'' = advanceWorld dt w'
         w''' = w'' & worldObjs %~ fmap updateShape
 
@@ -51,7 +56,10 @@ vt :: WorldTransform Double
 vt = viewTransform (V2 400 300) (V2 20 20) (V2 0 0)
 
 initialState :: Int -> TestState
-initialState i = TestState (scene ^. scWorld, emptyState) False scene i
+initialState i =
+  TestState (SP (scene ^. scWorld)
+             (S.emptyContactSolverState $ scene ^. scContactBeh))
+  False scene i
   where scene = scenes !! i
 
 timeStep :: Num a => a
@@ -60,7 +68,7 @@ timeStep = 10
 renderTest :: R.Renderer -> TestState -> IO ()
 renderTest r state = do
   setColor r black
-  drawWorld r vt (state ^. testWorldState . _1)
+  drawWorld r vt (state ^. testWorldState . spFst)
 
 --renderContacts :: R.Renderer -> [WorldPair [Flipping (Contact Double)]] -> IO ()
 --renderContacts r ps = sequence_ . join $ fmap f ps
@@ -70,7 +78,7 @@ renderTest r state = do
 testStep :: R.Renderer -> TestState -> Word32 -> IO TestState
 testStep r s0 _ = do
   events <- E.pollEvents
-  let cs = fmap generateContacts <$> culledPairs (s ^. testWorldState . _1)
+  let cs = fmap generateContacts <$> culledPairs (s ^. testWorldState . spFst)
       s = foldl handleEvent s0 events & testWorldState %~ (updateWorld scene dt)
   withBlankScreen r (renderTest r s0)
   return s
