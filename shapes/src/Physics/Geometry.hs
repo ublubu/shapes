@@ -9,8 +9,9 @@
 
 module Physics.Geometry where
 
-import qualified Control.Lens as L
+import Control.Lens ((^.), view, makeLenses)
 import Data.Either.Combinators
+import Data.Maybe
 import Linear.Affine
 import Linear.Epsilon
 import Linear.Metric
@@ -25,7 +26,7 @@ data Neighborhood a = Neighborhood { _neighborhoodCenter :: !(P2 a)
                                    , _neighborhoodUnitNormal :: !(V2 a)
                                    , _neighborhoodIndex :: !Int
                                    } deriving (Eq)
-L.makeLenses ''Neighborhood
+makeLenses ''Neighborhood
 
 instance (Show a) => Show (Neighborhood a) where
   show Neighborhood{..} =
@@ -34,7 +35,7 @@ instance (Show a) => Show (Neighborhood a) where
     show _neighborhoodUnitNormal ++ ") (" ++
     show _neighborhoodIndex ++ ")"
 
-instance (Epsilon a, Floating a, Ord a) => WorldTransformable (Neighborhood a) a where
+instance (Floating a) => WorldTransformable (Neighborhood a) a where
   transform t Neighborhood{..} =
     Neighborhood (transform t _neighborhoodCenter)
     (transform t _neighborhoodNext)
@@ -50,23 +51,35 @@ instance (Epsilon a, Floating a, Ord a) => WorldTransformable (Neighborhood a) a
 
 class (Epsilon a, Floating a, Ord a) => HasSupport s a where
   support :: s a -> V2 a -> Neighborhood a
-  extentAlong :: s a -> V2 a -> (Neighborhood a, Neighborhood a)
-  extentAlong shape dir = (minv, maxv)
+
+  extentAlong' :: s a -> V2 a -> (Neighborhood a, Neighborhood a)
+  extentAlong' shape dir = (minv, maxv)
     where minv = support shape (negate dir)
           maxv = support shape dir
+
+  extentAlong :: s a -> V2 a -> Extent a
+  extentAlong shape dir =
+    Extent minv maxv projectedExtent
+    where projectedExtent = pairMap f (pairMap _neighborhoodCenter ext)
+            where f v = dir `afdot'` v
+          ext@(minv, maxv) = extentAlong' shape dir
+
+  -- shape -> featureIndex -> extent
+  extentAlongSelf :: s a -> Int -> Extent a
 
 class (Epsilon a, Floating a, Ord a) => HasNeighborhoods s a where
   neighborhoods :: s a -> [Neighborhood a]
 
---data Extent a =
-  --Extent { _extentMin :: Neighborhood a
-         --, _extentMax :: Neighborhood a
-         --, }
+data Extent a =
+  Extent { _extentMin :: !(Neighborhood a)
+         , _extentMax :: !(Neighborhood a)
+         , _extentProjection :: !(a, a)
+         } deriving (Show, Eq)
 
 -- minOverlap' calculates overlap along normals of overlapped edges
 -- so LocalOverlap is local to the penetrated object
 data LocalOverlap a =
-  LocalOverlap { _loverlapEdge :: !(Neighborhood a)
+  LocalOverlap { _loverlapEdge :: !(LocalT a (Neighborhood a))
                , _loverlapDepth :: !a
                , _loverlapPenetrator :: !(LocalT a (Neighborhood a))
                } deriving (Show, Eq)
@@ -75,7 +88,11 @@ data Overlap a = Overlap { _overlapEdge :: !(Neighborhood a)
                          , _overlapDepth :: !a
                          , _overlapPenetrator :: !(Neighborhood a)
                          } deriving (Show, Eq)
-L.makeLenses ''Overlap
+makeLenses ''Overlap
+
+extractOverlap :: (Floating a) => LocalOverlap a -> Overlap a
+extractOverlap LocalOverlap{..} =
+  Overlap (wExtract_ _loverlapEdge) _loverlapDepth (wExtract_ _loverlapPenetrator)
 
 -- assumes pairs are (min, max)
 overlapTest :: (Ord a) => (a, a) -> (a, a) -> Bool
@@ -88,27 +105,38 @@ overlapAmount x@(_, edge) y@(penetrator, _) = toMaybe (overlapTest x y) (edge - 
 overlapNormal :: Overlap a -> V2 a
 overlapNormal = _neighborhoodUnitNormal . _overlapEdge
 
-overlap :: forall s a . (HasSupport s a) => s a -> Neighborhood a -> s a -> Maybe (Overlap a)
-overlap sEdge edge sPen =
-  fmap (\oval' -> Overlap edge oval' penetrator ) oval
-  where dir = _neighborhoodUnitNormal edge
-        extentS = extentAlong sEdge dir
-        extentP@(penetrator, _) = extentAlong sPen dir
-        projectedExtent :: (Neighborhood a, Neighborhood a) -> (a, a)
-        projectedExtent ex = pairMap f (pairMap _neighborhoodCenter ex)
-                            where f v = dir `afdot'` v
-        oval = overlapAmount (projectedExtent extentS) (projectedExtent extentP)
+overlap :: forall s a . (HasSupport s a) => LocalT a (s a, Neighborhood a) -> LocalT a (s a) -> Maybe (LocalOverlap a)
+overlap shapeAndEdge sPen =
+  fmap (\oval' -> LocalOverlap edge oval' penetrator) oval
+  where extentS :: LocalT a (Extent a)
+        extentS = lmap (\(shape, edge) -> extentAlongSelf shape (edge ^. neighborhoodIndex)) shapeAndEdge
 
-minOverlap :: (HasSupport s a) => s a -> [Neighborhood a] -> s a -> Maybe (Overlap a)
-minOverlap sEdge edges sPen = foldl1 f os
-  where os = fmap (\edge -> overlap sEdge edge sPen) edges
-        f !mino !o = do
-          mino' <- mino
-          o' <- o
-          return (if _overlapDepth o' < _overlapDepth mino' then o' else mino')
+        extentP :: LocalT a (Extent a)
+        extentP = lap (lmap extentAlong sPen) dir
 
-minOverlap' :: (HasSupport s a, HasNeighborhoods s a) => s a -> s a -> Maybe (Overlap a)
-minOverlap' a b = minOverlap a (neighborhoods a) b
+        projected :: LocalT a (Extent a) -> (a, a)
+        projected = lunsafe_ _extentProjection
+
+        oval = overlapAmount (projected extentS) (projected extentP)
+        dir = lmap _neighborhoodUnitNormal edge
+        edge = lmap snd shapeAndEdge
+        penetrator = lmap _extentMin extentP
+
+minOverlap :: forall s a . (HasSupport s a) => LocalT a (s a, [Neighborhood a]) -> LocalT a (s a) -> Maybe (LocalOverlap a)
+minOverlap shapeAndEdges sPen =
+  foldl f Nothing os
+  where shapeAndEdgeList :: [LocalT a (s a, Neighborhood a)]
+        shapeAndEdgeList = lfmap (\(shape, edges) -> fmap (\edge -> (shape, edge)) edges) shapeAndEdges
+        os = catMaybes $ fmap (\shapeAndEdge -> overlap shapeAndEdge sPen) shapeAndEdgeList
+        f !mino !o =
+          case mino of Nothing -> Just o
+                       Just mino' -> if _loverlapDepth o < _loverlapDepth mino'
+                                     then Just o
+                                     else mino
+
+minOverlap' :: (HasSupport s a, HasNeighborhoods s a) => LocalT a (s a) -> LocalT a (s a) -> Maybe (Overlap a)
+minOverlap' a b = fmap extractOverlap $ minOverlap shapeAndEdges b
+  where shapeAndEdges = lmap (\shape -> (shape, neighborhoods shape)) a
 
 data Contact a = Contact { contactPoints :: Either (Neighborhood a) (Neighborhood a, Neighborhood a)
                            , contactNormal :: V2 a
@@ -158,11 +186,11 @@ clipEdge (aa, bb) n inc_ = do
         cd' = toLine2 c d
         inc@(c, d) = f inc_
         (a, b) = f (aa, bb)
-        f = pairMap (L.view neighborhoodCenter)
+        f = pairMap (view neighborhoodCenter)
         l = neighborhoodCenter
 
 -- 'Flipping' indicates the direction of the collision. 'Same' means the first object overlaps into the second.
-contact :: (HasSupport s a, HasNeighborhoods s a) => s a -> s a -> Maybe (Flipping (Contact a, Neighborhood a))
+contact :: (HasSupport s a, HasNeighborhoods s a) => LocalT a (s a) -> LocalT a (s a) -> Maybe (Flipping (Contact a, Neighborhood a))
 contact a b = either (fmap Same . contact_) (fmap Flip . contact_) =<< ovl
   where ovlab = minOverlap' a b
         ovlba = minOverlap' b a
