@@ -18,41 +18,40 @@ import Linear.V2
 import Utils.Utils
 import Physics.Linear
 
-data Neighborhood s a = Neighborhood { _neighborhoodCenter :: !(P2 a)
-                                     , _neighborhoodNext :: Neighborhood s a
-                                     , _neighborhoodPrev :: Neighborhood s a
-                                     , _neighborhoodUnitNormal :: !(V2 a)
-                                     , _neighborhoodShape :: !(s a)
-                                     , _neighborhoodIndex :: !Int
-                                     } deriving (Eq)
+data Neighborhood a = Neighborhood { _neighborhoodCenter :: !(P2 a)
+                                   , _neighborhoodNext :: Neighborhood a
+                                   , _neighborhoodPrev :: Neighborhood a
+                                   , _neighborhoodUnitNormal :: !(V2 a)
+                                   , _neighborhoodIndex :: !Int
+                                   } deriving (Eq)
 L.makeLenses ''Neighborhood
 
-instance (Show a) => Show (Neighborhood s a) where
+instance (Show a) => Show (Neighborhood a) where
   show Neighborhood{..} =
     "Neighborhood (" ++
     show _neighborhoodCenter ++ ") (" ++
     show _neighborhoodUnitNormal ++ ") (" ++
     show _neighborhoodIndex ++ ")"
 
-data Feature s a b = Feature { _featureNeighborhood :: !(Neighborhood s a)
+data Feature a b = Feature { _featureNeighborhood :: !(Neighborhood a)
                              , _featureValue :: !b
                              } deriving (Show, Eq)
 L.makeLenses ''Feature
 
 class (Epsilon a, Floating a, Ord a) => HasSupport s a where
-  support :: s a -> V2 a -> Neighborhood s a
+  support :: s a -> V2 a -> Neighborhood a
 
 class (Epsilon a, Floating a, Ord a) => HasNeighborhoods s a where
-  neighborhoods :: s a -> [Neighborhood s a]
+  neighborhoods :: s a -> [Neighborhood a]
 
-extentAlong :: (HasSupport s a) => s a -> V2 a -> (Neighborhood s a, Neighborhood s a)
+extentAlong :: (HasSupport s a) => s a -> V2 a -> (Neighborhood a, Neighborhood a)
 extentAlong shape dir = (minv, maxv)
   where minv = support shape (negate dir)
         maxv = support shape dir
 
-data Overlap s a = Overlap { _overlapEdge :: !(Neighborhood s a)
+data Overlap a = Overlap { _overlapEdge :: !(Neighborhood a)
                            , _overlapDepth :: !a
-                           , _overlapPenetrator :: !(Neighborhood s a)
+                           , _overlapPenetrator :: !(Neighborhood a)
                            } deriving (Show, Eq)
 L.makeLenses ''Overlap
 
@@ -64,21 +63,21 @@ overlapTest (a, b) (c, d) = not (c > b || d < a)
 overlapAmount :: (Ord a, Num a) => (a, a) -> (a, a) -> Maybe a
 overlapAmount x@(_, edge) y@(penetrator, _) = toMaybe (overlapTest x y) (edge - penetrator)
 
-overlapNormal :: (HasSupport s a) => Overlap s a -> V2 a
+overlapNormal :: Overlap a -> V2 a
 overlapNormal = _neighborhoodUnitNormal . _overlapEdge
 
-overlap :: forall s a . (HasSupport s a) => s a -> Neighborhood s a -> s a -> Maybe (Overlap s a)
+overlap :: forall s a . (HasSupport s a) => s a -> Neighborhood a -> s a -> Maybe (Overlap a)
 overlap sEdge edge sPen =
   fmap (\oval' -> Overlap edge oval' penetrator ) oval
   where dir = _neighborhoodUnitNormal edge
         extentS = extentAlong sEdge dir
         extentP@(penetrator, _) = extentAlong sPen dir
-        projectedExtent :: (Neighborhood s a, Neighborhood s a) -> (a, a)
+        projectedExtent :: (Neighborhood a, Neighborhood a) -> (a, a)
         projectedExtent ex = pairMap f (pairMap _neighborhoodCenter ex)
                             where f v = dir `afdot'` v
         oval = overlapAmount (projectedExtent extentS) (projectedExtent extentP)
 
-minOverlap :: (HasSupport s a) => s a -> [Neighborhood s a] -> s a -> Maybe (Overlap s a)
+minOverlap :: (HasSupport s a) => s a -> [Neighborhood a] -> s a -> Maybe (Overlap a)
 minOverlap sEdge edges sPen = foldl1 f os
   where os = fmap (\edge -> overlap sEdge edge sPen) edges
         f !mino !o = do
@@ -86,20 +85,20 @@ minOverlap sEdge edges sPen = foldl1 f os
           o' <- o
           return (if _overlapDepth o' < _overlapDepth mino' then o' else mino')
 
-minOverlap' :: (HasSupport s a, HasNeighborhoods s a) => s a -> s a -> Maybe (Overlap s a)
+minOverlap' :: (HasSupport s a, HasNeighborhoods s a) => s a -> s a -> Maybe (Overlap a)
 minOverlap' a b = minOverlap a (neighborhoods a) b
 
-data Contact s a = Contact { contactPoints :: Either (Neighborhood s a) (Neighborhood s a, Neighborhood s a)
+data Contact a = Contact { contactPoints :: Either (Neighborhood a) (Neighborhood a, Neighborhood a)
                            , contactNormal :: V2 a
                            } deriving Show
 
-contactDepth :: (Floating a) => Neighborhood s a -> P2 a -> a
+contactDepth :: (Floating a) => Neighborhood a -> P2 a -> a
 contactDepth neighborhood p = f v - f p
   where f = afdot' n
         n = _neighborhoodUnitNormal neighborhood
         v = _neighborhoodCenter neighborhood
 
-penetratingEdge :: (Floating a, Ord a) => Overlap s a -> (Neighborhood s a, Neighborhood s a)
+penetratingEdge :: (Floating a, Ord a) => Overlap a -> (Neighborhood a, Neighborhood a)
 penetratingEdge (Overlap edge depth b) =
   if bcn < abn then (b, c)
   else (a, b)
@@ -112,19 +111,19 @@ penetratingEdge (Overlap edge depth b) =
         bcn = abs $ (cc .-. bb) `dot` n
         n = _neighborhoodUnitNormal edge
 
-penetratedEdge :: (Floating a) => Overlap s a -> (Neighborhood s a, Neighborhood s a)
+penetratedEdge :: (Floating a) => Overlap a -> (Neighborhood a, Neighborhood a)
 penetratedEdge (Overlap edgeStart _ _) = (edgeStart, _neighborhoodNext edgeStart)
 
-contactPoints' :: Contact s a -> Either (P2 a) (P2 a, P2 a)
+contactPoints' :: Contact a -> Either (P2 a) (P2 a, P2 a)
 contactPoints' = mapBoth f g . contactPoints
   where f = _neighborhoodCenter
         g = pairMap f
 
-flattenContactPoints :: Contact s a -> [Neighborhood s a]
+flattenContactPoints :: Contact a -> [Neighborhood a]
 flattenContactPoints (Contact (Left p) _) = [p]
 flattenContactPoints (Contact (Right (p1, p2)) _) = [p1, p2]
 
-clipEdge :: (HasSupport s a) => (Neighborhood s a, Neighborhood s a) -> V2 a -> (Neighborhood s a, Neighborhood s a) -> Maybe (Contact s a)
+clipEdge :: (Epsilon a, Floating a, Ord a) => (Neighborhood a, Neighborhood a) -> V2 a -> (Neighborhood a, Neighborhood a) -> Maybe (Contact a)
 clipEdge (aa, bb) n inc_ = do
   inc' <- lApplyClip' l (clipSegment aBound (cd', inc)) inc_
   inc'' <- lApplyClip' l (clipSegment bBound (cd', f inc')) inc'
@@ -141,13 +140,13 @@ clipEdge (aa, bb) n inc_ = do
         l = neighborhoodCenter
 
 -- 'Flipping' indicates the direction of the collision. 'Same' means the first object overlaps into the second.
-contact :: (HasSupport s a, HasNeighborhoods s a) => s a -> s a -> Maybe (Flipping (Contact s a, Neighborhood s a))
+contact :: (HasSupport s a, HasNeighborhoods s a) => s a -> s a -> Maybe (Flipping (Contact a, Neighborhood a))
 contact a b = either (fmap Same . contact_) (fmap Flip . contact_) =<< ovl
   where ovlab = minOverlap' a b
         ovlba = minOverlap' b a
         ovl = maybeBranch (\oab oba -> _overlapDepth oab < _overlapDepth oba) ovlab ovlba
 
-contact_ :: (HasSupport s a) => Overlap s a -> Maybe (Contact s a, Neighborhood s a)
+contact_ :: (Epsilon a, Floating a, Ord a) => Overlap a -> Maybe (Contact a, Neighborhood a)
 contact_ ovl = fmap f (clipEdge edge n pen)
   where edge = penetratedEdge ovl
         pen = penetratingEdge ovl

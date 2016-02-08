@@ -27,7 +27,7 @@ data ConvexHull a =
              , _hullVertices :: !(Array Int (P2 a))
              , _hullEdgeNormals :: !(Array Int (V2 a))
              --, _hullExtents :: !(Array Int (a, a))
-             , _hullNeighborhoods :: Array Int (Neighborhood ConvexHull a)
+             , _hullNeighborhoods :: Array Int (Neighborhood a)
              } deriving (Show, Eq)
 
 instance (Epsilon a, Floating a, Ord a) => HasNeighborhoods ConvexHull a where
@@ -69,18 +69,17 @@ listToHull vertices =
                edgeNormals
                (makeNeighborhoods hull)
 
-makeNeighborhoods :: ConvexHull a -> Array Int (Neighborhood ConvexHull a)
+makeNeighborhoods :: ConvexHull a -> Array Int (Neighborhood a)
 makeNeighborhoods hull@ConvexHull{..} =
   listArray (bounds _hullVertices) $
   fmap (makeNeighborhood hull) (indices _hullVertices)
 
-makeNeighborhood :: ConvexHull a -> Int -> Neighborhood ConvexHull a
-makeNeighborhood hull@ConvexHull{..} i =
+makeNeighborhood :: ConvexHull a -> Int -> Neighborhood a
+makeNeighborhood ConvexHull{..} i =
   Neighborhood { _neighborhoodCenter = (_hullVertices ! i)
                , _neighborhoodNext = (_hullNeighborhoods ! (nextIndex maxIndex i))
                , _neighborhoodPrev = (_hullNeighborhoods ! (prevIndex maxIndex i))
                , _neighborhoodUnitNormal = (_hullEdgeNormals ! i)
-               , _neighborhoodShape = hull
                , _neighborhoodIndex = i
                }
   where maxIndex = arrMaxBound _hullVertices
