@@ -25,9 +25,6 @@ fromList = foldl addObj emptyWorld
 worldPair :: (Int, Int) -> Traversal' (World a) (a, a)
 worldPair ij = worldObjs . pairiix ij
 
-testWorld :: (Epsilon a, Floating a, Ord a) => World (PhysicalObj a)
-testWorld = fromList [testObj, testObj]
-
 data WorldPair a = WorldPair (Int, Int) a deriving Show
 type External' n = n -> PhysicalObj n -> PhysicalObj n
 type External n a = n -> a -> a

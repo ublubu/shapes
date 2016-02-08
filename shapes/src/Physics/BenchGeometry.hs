@@ -13,7 +13,13 @@ makeBox x y w h = trace "makeBox" $ shape
         shape = listToHull $ transform (translateTransform (V2 x y)) vertices
 
 benchy :: Benchmark
-benchy = bench "contact" $ whnf (uncurry contact) (makeBox 0 0 4 4, makeBox 1 3 2 2)
+benchy = bench "contact" $ whnf (uncurry contact) (LocalT idTransform (makeBox 0 0 4 4), LocalT idTransform (makeBox 1 3 2 2))
+
+runTimes :: Int -> (a -> b) -> a -> b
+runTimes 1 f x = f x
+runTimes n f x = seq (f x) $ runTimes (n - 1) f x
 
 main :: IO ()
-main = defaultMain [benchy]
+--main = defaultMain [benchy]
+main = print $ runTimes 10000 (uncurry contact) (LocalT idTransform $ makeBox 0 0 4 4, LocalT idTransform $ makeBox 1 3 2 2)
+

@@ -1,7 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
 module Physics.Broadphase where
 
-import Control.Lens
+import Control.Lens (view)
 import Data.Array (elems)
 import qualified Data.IntMap.Strict as IM
 import Data.Maybe
@@ -11,6 +11,7 @@ import Physics.Contact
 import Physics.ConvexHull
 import Physics.Geometry
 import Physics.Linear
+import Physics.Transform
 import Physics.World
 
 type Aabb n = V2 (n, n)
@@ -18,9 +19,9 @@ type Aabb n = V2 (n, n)
 aabbCheck :: (Ord n) => Aabb n -> Aabb n -> Bool
 aabbCheck (V2 x y) (V2 x' y') = overlapTest x x' && overlapTest y y'
 
-toAabb :: (Ord n) => ConvexHull n -> Aabb n
-toAabb ConvexHull{..} = foldl1 mergeAabb aabbs
-  where aabbs = fmap toAabb_ (elems _hullVertices)
+toAabb :: (Floating n, Ord n) => LocalT n (ConvexHull n) -> Aabb n
+toAabb hull = foldl1 mergeAabb aabbs
+  where aabbs = fmap toAabb_ . wExtract_ . lmap (elems . _hullVertices) $ hull
 
 toAabb_ :: P2 n -> Aabb n
 toAabb_ = fmap (\a -> (a, a)) . view _Point
@@ -31,7 +32,7 @@ mergeAabb a b = mergeRange <$> a <*> b
 mergeRange :: (Ord n) => (n, n) -> (n, n) -> (n, n)
 mergeRange (a, b) (c, d) = (min a c, max b d)
 
-culledPairs :: (Contactable n a, Ord n) => World a -> [WorldPair (a, a)]
+culledPairs :: (Floating n, Contactable n a, Ord n) => World a -> [WorldPair (a, a)]
 culledPairs w = filter f (allPairs w)
   where aabbs = fmap (toAabb . contactHull) (view worldObjs w)
         f (WorldPair (i, j) _) = fromMaybe False (do
@@ -39,5 +40,5 @@ culledPairs w = filter f (allPairs w)
           b <- IM.lookup j aabbs
           return (aabbCheck a b))
 
-culledKeys :: (Contactable n a, Ord n) => World a -> [(Int, Int)]
+culledKeys :: (Floating n, Contactable n a, Ord n) => World a -> [(Int, Int)]
 culledKeys = fmap pairIndex . culledPairs

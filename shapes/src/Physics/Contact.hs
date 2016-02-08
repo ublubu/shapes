@@ -29,7 +29,7 @@ data ContactBehavior a = ContactBehavior { contactBaumgarte :: !a
 
 class (Physical a p) => Contactable a p where
   contactMu :: p -> a
-  contactHull :: p -> ConvexHull a
+  contactHull :: p -> LocalT a (ConvexHull a)
 
 defaultContactBehavior :: (Num a) => ContactBehavior a
 defaultContactBehavior = ContactBehavior { contactBaumgarte = 0

@@ -5,6 +5,7 @@ import Linear.Epsilon
 import Linear.V2
 import Physics.Constraint
 import Physics.Contact
+import Physics.ConvexHull
 import Physics.External
 import Physics.Geometry
 import Physics.Object
@@ -16,9 +17,6 @@ shapeA = PhysicalObj { _physObjVel = V2 0 0
                      , _physObjRotVel = 0
                      , _physObjPos = V2 0 (-6)
                      , _physObjRotPos = 0
-                     , _physObjHull = [ P $ V2 9 (-0.5)
-                                      , P $ V2 (-9) 10
-                                      , P $ V2 (-9) (-0.5)]
                      , _physObjInvMass = toInvMass2 (0, 0) }
 
 shapeB :: (Fractional a, Eq a) => PhysicalObj a
@@ -26,21 +24,22 @@ shapeB = PhysicalObj { _physObjVel = V2 0 0
                      , _physObjRotVel = -3
                      , _physObjPos = V2 (-7) 12
                      , _physObjRotPos = 0
-                     , _physObjHull = [ P $ V2 2 1
-                                      , P $ V2 1 2
-                                      , P $ V2 (-1) 2
-                                      , P $ V2 (-2) 1
-                                      , P $ V2 (-2) (-1)
-                                      , P $ V2 (-1) (-2)
-                                      , P $ V2 1 (-2)
-                                      , P $ V2 2 (-1) ]
                      , _physObjInvMass = toInvMass2 (1, 0.5) }
 
 shapeA' :: (Epsilon a, Floating a, Ord a) => WorldObj a
-shapeA' = makeWorldObj shapeA 0.5
+shapeA' = WorldObj shapeA 0.5 $ listToHull [ P $ V2 9 (-0.5)
+                                               , P $ V2 (-9) 10
+                                               , P $ V2 (-9) (-0.5)]
 
 shapeB' :: (Epsilon a, Floating a, Ord a) => WorldObj a
-shapeB' = makeWorldObj shapeB 0.5
+shapeB' = WorldObj shapeB 0.5 $ listToHull [ P $ V2 2 1
+                                               , P $ V2 1 2
+                                               , P $ V2 (-1) 2
+                                               , P $ V2 (-2) 1
+                                               , P $ V2 (-2) (-1)
+                                               , P $ V2 (-1) (-2)
+                                               , P $ V2 1 (-2)
+                                               , P $ V2 2 (-1) ]
 
 world :: (Epsilon a, Floating a, Ord a) => World (WorldObj a)
 world = fromList [shapeA', shapeB']

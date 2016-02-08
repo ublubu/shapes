@@ -47,6 +47,8 @@ instance (Epsilon a, Floating a, Ord a) => HasSupport ConvexHull a where
             where minAB = if minDistB < minDistA then minB else minA
                   maxAB = if maxDistB > maxDistA then maxB else maxA
 
+  extentAlongSelf ConvexHull{..} index = _hullExtents ! index
+
 instance (Epsilon a, Floating a, Ord a) => WorldTransformable (ConvexHull a) a where
   transform t =
     listToHull . fmap (transform t) . elems . _hullVertices
@@ -73,7 +75,7 @@ listToHull vertices =
         vertexBounds = (0, vertexBound)
         vertices' = listArray vertexBounds vertices
         edgeNormals = ixedMap (unitEdgeNormal vertexBound) vertices'
-        extents = fmap (extentAlong' hull) edgeNormals
+        extents = fmap (extentAlong hull) edgeNormals
         hull = ConvexHull vertexCount
                vertices'
                edgeNormals

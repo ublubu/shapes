@@ -26,7 +26,7 @@ energyChange :: (Fractional a) => ErrorMetric a
 energyChange a b = absDiff (energy a) (energy b)
 
 energy :: (Fractional a) => PhysicalObj a -> a
-energy (PhysicalObj v w _ _ _ (m, i)) = e m (quadrance v) + e i (w ^ 2)
+energy (PhysicalObj v w _ _ (m, i)) = e m (quadrance v) + e i (w ^ 2)
   where e m' sq_v = (m' * sq_v) / 2
 
 velocityThreshold :: (Floating a, Ord a) => a -> a -> ErrorGone a

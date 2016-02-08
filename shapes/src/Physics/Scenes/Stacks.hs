@@ -17,7 +17,6 @@ box (w, h) (x, y) (vx, vy) = PhysicalObj { _physObjVel = V2 vx vy
                    , _physObjRotVel = 0
                    , _physObjPos = V2 x y
                    , _physObjRotPos = 0
-                   , _physObjHull = rectangleVertices w h
                    , _physObjInvMass = toInvMass2 (2, 1) }
 
 boxFloor :: (Fractional a, Eq a) => PhysicalObj a
@@ -25,14 +24,15 @@ boxFloor = PhysicalObj { _physObjVel = V2 0 0
                    , _physObjRotVel = 0
                    , _physObjPos = V2 0 (-6)
                    , _physObjRotPos = 0
-                   , _physObjHull = rectangleVertices 18 1
                    , _physObjInvMass = toInvMass2 (0, 0) }
 
 box' :: (Epsilon a, Floating a, Ord a) => (a, a) -> (a, a) -> (a, a) -> WorldObj a
-box' size center velocity = makeWorldObj (box size center velocity) 0.2
+box' size@(w, h) center velocity =
+  WorldObj (box size center velocity) 0.2 (rectangleHull w h)
 
 boxFloor' :: (Epsilon a, Floating a, Ord a) => WorldObj a
-boxFloor' = makeWorldObj boxFloor 0.2
+boxFloor' =
+  WorldObj boxFloor 0.2 (rectangleHull 18 1)
 
 boxStack :: (Epsilon a, Floating a, Ord a) => (a, a) -> (a, a) -> (a, a) -> a -> Int -> [WorldObj a]
 boxStack _ _ _ _ 0 = []

@@ -16,7 +16,6 @@ boxA = PhysicalObj { _physObjVel = V2 1 0
                    , _physObjRotVel = 0
                    , _physObjPos = V2 (-5) 0
                    , _physObjRotPos = 0
-                   , _physObjHull = rectangleVertices 4 4
                    , _physObjInvMass = toInvMass2 (2, 1) }
 
 boxB :: (Fractional a, Eq a) => PhysicalObj a
@@ -24,7 +23,6 @@ boxB = PhysicalObj { _physObjVel = V2 (-4) 0
                    , _physObjRotVel = 0
                    , _physObjPos = V2 5 2
                    , _physObjRotPos = 0
-                   , _physObjHull = rectangleVertices 2 2
                    , _physObjInvMass = toInvMass2 (1, 0.5) }
 
 boxC :: (Fractional a, Eq a) => PhysicalObj a
@@ -32,7 +30,6 @@ boxC = PhysicalObj { _physObjVel = V2 0 0
                    , _physObjRotVel = 0
                    , _physObjPos = V2 0 (-6)
                    , _physObjRotPos = 0
-                   , _physObjHull = rectangleVertices 18 1
                    , _physObjInvMass = toInvMass2 (0, 0) }
 
 boxD :: (Fractional a, Eq a) => PhysicalObj a
@@ -40,20 +37,19 @@ boxD = PhysicalObj { _physObjVel = V2 0 0
                    , _physObjRotVel = 0
                    , _physObjPos = V2 (-5) (-4)
                    , _physObjRotPos = 0
-                   , _physObjHull = rectangleVertices 0.4 3
                    , _physObjInvMass = toInvMass2 (1, 0) }
 
 boxA' :: (Epsilon a, Floating a, Ord a) => WorldObj a
-boxA' = makeWorldObj boxA 0.2
+boxA' = WorldObj boxA 0.2 $ rectangleHull 4 4
 
 boxB' :: (Epsilon a, Floating a, Ord a) => WorldObj a
-boxB' = makeWorldObj boxB 0.2
+boxB' = WorldObj boxB 0.2 $ rectangleHull 2 2
 
 boxC' :: (Epsilon a, Floating a, Ord a) => WorldObj a
-boxC' = makeWorldObj boxC 0.2
+boxC' = WorldObj boxC 0.2 $ rectangleHull 18 1
 
 boxD' :: (Epsilon a, Floating a, Ord a) => WorldObj a
-boxD' = makeWorldObj boxD 0.2
+boxD' = WorldObj boxD 0.2 $ rectangleHull 0.4 3
 
 world :: (Epsilon a, Floating a, Ord a) => World (WorldObj a)
 world = fromList [boxA', boxB', boxC', boxD']
