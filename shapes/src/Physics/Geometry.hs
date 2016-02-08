@@ -17,6 +17,7 @@ import Linear.Metric
 import Linear.V2
 import Utils.Utils
 import Physics.Linear
+import Physics.Transform
 
 data Neighborhood a = Neighborhood { _neighborhoodCenter :: !(P2 a)
                                    , _neighborhoodNext :: Neighborhood a
@@ -33,26 +34,47 @@ instance (Show a) => Show (Neighborhood a) where
     show _neighborhoodUnitNormal ++ ") (" ++
     show _neighborhoodIndex ++ ")"
 
-data Feature a b = Feature { _featureNeighborhood :: !(Neighborhood a)
-                             , _featureValue :: !b
-                             } deriving (Show, Eq)
-L.makeLenses ''Feature
+instance (Epsilon a, Floating a, Ord a) => WorldTransformable (Neighborhood a) a where
+  transform t Neighborhood{..} =
+    Neighborhood (transform t _neighborhoodCenter)
+    (transform t _neighborhoodNext)
+    (transform t _neighborhoodPrev)
+    (transform t _neighborhoodUnitNormal)
+    _neighborhoodIndex
+  untransform t Neighborhood{..} =
+    Neighborhood (untransform t _neighborhoodCenter)
+    (untransform t _neighborhoodNext)
+    (untransform t _neighborhoodPrev)
+    (untransform t _neighborhoodUnitNormal)
+    _neighborhoodIndex
 
 class (Epsilon a, Floating a, Ord a) => HasSupport s a where
   support :: s a -> V2 a -> Neighborhood a
+  extentAlong :: s a -> V2 a -> (Neighborhood a, Neighborhood a)
+  extentAlong shape dir = (minv, maxv)
+    where minv = support shape (negate dir)
+          maxv = support shape dir
 
 class (Epsilon a, Floating a, Ord a) => HasNeighborhoods s a where
   neighborhoods :: s a -> [Neighborhood a]
 
-extentAlong :: (HasSupport s a) => s a -> V2 a -> (Neighborhood a, Neighborhood a)
-extentAlong shape dir = (minv, maxv)
-  where minv = support shape (negate dir)
-        maxv = support shape dir
+--data Extent a =
+  --Extent { _extentMin :: Neighborhood a
+         --, _extentMax :: Neighborhood a
+         --, }
+
+-- minOverlap' calculates overlap along normals of overlapped edges
+-- so LocalOverlap is local to the penetrated object
+data LocalOverlap a =
+  LocalOverlap { _loverlapEdge :: !(Neighborhood a)
+               , _loverlapDepth :: !a
+               , _loverlapPenetrator :: !(LocalT a (Neighborhood a))
+               } deriving (Show, Eq)
 
 data Overlap a = Overlap { _overlapEdge :: !(Neighborhood a)
-                           , _overlapDepth :: !a
-                           , _overlapPenetrator :: !(Neighborhood a)
-                           } deriving (Show, Eq)
+                         , _overlapDepth :: !a
+                         , _overlapPenetrator :: !(Neighborhood a)
+                         } deriving (Show, Eq)
 L.makeLenses ''Overlap
 
 -- assumes pairs are (min, max)

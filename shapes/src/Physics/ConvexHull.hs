@@ -37,6 +37,15 @@ instance (Epsilon a, Floating a, Ord a) => HasSupport ConvexHull a where
   support ConvexHull{..} dir = snd . foldl1 g $ fmap f _hullNeighborhoods
     where f neigh@Neighborhood{..} = (dir `afdot'` _neighborhoodCenter, neigh)
           g a@(distA, _) b@(distB, _) = if distB > distA then b else a
+  extentAlong ConvexHull{..} dir = pairMap snd . foldl1 g $ fmap f _hullNeighborhoods
+    where f neigh@Neighborhood{..} =
+            ((dist, neigh), (dist, neigh))
+            where dist = dir `afdot'` _neighborhoodCenter
+          g (minA@(minDistA, _), maxA@(maxDistA, _)) (minB@(minDistB, _), maxB@(maxDistB, _)) =
+            (minAB, maxAB)
+            where minAB = if minDistB < minDistA then minB else minA
+                  maxAB = if maxDistB > maxDistA then maxB else maxA
+
 
 instance (Epsilon a, Floating a, Ord a) => WorldTransformable (ConvexHull a) a where
   transform t =
@@ -64,9 +73,11 @@ listToHull vertices =
         vertexBounds = (0, vertexBound)
         vertices' = listArray vertexBounds vertices
         edgeNormals = ixedMap (unitEdgeNormal vertexBound) vertices'
+        --extents = 
         hull = ConvexHull vertexCount
                vertices'
                edgeNormals
+               --extents
                (makeNeighborhoods hull)
 
 makeNeighborhoods :: ConvexHull a -> Array Int (Neighborhood a)
@@ -91,6 +102,8 @@ edgeNormal :: (Num a, Ord a) => Int -> Array Int (P2 a) -> Int -> V2 a
 edgeNormal maxIndex vs i = clockwise2 (v' .-. v)
   where v = vs ! i
         v' = vs ! (nextIndex maxIndex i)
+
+--extent :: (Num a, Ord a) => Int -> V2 a -> 
 
 unitEdgeNormal :: (Epsilon a, Floating a, Ord a) => Int -> Array Int (P2 a) -> Int -> V2 a
 unitEdgeNormal maxIndex vs = normalize . edgeNormal maxIndex vs
