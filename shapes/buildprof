@@ -1,5 +1,21 @@
 #!/usr/bin/env bash
 
 stack build --executable-profiling --library-profiling --ghc-options="-fprof-auto -rtsopts"
-stack exec -- shapes-prof +RTS -p
-profiteur shapes-prof.prof
+
+stack exec -- shapes-prof +RTS -hm -p
+hp2ps -e8in -c shapes-prof.hp
+mv shapes-prof.ps heap-modules.ps
+
+stack exec -- shapes-prof +RTS -hc -p
+hp2ps -e8in -c shapes-prof.hp
+mv shapes-prof.ps heap-costcenters.ps
+
+stack exec -- shapes-prof +RTS -hd -p
+hp2ps -e8in -c shapes-prof.hp
+mv shapes-prof.ps heap-closures.ps
+
+stack exec -- shapes-prof +RTS -hy -p
+hp2ps -e8in -c shapes-prof.hp
+mv shapes-prof.ps heap-types.ps
+
+#profiteur shapes-prof.prof

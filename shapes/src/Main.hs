@@ -53,9 +53,9 @@ initialState =
 
 main :: IO ()
 -- why is this 8.9s for 400 frames?
-main = defaultMain [ bench "updateWorld" $ whnf (show . fst' . stepWorld 1) s0] -- 8.5ms
-  where s0 = stepWorld 10 initialState
---main = do
-  --(SP x y) <- return $ stepWorld 200 initialState
-  --return ()
+--main = defaultMain [ bench "updateWorld" $ whnf (show . fst' . stepWorld 1) s0] -- 8.5ms
+  --where s0 = stepWorld 10 initialState
+main = do
+  (SP x y) <- return $ stepWorld 200 initialState
+  return ()
 --main = BG.main
