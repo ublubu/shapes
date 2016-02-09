@@ -39,7 +39,7 @@ type WorldCacheInitializer a x wc = WSGen (World a) Key (a, a) x wc
 data ConstraintSolverState c wc =
   ConstraintSolverState { _csPairCaches :: !(PairMap c)
                         , _csWorldCache :: !wc
-                        }
+                        } deriving (Show, Eq)
 makeLenses ''ConstraintSolverState
 
 initConstraintSolverState :: PairCacheInitializer a c wc

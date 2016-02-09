@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, RankNTypes #-}
+{-# LANGUAGE FlexibleContexts, RankNTypes, TemplateHaskell #-}
 
 module Utils.Utils where
 
@@ -6,6 +6,11 @@ import Control.Lens
 import Data.Maybe
 import Data.Tuple
 import qualified Data.IntMap.Strict as IM
+
+data SP a b = SP { _spFst :: !a
+                 , _spSnd :: !b
+                 } deriving (Show, Eq)
+makeLenses ''SP
 
 pairMap :: (a -> b) -> (a, a) -> (b, b)
 pairMap f (x, y) = (f x, f y)
@@ -28,6 +33,13 @@ maybeBranch _ Nothing (Just x) = Just $ Right x
 maybeBranch _ (Just x) Nothing = Just $ Left x
 maybeBranch useLeft (Just x) (Just y) = if useLeft x y then Just $ Left x
                                         else Just $ Right y
+
+maybeBranchBoth :: (a -> a -> Bool) -> Maybe a -> Maybe a -> Maybe (Either a a)
+maybeBranchBoth _ Nothing _ = Nothing
+maybeBranchBoth _ _ Nothing = Nothing
+maybeBranchBoth useLeft (Just x) (Just y) =
+  if useLeft x y then Just $ Left x
+  else Just $ Right y
 
 takeIfAll :: (a -> Bool) -> [a] -> Maybe [a]
 takeIfAll p [] = Just []

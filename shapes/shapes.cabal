@@ -59,16 +59,15 @@ library
                      , Physics.ConvexHull
                      , Physics.External
                      , Physics.Friction
-                     , Physics.Geometry
                      , Physics.Labels
                      , Physics.Linear
                      , Physics.NonPenetration
                      , Physics.Object
                      , Physics.PairMap
+                     , Physics.SAT
                      , Physics.SolutionProcessors
                      , Physics.Solver
                      , Physics.Solvers
-                     , Physics.TestGeometry
                      , Physics.TestPairMap
                      , Physics.TestSolver
                      , Physics.Transform

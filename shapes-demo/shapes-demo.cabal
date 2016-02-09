@@ -63,6 +63,7 @@ executable shapes-demo
   
   -- Other library packages from which modules are imported.
   build-depends:       StateVar
+                     , array
                      , base
                      , containers
                      , either

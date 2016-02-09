@@ -10,7 +10,7 @@ import Linear.V
 import Linear.V2
 import Linear.Vector
 import Linear.Matrix
-import qualified Physics.Geometry as G
+import qualified Physics.SAT as SAT
 import Physics.Constraint
 import Physics.ConstraintSolver
 import Physics.ConvexHull
@@ -18,6 +18,7 @@ import Physics.Linear
 import Physics.Transform
 import Utils.Utils
 
+-- TODO: do I need contactA and contactB? it seems like these don't matter.
 data Contact a = Contact { contactA :: !(PhysicalObj a)
                          , contactB :: !(PhysicalObj a)
                          , contactPoint :: !(P2 a)
@@ -29,7 +30,7 @@ data ContactBehavior a = ContactBehavior { contactBaumgarte :: !a
 
 class (Physical a p) => Contactable a p where
   contactMu :: p -> a
-  contactHull :: p -> LocalT a (ConvexHull a)
+  contactHull :: p -> ConvexHull a
 
 defaultContactBehavior :: (Num a) => ContactBehavior a
 defaultContactBehavior = ContactBehavior { contactBaumgarte = 0
@@ -41,15 +42,15 @@ generateContacts contactPair =
                    Just contactInfo -> flipInjectF $ flipMap f contactInfo contactPair'
   where shapes = pairMap contactHull contactPair
         contactPair' = contactPair ^. physPair
-        mContact = uncurry G.contact shapes
+        mContact = uncurry SAT.contact shapes
         f (contactInfo', feat) (a', b') = fmap g points
-          where points = G.flattenContactPoints contactInfo'
-                n = G.contactNormal contactInfo'
+          where points = SAT.flattenContactPoints contactInfo'
+                n = SAT.contactNormal contactInfo'
                 g point =
                   Contact { contactA = a'
                           , contactB = b'
-                          , contactPoint = G._neighborhoodCenter point
+                          , contactPoint = _neighborhoodCenter point
                           , contactNormal = n
-                          , contactDepth = G.contactDepth feat (G._neighborhoodCenter point)
-                          , contactIndex = (G._neighborhoodIndex feat, G._neighborhoodIndex point)
+                          , contactDepth = SAT.contactDepth feat (_neighborhoodCenter point)
+                          , contactIndex = (_neighborhoodIndex feat, _neighborhoodIndex point)
                           }

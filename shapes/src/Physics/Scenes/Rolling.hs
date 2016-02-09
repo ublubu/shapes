@@ -7,7 +7,6 @@ import Physics.Constraint
 import Physics.Contact
 import Physics.ConvexHull
 import Physics.External
-import Physics.Geometry
 import Physics.Object
 import Physics.World
 import Physics.Scenes.Scene
@@ -27,12 +26,12 @@ shapeB = PhysicalObj { _physObjVel = V2 0 0
                      , _physObjInvMass = toInvMass2 (1, 0.5) }
 
 shapeA' :: (Epsilon a, Floating a, Ord a) => WorldObj a
-shapeA' = WorldObj shapeA 0.5 $ listToHull [ P $ V2 9 (-0.5)
+shapeA' = makeWorldObj shapeA 0.5 $ listToHull [ P $ V2 9 (-0.5)
                                                , P $ V2 (-9) 10
                                                , P $ V2 (-9) (-0.5)]
 
 shapeB' :: (Epsilon a, Floating a, Ord a) => WorldObj a
-shapeB' = WorldObj shapeB 0.5 $ listToHull [ P $ V2 2 1
+shapeB' = makeWorldObj shapeB 0.5 $ listToHull [ P $ V2 2 1
                                                , P $ V2 1 2
                                                , P $ V2 (-1) 2
                                                , P $ V2 (-2) 1

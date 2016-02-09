@@ -89,6 +89,10 @@ instance (Floating a) => WorldTransformable (V2 a) a where
   transform (trans, _) = afmul trans
   untransform (_, untrans) = afmul untrans
 
+instance (WorldTransformable t a) => WorldTransformable (WorldT t) a where
+  transform t = WorldT . transform t . iExtract
+  untransform t = WorldT . untransform t . iExtract
+
 instance (Num a) => WorldTransformable (LocalT a b) a where
   transform t' (LocalT t v) = LocalT (joinTransforms t' t) v
   untransform t' (LocalT t v) = LocalT (joinTransforms (invertTransform t') t) v
@@ -105,6 +109,17 @@ instance (WorldTransformable b a) => WorldTransformable [b] a where
 instance (WorldTransformable b a) => WorldTransformable (Maybe b) a where
   transform t = fmap (transform t)
   untransform t = fmap (untransform t)
+
+data WaL w a l = WaL { _wlW :: !(WorldT w)
+                   , _wlL :: !(LocalT a l)
+                   } deriving (Show, Eq)
+type WaL' a t = WaL t a t
+
+instance (Num a, WorldTransformable w a, WorldTransformable l a) => WorldTransformable (WaL w a l) a where
+  transform t (WaL w l) =
+    WaL (transform t w) (transform t l)
+  untransform t (WaL w l) =
+    WaL (untransform t w) (untransform t l)
 
 wfmap :: (Functor t) => (a -> t b) -> WorldT a -> t (WorldT b)
 wfmap f (WorldT v) = fmap WorldT (f v)

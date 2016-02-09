@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+stack build --executable-profiling --library-profiling --ghc-options="-fprof-auto -rtsopts"
+stack exec -- shapes-prof +RTS -p
+profiteur shapes-prof.prof

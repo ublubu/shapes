@@ -27,20 +27,20 @@ import Physics.Scenes.Stacks
 import qualified Physics.BenchGeometry as BG
 import qualified BenchLinear as BL
 
-data SP a b = SP !a !b
 type EngineState n = SP (World (WorldObj n)) (S.ContactSolverState n (WorldObj n))
 
 fst' :: SP a b -> a
 fst' (SP x _) = x
 
 updateWorld :: (Epsilon n, Floating n, Ord n) => Scene n (WorldObj n) -> n -> EngineState n -> EngineState n
-updateWorld scene dt (SP w s) = SP w'' s'
+updateWorld scene dt (SP w s) = SP w''' s'
   where w1 = applyExternals (scene ^. scExts) dt w
         maxSolverIterations = 3
         worldChanged = const . const $ True
         ks = culledKeys w1
         (w', s') = wsolve' S.contactSolver' worldChanged maxSolverIterations ks worldPair w1 dt s
         w'' = advanceWorld dt w'
+        w''' = w'' & worldObjs %~ fmap updateShape
 
 stepWorld :: Int -> EngineState Double -> EngineState Double
 stepWorld 0 !s = s
@@ -52,8 +52,10 @@ initialState =
   where scene = scene''' :: Scene Double (WorldObj Double)
 
 main :: IO ()
---main = defaultMain [ bench "updateWorld" $ whnf (show . fst' . stepWorld 1) initialState] -- 23.2ms
+-- why is this 8.9s for 400 frames?
+main = defaultMain [ bench "updateWorld" $ whnf (show . fst' . stepWorld 1) s0] -- 8.5ms
+  where s0 = stepWorld 10 initialState
 --main = do
   --(SP x y) <- return $ stepWorld 200 initialState
   --return ()
-main = BG.main
+--main = BG.main

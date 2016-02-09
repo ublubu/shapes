@@ -7,7 +7,6 @@ import Physics.Constraint
 import Physics.Contact
 import Physics.ConvexHull
 import Physics.External
-import Physics.Geometry
 import Physics.Object
 import Physics.World
 import Physics.Scenes.Scene
@@ -28,11 +27,11 @@ boxFloor = PhysicalObj { _physObjVel = V2 0 0
 
 box' :: (Epsilon a, Floating a, Ord a) => (a, a) -> (a, a) -> (a, a) -> WorldObj a
 box' size@(w, h) center velocity =
-  WorldObj (box size center velocity) 0.2 (rectangleHull w h)
+  makeWorldObj (box size center velocity) 0.2 (rectangleHull w h)
 
 boxFloor' :: (Epsilon a, Floating a, Ord a) => WorldObj a
 boxFloor' =
-  WorldObj boxFloor 0.2 (rectangleHull 18 1)
+  makeWorldObj boxFloor 0.2 (rectangleHull 18 1)
 
 boxStack :: (Epsilon a, Floating a, Ord a) => (a, a) -> (a, a) -> (a, a) -> a -> Int -> [WorldObj a]
 boxStack _ _ _ _ 0 = []

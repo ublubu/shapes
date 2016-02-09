@@ -21,7 +21,8 @@ import qualified Physics.ConstraintSolver as CS
 import Utils.Utils
 
 data ContactResult x = ContactResult { _contactNonPen :: !x
-                                     , _contactFriction :: !x } deriving Show
+                                     , _contactFriction :: !x
+                                     } deriving (Show, Eq)
 makeLenses ''ContactResult
 
 -- use to generate constraints (jacobians)
@@ -39,8 +40,13 @@ makeLenses ''ConstraintGen'
 type FeaturePairCaches n a = PairMap (ContactResult n, ConstraintGen n a)
 
 data WorldCache n a = WorldCache { _wcDt :: n
-                                 , _wcCgen' :: ConstraintGen' n a}
+                                 , _wcCgen' :: ConstraintGen' n a
+                                 }
 makeLenses ''WorldCache
+
+instance (Show n) => Show (WorldCache n a) where
+  show WorldCache{..} =
+    "WorldCache " ++ show _wcDt
 
 wcApplyCgen' :: WorldCache n a
              -> Key

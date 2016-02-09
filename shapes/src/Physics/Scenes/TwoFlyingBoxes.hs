@@ -5,7 +5,6 @@ import Linear.V2
 import Physics.Constraint
 import Physics.Contact
 import Physics.ConvexHull
-import Physics.Geometry
 import Physics.Object
 import Physics.World
 import Physics.Scenes.Scene
@@ -25,10 +24,10 @@ boxB = PhysicalObj { _physObjVel = V2 (-4) 0
                    , _physObjInvMass = toInvMass2 (1, 0.5) }
 
 boxA' :: (Epsilon a, Floating a, Ord a) => WorldObj a
-boxA' = WorldObj boxA 0.2 $ rectangleHull 4 4
+boxA' = makeWorldObj boxA 0.2 $ rectangleHull 4 4
 
 boxB' :: (Epsilon a, Floating a, Ord a) => WorldObj a
-boxB' = WorldObj boxB 0.2 $ rectangleHull 2 2
+boxB' = makeWorldObj boxB 0.2 $ rectangleHull 2 2
 
 world :: (Epsilon a, Floating a, Ord a) => World (WorldObj a)
 world = fromList [boxA', boxB']

@@ -2,17 +2,18 @@
 
 module Physics.Object where
 
-import Control.Lens
+import Control.Lens ((&), (%~), (^.), makeLenses)
 import Linear.Epsilon
 import Physics.Constraint
 import Physics.Contact
 import Physics.ConvexHull
-import Physics.Geometry
+import Physics.SAT
 import Physics.Transform
 
 data WorldObj n = WorldObj { _worldPhysObj :: !(PhysicalObj n)
                            , _worldObjMu :: !n
-                           , _worldShape :: !(ConvexHull n) }
+                           , _worldShape :: !(ConvexHull n)
+                           } deriving (Eq)
 makeLenses ''WorldObj
 
 instance (Show n) => Show (WorldObj n) where
@@ -23,5 +24,12 @@ instance Physical n (WorldObj n) where
 
 instance (Floating n, Ord n) => Contactable n (WorldObj n) where
   contactMu = _worldObjMu
-  contactHull obj =
-    LocalT (_physObjTransform . _worldPhysObj $ obj) (_worldShape obj)
+  contactHull = _worldShape
+
+updateShape :: (Epsilon n, Floating n, Ord n) => WorldObj n -> WorldObj n
+updateShape obj =
+  obj & worldShape %~ flip setHullTransform (transform t)
+  where t = _physObjTransform . _worldPhysObj $ obj
+
+makeWorldObj :: (Epsilon n, Floating n, Ord n) => PhysicalObj n -> n -> ConvexHull n -> WorldObj n
+makeWorldObj p u s = updateShape $ WorldObj p u s

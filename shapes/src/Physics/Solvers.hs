@@ -1,5 +1,6 @@
 module Physics.Solvers where
 
+import Control.Lens ((&), (%~))
 import qualified Data.IntMap.Strict as IM
 import Linear.Epsilon
 import qualified Physics.Contact as C
@@ -12,6 +13,10 @@ import Physics.World
 import Physics.WorldSolver
 
 type ContactSolverState n a = CS.ConstraintSolverState (ContS.FeaturePairCaches n a) (ContS.WorldCache n a)
+
+toShowableSolverState :: ContactSolverState n a -> CS.ConstraintSolverState (PairMap (ContS.ContactResult n)) (ContS.WorldCache n a)
+toShowableSolverState =
+  CS.csPairCaches %~ (fmap . fmap . fmap . fmap $ fst)
 
 contactSolver :: (C.Contactable n a, Epsilon n, Floating n, Ord n)
               => WSolver (World a) Key (a, a) n (ContactSolverState n a)

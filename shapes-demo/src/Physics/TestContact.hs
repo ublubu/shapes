@@ -1,103 +1,129 @@
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE PatternSynonyms #-}
 
 module Physics.TestContact where
 
-import qualified Graphics.UI.SDL.Types as SDL.T
-import qualified Graphics.UI.SDL.Enum as SDL.E
+import Control.Monad
+import Control.Lens (makeLenses, (&), (.~), (^.), (%~))
+import Data.Array
+import EasySDL.Draw
 import GHC.Word
 import Linear.Affine
 import Linear.Matrix
 import Linear.V2
+import Physics.Constraint (PhysicalObj(..))
+import Physics.Contact (generateContacts)
+import Physics.ConvexHull
 import Physics.Linear
+import Physics.Object
+import Physics.SAT (contactDebug, minOverlap', penetratingEdge, penetratedEdge, Overlap)
 import Physics.Transform
-import Physics.Geometry
 import Physics.Draw
-import qualified SDL.Draw as D
 import SDL.Event
 import GameInit
 import GameLoop hiding (testStep)
-import Geometry
+import qualified SDL.Event as E
+import qualified SDL.Time as T
+import qualified SDL.Video.Renderer as R
+import qualified SDL.Input.Keyboard as K
+import qualified SDL.Input.Keyboard.Codes as KC
 import Utils.Utils
 
-data TestState = TestState { testFinished :: Bool
-                           , testPosB :: V2 Double
-                           , testAngleB :: Double }
+data TestState = TestState { _testFinished :: Bool
+                           , _testPosB :: V2 Double
+                           , _testAngleB :: Double }
+makeLenses ''TestState
 
-pink :: D.Colour
-pink = D.CustomRGBA 0xFF 0x3E 0x96 0xFF
+makeBox :: V2 Double -> Double -> (Double, Double) -> WorldObj Double
+makeBox pos rot (w, h) =
+  makeWorldObj phys 0.2 (rectangleHull w h)
+  where phys = PhysicalObj (V2 0 0) 0 pos rot (1, 1)
 
-boxA :: TestState -> LocalT Double (ConvexHull Double)
-boxA _ = LocalT (toTransform (V2 0 0) 0) (rectangleHull 4 4)
+boxA :: TestState -> WorldObj Double
+boxA _ = makeBox (V2 0 0) 0 (4, 4)
 
-boxB :: TestState -> LocalT Double (ConvexHull Double)
-boxB (TestState _ posB angleB) = LocalT (toTransform posB angleB) (rectangleHull 2 2)
+boxB :: TestState -> WorldObj Double
+boxB (TestState _ posB angleB) = makeBox posB angleB (2, 2)
 
 vt :: WorldTransform Double
-vt = viewTransform (V2 400 300) (V2 40 40) (V2 0 2)
+vt = viewTransform (V2 800 600) (V2 40 40) (V2 0 0)
 
-overlapTest :: SDL.T.Renderer -> TestState -> IO ()
-overlapTest r state = do
-  D.setColor r D.Red
+overlapTest :: R.Renderer -> ConvexHull Double -> ConvexHull Double -> IO ()
+overlapTest r sa sb = do
+  renderOverlap r (minOverlap' sa sb)
+  renderOverlap r (minOverlap' sb sa)
+
+renderOverlap :: R.Renderer -> Maybe (Overlap Double) -> IO ()
+renderOverlap r ovl = do
+  setColor r red
   maybe (print "no overlap") (drawOverlap r . LocalT vt) ovl
-  D.setColor r D.Green
-  maybe (return ()) (drawLine_ r . transform vt . iExtract) pene
-  D.setColor r D.Blue
-  maybe (return ()) (drawLine_ r . transform vt . iExtract) edge
+  maybe (return ()) (drawLine_ r . transform vt) pene
+  maybe (return ()) (drawLine_ r . transform vt) edge
 
-  where va = lmap vertices (boxA state)
-        vb = lmap vertices (boxB state)
-        supa = support' va
-        supb = support' vb
-        nas = unitEdgeNormals va
-        ovl = minOverlap supa nas supb
-        pene = fmap penetratingEdge ovl
-        edge = fmap penetratedEdge ovl
+  where f = pairMap _neighborhoodCenter
+        pene = fmap (f . penetratingEdge) ovl
+        edge = fmap (f . penetratedEdge) ovl
 
-contactTest :: SDL.T.Renderer -> TestState -> IO ()
-contactTest r state = do
-  D.setColor r pink
+contactTest :: R.Renderer -> ConvexHull Double -> ConvexHull Double -> IO ()
+contactTest r sa sb = do
+  setColor r lime
   maybe (print "no contact") drawC c
-  where sa = shapeInfo (boxA state)
-        sb = shapeInfo (boxB state)
-        c = fmap flipAsEither $ contact sa sb
+  renderOverlap r ovlab
+  renderOverlap r ovlba
+  where (mFlipContact, ovlab, ovlba) = contactDebug sa sb
+        c = fmap flipAsEither mFlipContact
         drawC = either f f
-          where f = drawContact r . LocalT vt . iExtract
+          where f = drawContact r . LocalT vt . fst
 
-renderTest :: SDL.T.Renderer -> TestState -> IO ()
+contactTest' :: R.Renderer -> WorldObj Double -> WorldObj Double -> IO ()
+contactTest' r a b = do
+  setColor r cyan
+  mapM_ f contacts
+  where contacts = generateContacts (a, b)
+        f = drawContact' r . LocalT vt . flipExtract
+
+renderTest :: R.Renderer -> TestState -> IO ()
 renderTest r state = do
-  D.setColor r D.Black
-  drawConvexHull r (wExtract_ (transform vt (boxA state)))
-  drawConvexHull r (wExtract_ (transform vt (boxB state)))
-  contactTest r state
+  setColor r black
+  draw $ sa
+  draw $ sb
+  --overlapTest r sa sb
+  contactTest r sa sb
+  --contactTest' r a b
+  where draw = drawConvexHull r . transform vt . elems . _hullVertices
+        a = boxA state
+        b = boxB state
+        sa = _worldShape a
+        sb = _worldShape b
 
-testStep :: SDL.T.Renderer -> TestState -> Word32 -> IO TestState
+testStep :: R.Renderer -> TestState -> Word32 -> IO TestState
 testStep r s0 _ = do
-  events <- flushEvents
+  events <- E.pollEvents
   let s = foldl handleEvent s0 events
-  D.withBlankScreen r (renderTest r s)
+  withBlankScreen r (renderTest r s)
   return s
 
-handleEvent :: TestState -> SDL.T.Event -> TestState
-handleEvent s0 (SDL.T.QuitEvent _ _) = s0 { testFinished = True }
-handleEvent s0 (SDL.T.KeyboardEvent evtType _ _ _ _ key)
-  | evtType == SDL.E.SDL_KEYDOWN = handleKeypress s0 (SDL.T.keysymScancode key)
+handleEvent :: TestState -> E.Event -> TestState
+handleEvent s0 (E.Event _ E.QuitEvent) = s0 { _testFinished = True }
+handleEvent s0 (E.Event _ (E.KeyboardEvent (E.KeyboardEventData _ motion _ key)))
+  | motion == E.Pressed = handleKeypress s0 (K.keysymScancode key) (K.keysymModifier key)
   | otherwise = s0
 handleEvent s0 _ = s0
 
-handleKeypress :: TestState -> SDL.E.Scancode -> TestState
-handleKeypress state SDL.E.SDL_SCANCODE_H =
-  state { testPosB = (testPosB state) + (V2 (-0.1) 0) }
-handleKeypress state SDL.E.SDL_SCANCODE_J =
-  state { testPosB = (testPosB state) + (V2 0 (-0.1)) }
-handleKeypress state SDL.E.SDL_SCANCODE_K =
-  state { testPosB = (testPosB state) + (V2 0 0.1) }
-handleKeypress state SDL.E.SDL_SCANCODE_L =
-  state { testPosB = (testPosB state) + (V2 0.1 0) }
-handleKeypress state SDL.E.SDL_SCANCODE_R =
-  state { testAngleB = (testAngleB state) + 0.1 }
-handleKeypress state SDL.E.SDL_SCANCODE_U =
-  state { testAngleB = (testAngleB state) - 0.1 }
-handleKeypress state _ = state
+handleKeypress :: TestState -> K.Scancode -> K.KeyModifier -> TestState
+handleKeypress state KC.ScancodeH _ =
+  state & testPosB %~ (+ (V2 (-0.1) 0))
+handleKeypress state KC.ScancodeJ _ =
+  state & testPosB %~ (+ (V2 0 (-0.1)))
+handleKeypress state KC.ScancodeK _ =
+  state & testPosB %~ (+ (V2 0 0.1))
+handleKeypress state KC.ScancodeL _ =
+  state & testPosB %~ (+ (V2 0.1 0))
+handleKeypress state KC.ScancodeR _ =
+  state & testAngleB %~ (+ 0.1)
+handleKeypress state KC.ScancodeU _ =
+  state & testAngleB %~ (subtract 0.1)
+handleKeypress state _ _ = state
 
-testMain :: SDL.T.Renderer -> IO ()
-testMain r = runUntil (TestState False (V2 0 2.9) 0) testFinished (updater $ testStep r)
+testMain :: R.Renderer -> IO ()
+testMain r = runUntil (TestState False (V2 0 2.9) 0) _testFinished (updater $ testStep r)

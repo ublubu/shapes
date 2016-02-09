@@ -15,7 +15,7 @@ import Linear.Vector
 import Linear.Matrix
 import Linear.Metric
 import Physics.Linear
-import Physics.Geometry
+import Physics.SAT
 import Physics.Transform
 import Utils.Utils
 
@@ -24,7 +24,8 @@ data PhysicalObj a = PhysicalObj { _physObjVel :: !(V2 a)
                                  , _physObjRotVel :: !a
                                  , _physObjPos :: !(V2 a)
                                  , _physObjRotPos :: !a
-                                 , _physObjInvMass :: !(InvMass2 a) } deriving Show
+                                 , _physObjInvMass :: !(InvMass2 a)
+                                 } deriving (Show, Eq)
 
 makeLenses ''PhysicalObj
 
