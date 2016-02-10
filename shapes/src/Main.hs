@@ -52,10 +52,13 @@ initialState =
   where scene = scene''' :: Scene Double (WorldObj Double)
 
 main :: IO ()
--- why is this 8.9s for 400 frames?
---main = defaultMain [ bench "updateWorld" $ whnf (show . fst' . stepWorld 1) s0] -- 8.5ms
-  --where s0 = stepWorld 10 initialState
-main = do
-  (SP x y) <- return $ stepWorld 200 initialState
-  return ()
+-- 1 frame: 7.2ms (is this a misevaluation due to laziness?)
+-- 10 frames: 219ms
+-- 100 frames: 2.0s
+-- 400 frames: 8.2s
+main = defaultMain [ bench "updateWorld 10" $ whnf (show . fst' . stepWorld 10) s0 ]
+  where s0 = stepWorld 10 initialState
+--main = do
+  --(SP x y) <- return $ stepWorld 200 initialState
+  --return ()
 --main = BG.main
