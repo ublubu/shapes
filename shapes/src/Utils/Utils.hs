@@ -27,6 +27,10 @@ maybeChange x f = fromMaybe x (f x)
 toMaybe :: Bool -> a -> Maybe a
 toMaybe b x = if b then Just x else Nothing
 
+eitherToMaybe :: Either a b -> Maybe b
+eitherToMaybe (Left _) = Nothing
+eitherToMaybe (Right x) = Just x
+
 maybeBranch :: (a -> a -> Bool) -> Maybe a -> Maybe a -> Maybe (Either a a)
 maybeBranch _ Nothing Nothing = Nothing
 maybeBranch _ Nothing (Just x) = Just $ Right x
@@ -124,6 +128,17 @@ flipExtract (Flip x) = x
 
 flipInjectF :: Functor f => Flipping (f a) -> f (Flipping a)
 flipInjectF x = fmap (flipWrap x) . flipExtract $ x
+
+eitherBranchBoth :: (b -> b -> Bool) -> Either a b -> Either a b -> Flipping (Either a b)
+eitherBranchBoth _ x@(Left _) _ = Same x
+eitherBranchBoth _ _ x@(Left _) = Flip x
+eitherBranchBoth useLeft x@(Right a) y@(Right b) =
+  if useLeft a b then Same x else Flip y
+
+liftRightMaybe :: Either a (Maybe b) -> Maybe (Either a b)
+liftRightMaybe (Right Nothing) = Nothing
+liftRightMaybe (Right (Just x)) = Just $ Right x
+liftRightMaybe (Left x) = Just $ Left x
 
 -- TODO: pull out the stuff that depends on lens.
 
