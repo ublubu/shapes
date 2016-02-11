@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Physics.Draw where
 
@@ -6,11 +7,12 @@ import Control.Lens ((^.), _1, _2)
 import Linear.Affine
 import Linear.V2
 import qualified SDL.Video.Renderer as R
-import qualified Physics.Contact as C
+import Physics.Contact
 import Physics.ConvexHull
 import Physics.SAT
 import Physics.Transform
 import Physics.Linear
+import Utils.Utils
 
 toRenderable :: (Functor f, RealFrac a, Integral b) => f a -> f b
 toRenderable = fmap floor
@@ -81,21 +83,26 @@ drawOverlap r ovl = do
         c' = c .+^ depth
         pen = extractPenetrator ovl
 
-extractContactPoints :: (Floating a) => LocalT a (Contact a) -> Either (P2 a) (P2 a, P2 a)
-extractContactPoints cont = either (Left . wExtract_) (Right . wExtract_) $ flipEither (lmap contactPoints' cont)
+extractContactPoints :: forall a . (Floating a)
+                     => LocalT a (Contact a)
+                     -> Either (P2 a) (P2 a, P2 a)
+extractContactPoints cont =
+  either (Left . f) (Right . f') $ flipEither (lmap _contactPenetrator cont)
   where flipEither :: LocalT a (Either b c) -> Either (LocalT a b) (LocalT a c)
         flipEither (LocalT t (Left x)) = Left (LocalT t x)
         flipEither (LocalT t (Right x)) = Right (LocalT t x)
+        f = wExtract_ . lmap _neighborhoodCenter
+        f' = wExtract_ . lmap (pairMap _neighborhoodCenter)
 
 extractContactNormal :: (Floating a) => LocalT a (Contact a) -> V2 a
-extractContactNormal = wExtract_ . lmap contactNormal
+extractContactNormal = wExtract_ . lmap (_neighborhoodUnitNormal . _contactEdge)
 
-drawContact' :: (Floating a, RealFrac a, Show a) => R.Renderer -> LocalT a (C.Contact a) -> IO ()
+drawContact' :: (Floating a, RealFrac a, Show a) => R.Renderer -> LocalT a (Contact' a) -> IO ()
 drawContact' r cont = do
   drawThickPoint r p
   drawLine r p (p .+^ n)
-  where p = wExtract_ . lmap C.contactPoint $ cont
-        n = wExtract_ . lmap C.contactNormal $ cont
+  where p = wExtract_ . lmap (_neighborhoodCenter . _contactPenetrator') $ cont
+        n = wExtract_ . lmap (_neighborhoodUnitNormal . _contactEdge') $ cont
 
 drawContact :: (Floating a, RealFrac a) => R.Renderer -> LocalT a (Contact a) -> IO ()
 drawContact r cont = do

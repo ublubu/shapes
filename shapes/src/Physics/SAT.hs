@@ -10,7 +10,7 @@
 -- Separating Axis Test
 module Physics.SAT where
 
-import Control.Lens ((^.), view, makeLenses, _1)
+import Control.Lens ((^.), view, makeLenses, _1, makePrisms)
 import Data.Either.Combinators
 import Data.Maybe
 import Linear.Affine
@@ -30,6 +30,7 @@ makeLenses ''Overlap
 
 data SATResult a = Separated (Neighborhood a) | MinOverlap (Overlap a)
                  deriving (Show, Eq)
+makePrisms ''SATResult
 
 type ContactPoints a = Either (Neighborhood a) (Neighborhood a, Neighborhood a)
 

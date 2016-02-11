@@ -4,7 +4,7 @@
 module Physics.TestContact where
 
 import Control.Monad
-import Control.Lens (makeLenses, (&), (.~), (^.), (%~))
+import Control.Lens (makeLenses, (&), (.~), (^.), (%~), (^?))
 import Data.Array
 import EasySDL.Draw
 import GHC.Word
@@ -12,11 +12,11 @@ import Linear.Affine
 import Linear.Matrix
 import Linear.V2
 import Physics.Constraint (PhysicalObj(..))
-import Physics.Contact (generateContacts)
+import Physics.Contact (generateContacts, unwrapContactResult)
 import Physics.ConvexHull
 import Physics.Linear
 import Physics.Object
-import Physics.SAT (contactDebug, minOverlap', penetratingEdge, penetratedEdge, Overlap)
+import Physics.SAT (contactDebug, minOverlap', penetratingEdge, penetratedEdge, Overlap(..), _MinOverlap, Contact(..))
 import Physics.Transform
 import Physics.Draw
 import SDL.Event
@@ -50,8 +50,8 @@ vt = viewTransform (V2 800 600) (V2 40 40) (V2 0 0)
 
 overlapTest :: R.Renderer -> ConvexHull Double -> ConvexHull Double -> IO ()
 overlapTest r sa sb = do
-  renderOverlap r (minOverlap' sa sb)
-  renderOverlap r (minOverlap' sb sa)
+  renderOverlap r (minOverlap' sa sb ^? _MinOverlap)
+  renderOverlap r (minOverlap' sb sa ^? _MinOverlap)
 
 renderOverlap :: R.Renderer -> Maybe (Overlap Double) -> IO ()
 renderOverlap r ovl = do
@@ -68,12 +68,13 @@ contactTest :: R.Renderer -> ConvexHull Double -> ConvexHull Double -> IO ()
 contactTest r sa sb = do
   setColor r lime
   maybe (print "no contact") drawC c
-  renderOverlap r ovlab
-  renderOverlap r ovlba
+  renderOverlap r $ ovlab ^? _MinOverlap
+  renderOverlap r $ ovlba ^? _MinOverlap
   where (mFlipContact, ovlab, ovlba) = contactDebug sa sb
-        c = fmap flipAsEither mFlipContact
+        c :: Maybe (Either (Contact Double) (Contact Double))
+        c = fmap flipAsEither . unwrapContactResult $ mFlipContact
         drawC = either f f
-          where f = drawContact r . LocalT vt . fst
+          where f = drawContact r . LocalT vt
 
 contactTest' :: R.Renderer -> WorldObj Double -> WorldObj Double -> IO ()
 contactTest' r a b = do
