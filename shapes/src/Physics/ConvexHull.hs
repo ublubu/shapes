@@ -56,8 +56,9 @@ data ConvexHull a =
              } deriving (Show, Eq)
 makeLenses ''ConvexHull
 
---instance WorldTransformable a (CHWorldCache a) where
-  --transform t CHWorldCache{..} =
+_hullNeighborhood :: Int -> ConvexHull a -> Neighborhood a
+_hullNeighborhood i hull =
+  _hullNeighborhoods hull ! i
 
 distanceAlong :: (Num a) => Neighborhood a -> V2 a -> a
 Neighborhood{..} `distanceAlong` dir =

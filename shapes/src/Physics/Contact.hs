@@ -32,6 +32,18 @@ data Contact' a = Contact' { _contactEdge' :: !(Neighborhood a)
                            } deriving Show
 makeLenses ''Contact'
 
+contactDepth :: (Floating a)
+             => Neighborhood a
+             -> Neighborhood a
+             -> a
+contactDepth edge = contactDepth_ edge . _neighborhoodCenter
+
+contactDepth_ :: (Floating a) => Neighborhood a -> P2 a -> a
+contactDepth_ neighborhood p = f v - f p
+  where f = afdot' n
+        n = _neighborhoodUnitNormal neighborhood
+        v = _neighborhoodCenter neighborhood
+
 contactIndex :: Contact' a -> (Int, Int)
 contactIndex Contact'{..} =
   (_neighborhoodIndex _contactEdge', _neighborhoodIndex _contactPenetrator')
@@ -52,7 +64,9 @@ unwrapContactResult contactInfo = (g . f) =<< contactInfo
         g :: Flipping (Maybe (Contact a)) -> Maybe (Flipping (Contact a))
         g = flipInjectF
 
-flattenContactResult :: forall a . Maybe (Flipping (Contact a)) -> [Flipping (Contact' a)]
+flattenContactResult :: forall a . (Floating a)
+                     => Maybe (Flipping (Contact a))
+                     -> [Flipping (Contact' a)]
 flattenContactResult =
   (flipInjectF . fmap flatten) <=< maybeToList
   where flatten :: Contact a -> [Contact' a]
@@ -60,7 +74,7 @@ flattenContactResult =
           where g :: Neighborhood a -> Contact' a
                 g pen = Contact' { _contactEdge' = _contactEdge
                                  , _contactPenetrator' = pen
-                                 , _contactDepth' = _contactDepth
+                                 , _contactDepth' = contactDepth _contactEdge pen
                                  }
 
 generateContacts' :: (Epsilon a, Floating a, Ord a, Contactable a p)

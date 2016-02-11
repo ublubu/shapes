@@ -34,10 +34,11 @@ makePrisms ''SATResult
 
 type ContactPoints a = Either (Neighborhood a) (Neighborhood a, Neighborhood a)
 
-data Contact a = Contact { _contactEdge :: !(Neighborhood a)
-                         , _contactPenetrator :: !(ContactPoints a)
-                         , _contactDepth :: !a
-                         } deriving (Show, Eq)
+data Contact a =
+  Contact { _contactEdge :: !(Neighborhood a)
+          , _contactPenetrator :: !(ContactPoints a)
+          , _contactPenetratingEdge :: !(Neighborhood a, Neighborhood a)
+          } deriving (Show, Eq)
 makeLenses ''Contact
 
 satToEither :: SATResult a -> Either (Neighborhood a) (Overlap a)
@@ -81,12 +82,6 @@ minOverlap sEdge edges sPen =
 
 minOverlap' :: (Num a, Ord a) => ConvexHull a -> ConvexHull a -> SATResult a
 minOverlap' a b = minOverlap a (neighborhoods a) b
-
---contactDepth :: (Floating a) => Neighborhood a -> P2 a -> a
---contactDepth neighborhood p = f v - f p
-  --where f = afdot' n
-        --n = _neighborhoodUnitNormal neighborhood
-        --v = _neighborhoodCenter neighborhood
 
 penetratingEdge :: (Floating a, Ord a) => Overlap a -> (Neighborhood a, Neighborhood a)
 penetratingEdge (Overlap edge depth b) =
@@ -157,4 +152,4 @@ contact_ ovl@Overlap{..} = fmap f (clipEdge edge n pen)
   where edge = penetratedEdge ovl
         pen = penetratingEdge ovl
         n = overlapNormal ovl
-        f c = Contact _overlapEdge c _overlapDepth
+        f c = Contact _overlapEdge c pen
