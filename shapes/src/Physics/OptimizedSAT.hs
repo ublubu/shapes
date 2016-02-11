@@ -38,6 +38,7 @@ checkSeparatingAxis sEdge edgeIndex sPen =
   Just _ -> Nothing
   where edge = _hullNeighborhood edgeIndex sEdge
 
+-- TODO: add TTL to SATCache so stale contacts aren't regenerated
 regenerateContact :: (Epsilon a, Floating a, Ord a)
                   => ConvexHull a
                   -> Int

@@ -67,9 +67,10 @@ renderOverlap r ovl = do
 contactTest :: R.Renderer -> ConvexHull Double -> ConvexHull Double -> IO ()
 contactTest r sa sb = do
   setColor r lime
-  maybe (print "no contact") drawC c
   renderOverlap r $ ovlab ^? _MinOverlap
   renderOverlap r $ ovlba ^? _MinOverlap
+  setColor r orange
+  maybe (print "no contact") drawC c
   where (mFlipContact, ovlab, ovlba) = contactDebug sa sb
         c :: Maybe (Either (Contact Double) (Contact Double))
         c = fmap flipAsEither . unwrapContactResult $ mFlipContact
