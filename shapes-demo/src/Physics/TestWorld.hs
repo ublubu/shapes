@@ -37,6 +37,8 @@ data TestState = TestState { _testWorldState :: EngineState Double
                            , _testFinished :: Bool
                            , _testScene :: Scene Double (WorldObj Double)
                            , _testSceneIndex :: Int
+                           , _testDrawDebug :: Bool
+                           , _testPrintDebug :: Bool
                            }
 makeLenses ''TestState
 
@@ -56,8 +58,14 @@ initialState :: Int -> TestState
 initialState i =
   TestState (SP (scene ^. scWorld)
              (S.emptyContactSolverState $ scene ^. scContactBeh))
-  False scene i
+  False scene i True False
   where scene = scenes !! i
+
+nextInitialState :: TestState -> Int -> TestState
+nextInitialState state0 i =
+  initialState i
+  & testDrawDebug .~ (state0 ^. testDrawDebug)
+  & testPrintDebug .~ (state0 ^. testPrintDebug)
 
 timeStep :: Num a => a
 timeStep = 10
@@ -84,12 +92,13 @@ renderAabbs r s = do
 testStep :: R.Renderer -> TestState -> Word32 -> IO TestState
 testStep r s0 _ = do
   events <- E.pollEvents
-  withBlankScreen r $ (do
-                          renderTest r s0
-                          --renderContacts r s0
-                          --renderAabbs r s0
-                      )
-  --print $ (_testWorldState s0) & spSnd %~ S.toShowableSolverState
+  withBlankScreen r $ do
+    renderTest r s0
+    when (s0 ^. testDrawDebug) $ do
+      renderContacts r s0
+      renderAabbs r s0
+    when (s0 ^. testPrintDebug) $ do
+      print $ (_testWorldState s0) & spSnd %~ S.toShowableSolverState
   let s = foldl handleEvent s0 events & testWorldState %~ (updateWorld scene dt)
   return s
   where dt = fromIntegral timeStep / 1000
@@ -103,12 +112,21 @@ handleEvent s0 (E.Event _ (E.KeyboardEvent (E.KeyboardEventData _ motion _ key))
 handleEvent s0 _ = s0
 
 handleKeypress :: TestState -> K.Scancode -> K.KeyModifier -> TestState
-handleKeypress state KC.ScancodeR _ = initialState (state ^. testSceneIndex)
+handleKeypress state KC.ScancodeR _ =
+  nextInitialState state (state ^. testSceneIndex)
 handleKeypress state KC.ScancodeN km
   | K.keyModifierLeftShift km || K.keyModifierRightShift km =
-    initialState ((state ^. testSceneIndex - 1)
-                  `posMod` length (scenes :: [Scene Double (WorldObj Double)]))
-  | otherwise = initialState ((state ^. testSceneIndex + 1) `mod` length (scenes :: [Scene Double (WorldObj Double)]))
+    nextInitialState state $
+    (state ^. testSceneIndex - 1)
+    `posMod` length (scenes :: [Scene Double (WorldObj Double)])
+  | otherwise =
+    nextInitialState state $
+    (state ^. testSceneIndex + 1)
+    `mod` length (scenes :: [Scene Double (WorldObj Double)])
+handleKeypress state KC.ScancodeD _ =
+  state & testDrawDebug %~ not
+handleKeypress state KC.ScancodeP _ =
+  state & testPrintDebug %~ not
 handleKeypress state _ _ = state
 
 testMain :: R.Renderer -> IO ()
