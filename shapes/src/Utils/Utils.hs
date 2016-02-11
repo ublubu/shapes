@@ -118,6 +118,12 @@ flipExtractWith (_, f) (Flip x) = f x
 flipExtractPair :: (a -> (b, b)) -> Flipping a -> (b, b)
 flipExtractPair f = flipExtractWith (f, swap . f)
 
+flipJoin :: Flipping (Flipping a) -> Flipping a
+flipJoin (Same (Same x)) = Same x
+flipJoin (Flip (Same x)) = Flip x
+flipJoin (Same (Flip x)) = Flip x
+flipJoin (Flip (Flip x)) = Same x
+
 instance Functor Flipping where
   fmap f (Same x) = Same (f x)
   fmap f (Flip x) = Flip (f x)

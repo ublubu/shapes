@@ -36,3 +36,9 @@ emptyContactSolverState :: (C.Contactable n a, Epsilon n, Floating n, Ord n)
                         -> ContactSolverState n a
 emptyContactSolverState beh =
   CS.ConstraintSolverState IM.empty (ContS.WorldCache 0 (CC.getGenerator beh))
+
+emptyOptContactSolverState :: (C.Contactable n a, Epsilon n, Floating n, Ord n)
+                           => C.ContactBehavior n
+                           -> ContactSolverState n a
+emptyOptContactSolverState beh = 
+  CS.ConstraintSolverState IM.empty (ContS.WorldCache 0 (CC.getOptGenerator beh IM.empty))

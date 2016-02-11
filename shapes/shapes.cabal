@@ -63,6 +63,7 @@ library
                      , Physics.Linear
                      , Physics.NonPenetration
                      , Physics.Object
+                     , Physics.OptimizedSAT
                      , Physics.PairMap
                      , Physics.SAT
                      , Physics.SolutionProcessors

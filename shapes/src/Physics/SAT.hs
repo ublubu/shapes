@@ -127,7 +127,6 @@ convertContactResult :: Flipping (Either (Neighborhood a) (Maybe (Contact a)))
 convertContactResult = flipInjectF . fmap liftRightMaybe
 
 -- 'Flipping' indicates the direction of the collision. 'Same' means 'a' is penetrated by 'b'.
--- TODO: use a type that documents wtf snd of the result is.
 -- TODO: return all useful values (e.g. overlap depth)
 contactDebug :: forall a . (Epsilon a, Floating a, Ord a)
         => ConvexHull a

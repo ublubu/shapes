@@ -15,11 +15,12 @@ import Linear.V
 import Linear.V2
 import Linear.Vector
 import Linear.Matrix
-import Physics.SAT
 import Physics.Constraint
 import Physics.ConstraintSolver
 import Physics.ConvexHull
 import Physics.Linear
+import Physics.OptimizedSAT
+import Physics.SAT
 import Physics.Transform
 import Utils.Utils
 
@@ -57,12 +58,15 @@ defaultContactBehavior = ContactBehavior { contactBaumgarte = 0
                                          , contactPenetrationSlop = 0 }
 
 unwrapContactResult :: Maybe (Flipping (Either (Neighborhood a) (Contact a)))
-                     -> Maybe (Flipping (Contact a))
-unwrapContactResult contactInfo = (g . f) =<< contactInfo
-  where f :: Flipping (Either (Neighborhood a) (Contact a)) -> Flipping (Maybe (Contact a))
-        f = fmap eitherToMaybe
-        g :: Flipping (Maybe (Contact a)) -> Maybe (Flipping (Contact a))
-        g = flipInjectF
+                    -> Maybe (Flipping (Contact a))
+unwrapContactResult contactInfo = (flipInjectF . fmap eitherToMaybe) =<< contactInfo
+
+unwrapOptContactResult :: forall a . Maybe (Flipping (Either (Neighborhood a) (Contact a), SATCache))
+                       -> (Maybe (Flipping (Contact a)), Maybe (Flipping SATCache))
+unwrapOptContactResult optContactInfo =
+  (unwrapContactResult contactInfo, cache)
+  where contactInfo = (fmap . fmap) fst optContactInfo
+        cache = (fmap . fmap) snd optContactInfo
 
 flattenContactResult :: forall a . (Floating a)
                      => Maybe (Flipping (Contact a))
@@ -82,9 +86,26 @@ generateContacts' :: (Epsilon a, Floating a, Ord a, Contactable a p)
                  -> Maybe (Flipping (Contact a))
 generateContacts' contactPair = unwrapContactResult $ uncurry contact shapes
   where shapes = pairMap contactHull contactPair
-        contactPair' = contactPair ^. physPair
 
 generateContacts :: (Epsilon a, Floating a, Ord a, Contactable a p)
                  => (p, p)
                  -> [Flipping (Contact' a)]
 generateContacts = flattenContactResult . generateContacts'
+
+optGenerateContacts' :: (Epsilon a, Floating a, Ord a, Contactable a p)
+                     => Maybe (Flipping SATCache)
+                     -> (p, p)
+                     -> (Maybe (Flipping (Contact a)), Maybe (Flipping SATCache))
+optGenerateContacts' Nothing contactPair =
+  unwrapOptContactResult $ uncurry cachingContact shapes
+  where shapes = pairMap contactHull contactPair
+optGenerateContacts' (Just cache) contactPair =
+  unwrapOptContactResult $ uncurry optContact shapes cache
+  where shapes = pairMap contactHull contactPair
+
+optGenerateContacts :: (Epsilon a, Floating a, Ord a, Contactable a p)
+                    => Maybe (Flipping SATCache)
+                    -> (p, p)
+                    -> ([Flipping (Contact' a)], Maybe (Flipping SATCache))
+optGenerateContacts cache =
+  (_1 %~ flattenContactResult) . optGenerateContacts' cache

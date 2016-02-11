@@ -2,20 +2,22 @@
 
 stack build --executable-profiling --library-profiling --ghc-options="-fprof-auto -rtsopts"
 
+stack exec -- shapes-prof +RTS -p
+mv shapes-prof.prof $1.shapes-prof.prof
+profiteur $1.shapes-prof.prof
+
 stack exec -- shapes-prof +RTS -hm -p
 hp2ps -e8in -c shapes-prof.hp
-mv shapes-prof.ps heap-modules.ps
+mv shapes-prof.ps $1.heap-modules.ps
 
 stack exec -- shapes-prof +RTS -hc -p
 hp2ps -e8in -c shapes-prof.hp
-mv shapes-prof.ps heap-costcenters.ps
+mv shapes-prof.ps $1.heap-costcenters.ps
 
 stack exec -- shapes-prof +RTS -hd -p
 hp2ps -e8in -c shapes-prof.hp
-mv shapes-prof.ps heap-closures.ps
+mv shapes-prof.ps $1.heap-closures.ps
 
 stack exec -- shapes-prof +RTS -hy -p
 hp2ps -e8in -c shapes-prof.hp
-mv shapes-prof.ps heap-types.ps
-
-#profiteur shapes-prof.prof
+mv shapes-prof.ps $1.heap-types.ps

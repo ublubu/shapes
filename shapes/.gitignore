@@ -16,7 +16,7 @@ cabal.sandbox.config
 *.prof
 *.aux
 *.hp
-shapes-prof.*
-shapes-prof-*.*
+*shapes-prof*
+*shapes-prof-*.*
 *.ps
 .stack-work
