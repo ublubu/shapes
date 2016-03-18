@@ -18,10 +18,10 @@ testConstraint = C.Constraint j 0
         p' = V2 0 2
         n = V2 0 1
 
-toOptConstraint :: C.Constraint Double -> OC.Constraint Double
+toOptConstraint :: C.Constraint Double -> OC.Constraint
 toOptConstraint (C.Constraint j b) = OC.Constraint j b
 
-testOptConstraint :: OC.Constraint Double
+testOptConstraint :: OC.Constraint
 testOptConstraint = toOptConstraint testConstraint
 
 testObjPair :: (C.PhysicalObj Double, C.PhysicalObj Double)
@@ -36,10 +36,13 @@ testObjPair = ( C.PhysicalObj { C._physObjVel = V2 1 1
                               , C._physObjRotPos = 0
                               , C._physObjInvMass = (1, 2) } )
 
-toOptObj :: C.PhysicalObj Double -> OC.PhysicalObj Double
-toOptObj (C.PhysicalObj a b c d e) = OC.PhysicalObj a b c d e
+toOptInvMass :: C.InvMass2 Double -> OC.InvMass2
+toOptInvMass (m, i) = OC.InvMass2 m i
 
-testOptObjPair :: (OC.PhysicalObj Double, OC.PhysicalObj Double)
+toOptObj :: C.PhysicalObj Double -> OC.PhysicalObj
+toOptObj (C.PhysicalObj a b c d e) = OC.PhysicalObj a b c d (toOptInvMass e)
+
+testOptObjPair :: (OC.PhysicalObj, OC.PhysicalObj)
 testOptObjPair = pairMap toOptObj testObjPair
 
 benchy :: Benchmark
