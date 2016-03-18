@@ -17,6 +17,7 @@ toConstraint :: (Fractional a, Ord a)
              -> Constraint a
 toConstraint beh dt c ab = Constraint (jacobian c ab) (baumgarte beh dt c)
 
+-- TODO: comment or name stuff so it's clear that `a` is penetrated by `b`
 jacobian :: (Num a)
          => Contact' a
          -> (PhysicalObj a, PhysicalObj a)

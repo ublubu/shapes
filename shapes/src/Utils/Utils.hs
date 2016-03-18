@@ -12,6 +12,9 @@ data SP a b = SP { _spFst :: !a
                  } deriving (Show, Eq)
 makeLenses ''SP
 
+toSP :: (a, b) -> SP a b
+toSP (x, y) = SP x y
+
 pairMap :: (a -> b) -> (a, a) -> (b, b)
 pairMap f (x, y) = (f x, f y)
 
