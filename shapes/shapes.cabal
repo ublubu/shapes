@@ -97,10 +97,11 @@ library
   build-depends:       array
                      , base
                      , containers
-                     , linear
-                     , lens
-                     , vector
                      , either
+                     , ghc-prim
+                     , lens
+                     , linear
+                     , vector
   
   -- Directories containing source files.
   hs-source-dirs:      src
@@ -129,11 +130,12 @@ executable shapes-prof
   build-depends:       array
                      , base
                      , containers
-                     , linear
-                     , lens
-                     , vector
-                     , either
                      , criterion
+                     , either
+                     , ghc-prim
+                     , lens
+                     , linear
+                     , vector
   
   -- Directories containing source files.
   hs-source-dirs:      src

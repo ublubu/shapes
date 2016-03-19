@@ -63,7 +63,7 @@ main :: IO ()
 -- 400 frames: 8.2s
 --main = defaultMain [ bench "updateWorld 10" $ whnf (show . fst' . stepWorld 10) s0 ]
   --where s0 = stepWorld 10 initialState
-main = do
-  (SP x y) <- return $ stepWorld 200 initialState
-  return ()
---main = BG.main
+--main = do
+--  (SP x y) <- return $ stepWorld 200 initialState
+--  return ()
+main = BL.main

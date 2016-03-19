@@ -1,4 +1,8 @@
+{-# LANGUAGE MagicHash #-}
+
 module Physics.Contact.Benchmark where
+
+import GHC.Types (Double(D#))
 
 import Criterion.Main
 import Linear.V2
@@ -37,7 +41,7 @@ testObjPair = ( C.PhysicalObj { C._physObjVel = V2 1 1
                               , C._physObjInvMass = (1, 2) } )
 
 toOptInvMass :: C.InvMass2 Double -> OC.InvMass2
-toOptInvMass (m, i) = OC.InvMass2 m i
+toOptInvMass (D# m, D# i) = OC.InvMass2 m i
 
 toOptObj :: C.PhysicalObj Double -> OC.PhysicalObj
 toOptObj (C.PhysicalObj a b c d e) = OC.PhysicalObj a b c d (toOptInvMass e)

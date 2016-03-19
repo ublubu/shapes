@@ -2,20 +2,24 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MagicHash #-}
 
 module Physics.Constraint.OptConstraint where
+
+import GHC.Prim (Double#, (==##))
+import GHC.Types (Double(D#), isTrue#)
 
 import Control.Lens hiding (transform)
 import Linear.V2
 import Linear.V3
 import Linear.Vector
 import Linear.Metric
-import Physics.Linear
+--import Physics.Linear
 import Physics.Transform
 import Utils.Utils
 
-data InvMass2 = InvMass2 { _imLin:: Double
-                         , _imRot :: Double
+data InvMass2 = InvMass2 { _imLin :: Double#
+                         , _imRot :: Double#
                          } deriving (Show, Eq)
 data PhysicalObj = PhysicalObj { _physObjVel :: !(V2 Double)
                                , _physObjRotVel :: !Double
@@ -56,21 +60,16 @@ constrainedVel6 f cp = fmap g (f (_constrainedVel6 cp))
         h v3 po = po & physObjVel3 .~ v3
 
 invMassM2 :: InvMass2 -> InvMass2 -> Diag6 Double
-invMassM2 (InvMass2 ma ia) (InvMass2 mb ib) = toDiag6 [ma, ma, ia, mb, mb, ib]
-
-toInvMass2 :: (Double, Double) -> InvMass2
-toInvMass2 = uncurry InvMass2 . pairMap f
-  where f x = if x == 0 then 0
-              else 1 / x
+invMassM2 (InvMass2 ma ia) (InvMass2 mb ib) = toDiag6 [D# ma, D# ma, D# ia, D# mb, D# mb, D# ib]
 
 isStatic :: InvMass2 -> Bool
-isStatic = (== InvMass2 0 0)
+isStatic = (== InvMass2 0.0## 0.0##)
 
 isStaticLin :: InvMass2 -> Bool
-isStaticLin = (0 ==) . _imLin
+isStaticLin x = isTrue# (0.0## ==## _imLin x)
 
 isStaticRot :: InvMass2 -> Bool
-isStaticRot = (0 ==) . _imRot
+isStaticRot x = isTrue# (0.0## ==## _imRot x)
 
 _constrainedInvMassM2 :: (PhysicalObj, PhysicalObj) -> Diag6 Double
 _constrainedInvMassM2 cp = uncurry invMassM2 (pairMap (view physObjInvMass) cp)
