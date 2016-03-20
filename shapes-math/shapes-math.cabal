@@ -72,7 +72,7 @@ library
   default-language:    Haskell2010
   
 
-executable shapes-math
+executable math-bench
   -- .hs or .lhs file containing the Main module.
   main-is:             Main.hs
 
@@ -94,7 +94,6 @@ executable shapes-math
                      , criterion
                      , ghc-prim
                      , linear
-                     , shapes-math
                      , template-haskell
   
   -- Directories containing source files.
@@ -102,3 +101,20 @@ executable shapes-math
   
   -- Base language which the package is written in.
   default-language:    Haskell2010
+  
+  
+test-suite math-spec
+
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+
+  build-depends:       base
+                     , ghc-prim
+                     , hspec
+                     , linear
+                     , QuickCheck
+                     , shapes-math
