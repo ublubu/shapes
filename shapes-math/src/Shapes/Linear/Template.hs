@@ -33,6 +33,7 @@ makeVectorType vi@ValueInfo{..} dim = do
                  , defineLift2
                  , defineDot
                  , defineFromList
+                 , defineToList
                  ]
   showInst <- deriveShow vectorN vi dim
   impls <- concat <$> mapM (\f -> f vectorN vi dim) definers
@@ -108,6 +109,17 @@ defineFromList vectorN ValueInfo{..} dim = do
       argT = appT listT (conT _valueBoxed)
       fromListType = arrowsT [argT, vectorT]
   funSigDef fromListName fromListType [fromListClause0, fromListClause1]
+
+defineToList :: Name -> ValueInfo -> Int -> DecsQ
+defineToList vectorN ValueInfo{..} dim = do
+  (vecP, elemVars) <- conPE vectorN "a" dim
+  let boxedElemVars = fmap (appE $ conE _valueWrap) elemVars
+      toListClause = clause [vecP] (normalB $ listE boxedElemVars) []
+      toListName = mkName $ "toList" ++ nameBase vectorN
+      vectorT = conT vectorN
+      resultT = appT listT (conT _valueBoxed)
+      toListType = arrowsT [vectorT, resultT]
+  funSigDef toListName toListType [toListClause]
 
 infixApp' :: ExpQ -> ExpQ -> ExpQ -> ExpQ
 infixApp' = flip infixApp
