@@ -25,7 +25,7 @@ deriveShow :: Name -> Int -> Name -> DecQ
 deriveShow typeN dim wrapN = do
   (pat, vars) <- conPE typeN dim
   let f [] = [| "" |]
-      f (v:vs) = [| " " ++ show $(AppE (ConE wrapN) <$> v) ++ $(f vs) |]
+      f (v:vs) = [| " " ++ show $(appE (conE wrapN) v) ++ $(f vs) |]
       constructorShown = nameBase typeN
   showClause <- clause [pat] (normalB [| constructorShown ++ $(f vars) |]) []
   [InstanceD [] (AppT showt (ConT _)) [FunD showf _]] <-
