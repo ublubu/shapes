@@ -51,7 +51,8 @@ cabal-version:       >=1.10
 
 library
   -- Modules exported by the library.
-  -- exposed-modules:     
+  exposed-modules:     Shapes.Linear.Template
+                     , Shapes.Linear.ValueInfos
   
   -- Modules included in this library but not exported.
   -- other-modules:       
@@ -92,6 +93,8 @@ executable shapes-math
   build-depends:       base
                      , criterion
                      , ghc-prim
+                     , linear
+                     , shapes-math
                      , template-haskell
   
   -- Directories containing source files.
