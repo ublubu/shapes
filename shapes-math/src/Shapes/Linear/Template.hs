@@ -11,6 +11,7 @@ import Language.Haskell.TH
 
 data ValueInfo = ValueInfo { _valueN :: Name
                            , _valueWrap :: Name
+                           , _valueBoxed :: Name
                            , _valueAdd :: Name
                            , _valueSub :: Name
                            , _valueMul :: Name
@@ -31,6 +32,7 @@ makeVectorType vi@ValueInfo{..} dim = do
       definers = [ defineLift
                  , defineLift2
                  , defineDot
+                 , defineFromList
                  ]
   showInst <- deriveShow vectorN vi dim
   impls <- concat <$> mapM (\f -> f vectorN vi dim) definers
@@ -43,7 +45,7 @@ data Dummy = Dummy
 
 deriveShow :: Name -> ValueInfo -> Int -> DecQ
 deriveShow vectorN ValueInfo{..} dim = do
-  (pat, vars) <- conPE vectorN dim
+  (pat, vars) <- conPE vectorN "a" dim
   let f [] = [| "" |]
       f (v:vs) = [| " " ++ show $(appE (conE _valueWrap) v) ++ $(f vs) |]
       constructorShown = nameBase vectorN
@@ -55,7 +57,7 @@ deriveShow vectorN ValueInfo{..} dim = do
 defineLift :: Name -> ValueInfo -> Int -> DecsQ
 defineLift vectorN ValueInfo{..} dim = do
   (funcP, funcV) <- newPE "f"
-  (vecP, elemVars) <- conPE vectorN dim
+  (vecP, elemVars) <- conPE vectorN "a" dim
   let liftClause = clause [funcP, vecP] liftBody []
       f = appE funcV
       liftBody = normalB $ appsE (conE vectorN : fmap f elemVars)
@@ -68,8 +70,8 @@ defineLift vectorN ValueInfo{..} dim = do
 defineLift2 :: Name -> ValueInfo -> Int -> DecsQ
 defineLift2 vectorN ValueInfo{..} dim = do
   (funcP, funcV) <- newPE "f"
-  (vecP, elemVars) <- conPE vectorN dim
-  (vecP', elemVars') <- conPE vectorN dim
+  (vecP, elemVars) <- conPE vectorN "a" dim
+  (vecP', elemVars') <- conPE vectorN "b" dim
   let pairVars = zip elemVars elemVars'
       liftClause = clause [funcP, vecP, vecP'] liftBody []
       f (x, y) = appsE [funcV, x, y]
@@ -82,8 +84,8 @@ defineLift2 vectorN ValueInfo{..} dim = do
 
 defineDot :: Name -> ValueInfo -> Int -> DecsQ
 defineDot vectorN ValueInfo{..} dim = do
-  (vecP, elemVars) <- conPE vectorN dim
-  (vecP', elemVars') <- conPE vectorN dim
+  (vecP, elemVars) <- conPE vectorN "a" dim
+  (vecP', elemVars') <- conPE vectorN "b" dim
   let pairVars = zip elemVars elemVars'
       products = (uncurry $ infixApp' (varE _valueMul)) <$> pairVars
       sum' = foldl1 (infixApp' $ varE _valueAdd) products
@@ -93,6 +95,19 @@ defineDot vectorN ValueInfo{..} dim = do
       vectorT = conT vectorN
       dotType = arrowsT [vectorT, vectorT, valueT]
   funSigDef dotName dotType [dotClause]
+
+defineFromList :: Name -> ValueInfo -> Int -> DecsQ
+defineFromList vectorN ValueInfo{..} dim = do
+  (pats, vars) <- genPEWith "x" dim (conP _valueWrap . return . varP) varE
+  let listPat = listP pats
+      vecE = appsE (conE vectorN : vars)
+      fromListClause0 = clause [listPat] (normalB vecE) []
+      fromListClause1 = clause [wildP] (normalB [| error "wrong number of elements" |]) []
+      fromListName = mkName $ "fromList" ++ nameBase vectorN
+      vectorT = conT vectorN
+      argT = appT listT (conT _valueBoxed)
+      fromListType = arrowsT [argT, vectorT]
+  funSigDef fromListName fromListType [fromListClause0, fromListClause1]
 
 infixApp' :: ExpQ -> ExpQ -> ExpQ -> ExpQ
 infixApp' = flip infixApp
@@ -113,12 +128,15 @@ newPE x = do
   x' <- newName x
   return (varP x', varE x')
 
-conPE :: Name -> Int -> Q (PatQ, [ExpQ])
-conPE conN dim = do
-  (pats, vars) <- genPE dim
+conPE :: Name -> String -> Int -> Q (PatQ, [ExpQ])
+conPE conN x dim = do
+  (pats, vars) <- genPE x dim
   return (conP conN pats, vars)
 
-genPE :: Int -> Q ([PatQ], [ExpQ])
-genPE n = do
-  ids <- replicateM n (newName "x")
-  return (map varP ids, map varE ids)
+genPEWith :: String -> Int -> (Name -> PatQ) -> (Name -> ExpQ) -> Q ([PatQ], [ExpQ])
+genPEWith x n mkP mkE = do
+  ids <- replicateM n (newName x)
+  return (fmap mkP ids, fmap mkE ids)
+
+genPE :: String -> Int -> Q ([PatQ], [ExpQ])
+genPE x n = genPEWith x n varP varE

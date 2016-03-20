@@ -11,6 +11,7 @@ import Shapes.Linear.Template (ValueInfo(..))
 doubleInfo :: ValueInfo
 doubleInfo = ValueInfo { _valueN = ''Double#
                        , _valueWrap = 'D#
+                       , _valueBoxed = ''Double
                        , _valueAdd = '(+##)
                        , _valueSub = '(-##)
                        , _valueMul = '(*##)
