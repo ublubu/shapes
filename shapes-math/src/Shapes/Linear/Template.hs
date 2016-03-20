@@ -4,6 +4,8 @@
 
 module Shapes.Linear.Template where
 
+import Test.QuickCheck.Arbitrary
+
 import Control.Monad
 import Language.Haskell.TH
 
@@ -34,26 +36,31 @@ makeVectorType vi@ValueInfo{..} dim = do
                  , defineDot
                  , defineFromList
                  , defineToList
+                 , deriveShow
+                 , deriveArbitrary
                  ]
-  showInst <- deriveShow vectorN vi dim
   impls <- concat <$> mapM (\f -> f vectorN vi dim) definers
   let decs = [ DataD [] vectorN [] [NormalC vectorN (replicate dim constrArg)] []
-             , showInst
              ] ++ impls
   return decs
 
-data Dummy = Dummy
-
-deriveShow :: Name -> ValueInfo -> Int -> DecQ
+deriveShow :: Name -> ValueInfo -> Int -> DecsQ
 deriveShow vectorN ValueInfo{..} dim = do
   (pat, vars) <- conPE vectorN "a" dim
   let f [] = [| "" |]
       f (v:vs) = [| " " ++ show $(appE (conE _valueWrap) v) ++ $(f vs) |]
       constructorShown = nameBase vectorN
-  showClause <- clause [pat] (normalB [| constructorShown ++ $(f vars) |]) []
-  [InstanceD [] (AppT showt (ConT _)) [FunD showf _]] <-
-    [d| instance Show Dummy where show _ = "text" |]
-  return $ InstanceD [] (AppT showt (ConT vectorN)) [FunD showf [showClause]]
+      showClause = clause [pat] (normalB [| constructorShown ++ $(f vars) |]) []
+  return <$> instanceD (cxt []) (appT (conT ''Show) (conT vectorN)) [funD 'show [showClause]]
+
+dimE :: Int -> ExpQ
+dimE = litE . integerL . fromIntegral
+
+deriveArbitrary :: Name -> ValueInfo -> Int -> DecsQ
+deriveArbitrary vectorN ValueInfo{..} dim = do
+  let arbClause = clause [] (normalB $ infixApp (fromListE vectorN) (varE '(<$>)) arbList) []
+      arbList = [| replicateM $(dimE dim) arbitrary |]
+  return <$> instanceD (cxt []) (appT (conT ''Arbitrary) (conT vectorN)) [funD 'arbitrary [arbClause]]
 
 defineLift :: Name -> ValueInfo -> Int -> DecsQ
 defineLift vectorN ValueInfo{..} dim = do
@@ -97,6 +104,12 @@ defineDot vectorN ValueInfo{..} dim = do
       dotType = arrowsT [vectorT, vectorT, valueT]
   funSigDef dotName dotType [dotClause]
 
+fromListN :: Name -> Name
+fromListN = mkName . ("fromList" ++) . nameBase
+
+fromListE :: Name -> ExpQ
+fromListE = varE . fromListN
+
 defineFromList :: Name -> ValueInfo -> Int -> DecsQ
 defineFromList vectorN ValueInfo{..} dim = do
   (pats, vars) <- genPEWith "x" dim (conP _valueWrap . return . varP) varE
@@ -104,11 +117,10 @@ defineFromList vectorN ValueInfo{..} dim = do
       vecE = appsE (conE vectorN : vars)
       fromListClause0 = clause [listPat] (normalB vecE) []
       fromListClause1 = clause [wildP] (normalB [| error "wrong number of elements" |]) []
-      fromListName = mkName $ "fromList" ++ nameBase vectorN
       vectorT = conT vectorN
       argT = appT listT (conT _valueBoxed)
       fromListType = arrowsT [argT, vectorT]
-  funSigDef fromListName fromListType [fromListClause0, fromListClause1]
+  funSigDef (fromListN vectorN) fromListType [fromListClause0, fromListClause1]
 
 defineToList :: Name -> ValueInfo -> Int -> DecsQ
 defineToList vectorN ValueInfo{..} dim = do

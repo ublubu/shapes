@@ -63,6 +63,7 @@ library
   -- Other library packages from which modules are imported.
   build-depends:       base
                      , ghc-prim
+                     , QuickCheck
                      , template-haskell
   
   -- Directories containing source files.
@@ -94,6 +95,7 @@ executable math-bench
                      , criterion
                      , ghc-prim
                      , linear
+                     , QuickCheck
                      , template-haskell
   
   -- Directories containing source files.
