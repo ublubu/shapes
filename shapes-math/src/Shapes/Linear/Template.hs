@@ -108,21 +108,31 @@ defineDot vectorN vi@ValueInfo{..} dim = do
       dotType = arrowsT [vectorT, vectorT, valueT]
   funSigDef dotName dotType [dotClause]
 
-defineJoin :: ValueInfo -> (Int, Int) -> DecsQ
-defineJoin ValueInfo{..} (left, right) = do
+defineJoinSplit :: ValueInfo -> (Int, Int) -> DecsQ
+defineJoinSplit ValueInfo{..} (left, right) = do
   let vecN = makeVectorN left
       vecN' = makeVectorN right
       vecN'' = makeVectorN (left + right)
   (vecP, elemVs) <- conPE vecN "a" left
   (vecP', elemVs') <- conPE vecN' "b" right
-  let resultE = appsE (conE vecN'' : elemVs ++ elemVs')
-      joinC = simpleClause [vecP, vecP'] resultE
+  (vecP'', elemVs'') <- conPE vecN' "c" right
+  let joinE = appsE (conE vecN'' : elemVs ++ elemVs')
+      joinC = simpleClause [vecP, vecP'] joinE
       joinN = mkName $ "join" ++ show left ++ "v" ++ show right
       joinT = arrowsT [vecT, vecT', vecT'']
+      (leftVs, rightVs) = splitAt left elemVs''
+      splitE = tupE [ appsE $ conE vecN : leftVs
+                    , appsE $ conE vecN' : rightVs
+                    ]
+      splitC = simpleClause [vecP''] splitE
+      splitN = mkName $ "split" ++ show left ++ "v" ++ show right
+      splitT = arrowsT [vecT'', tupT [vecT, vecT']]
       vecT = conT vecN
       vecT' = conT vecN'
       vecT'' = conT vecN''
-  funSigDef joinN joinT [joinC]
+  joinI <- funSigDef joinN joinT [joinC]
+  splitI <- funSigDef splitN splitT [splitC]
+  return $ joinI ++ splitI
 
 fromListN :: Name -> Name
 fromListN = mkName . ("fromList" ++) . nameBase
@@ -161,6 +171,9 @@ funSigDef funN funT funCs = do
   funSig <- sigD funN funT
   funDef <- funD funN funCs
   return [funSig, funDef]
+
+tupT :: [TypeQ] -> TypeQ
+tupT ts = foldl appT (tupleT $ length ts) ts
 
 arrowsT :: [TypeQ] -> TypeQ
 arrowsT [] = error "can't have no type"
