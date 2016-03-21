@@ -108,6 +108,22 @@ defineDot vectorN vi@ValueInfo{..} dim = do
       dotType = arrowsT [vectorT, vectorT, valueT]
   funSigDef dotName dotType [dotClause]
 
+defineJoin :: ValueInfo -> (Int, Int) -> DecsQ
+defineJoin ValueInfo{..} (left, right) = do
+  let vecN = makeVectorN left
+      vecN' = makeVectorN right
+      vecN'' = makeVectorN (left + right)
+  (vecP, elemVs) <- conPE vecN "a" left
+  (vecP', elemVs') <- conPE vecN' "b" right
+  let resultE = appsE (conE vecN'' : elemVs ++ elemVs')
+      joinC = simpleClause [vecP, vecP'] resultE
+      joinN = mkName $ "join" ++ show left ++ "v" ++ show right
+      joinT = arrowsT [vecT, vecT', vecT'']
+      vecT = conT vecN
+      vecT' = conT vecN'
+      vecT'' = conT vecN''
+  funSigDef joinN joinT [joinC]
+
 fromListN :: Name -> Name
 fromListN = mkName . ("fromList" ++) . nameBase
 
