@@ -4,18 +4,17 @@
 
 module Shapes.Linear.MatrixTemplate where
 
-import Control.Monad
 import Data.Monoid
 import Language.Haskell.TH
 
 import Shapes.Linear.Template
 
 makeMatrixNL :: ValueInfo -> (Int, Int) -> (Name, Int)
-makeMatrixNL vi@ValueInfo{..} (rows, cols) =
+makeMatrixNL ValueInfo{..} (rows, cols) =
   (mkName $ "M" ++ show rows ++ "x" ++ show cols, rows * cols)
 
 makeMatrixType :: ValueInfo -> (Int, Int) -> DecsQ
-makeMatrixType vi@ValueInfo{..} dims@(rows, cols) = do
+makeMatrixType vi@ValueInfo{..} dims = do
   let (matrixN, len) = makeMatrixNL vi dims
       constrArg = strictType notStrict (conT _valueN)
       definers = [ defineLift
