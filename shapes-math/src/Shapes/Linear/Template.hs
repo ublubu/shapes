@@ -27,9 +27,12 @@ data ValueInfo = ValueInfo { _valueN :: Name
                            , _valueLt :: Name
                            }
 
+makeVectorN :: Int -> Name
+makeVectorN dim = mkName $ "V" ++ show dim
+
 makeVectorType :: ValueInfo -> Int -> DecsQ
 makeVectorType vi@ValueInfo{..} dim = do
-  let vectorN = mkName $ "V" ++ show dim
+  let vectorN = makeVectorN dim
       constrArg = (NotStrict, ConT _valueN)
       definers = [ defineLift
                  , defineLift2
@@ -90,14 +93,15 @@ defineLift2 vectorN ValueInfo{..} dim = do
       liftType = arrowsT [arrowsT [valueT, valueT, valueT], vectorT, vectorT, vectorT]
   funSigDef liftName liftType [liftClause]
 
+dotE :: ValueInfo -> [ExpQ] -> [ExpQ] -> ExpQ
+dotE ValueInfo{..} row col = foldl1 (infixApp' $ varE _valueAdd) products
+  where products = uncurry (infixApp' $ varE _valueMul) <$> zip row col
+
 defineDot :: Name -> ValueInfo -> Int -> DecsQ
-defineDot vectorN ValueInfo{..} dim = do
+defineDot vectorN vi@ValueInfo{..} dim = do
   (vecP, elemVars) <- conPE vectorN "a" dim
   (vecP', elemVars') <- conPE vectorN "b" dim
-  let pairVars = zip elemVars elemVars'
-      products = (uncurry $ infixApp' (varE _valueMul)) <$> pairVars
-      sum' = foldl1 (infixApp' $ varE _valueAdd) products
-      dotClause = clause [vecP, vecP'] (normalB sum') []
+  let dotClause = clause [vecP, vecP'] (normalB $ dotE vi elemVars elemVars') []
       dotName = mkName $ "dot" ++ nameBase vectorN
       valueT = conT _valueN
       vectorT = conT vectorN

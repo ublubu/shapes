@@ -29,7 +29,6 @@ makeMatrixType vi@ValueInfo{..} dims@(rows, cols) = do
   matrixD <- dataD (cxt []) matrixN [] [normalC matrixN (replicate len constrArg)] []
   return $ matrixD : impls
 
--- TODO: pull out common dot product code
 defineMatrixMul :: ValueInfo -> (Int, Int, Int) -> DecsQ
 defineMatrixMul vi@ValueInfo{..} (left, inner, right) = do
   let (matN, len) = makeMatrixNL vi (left, inner)
@@ -39,12 +38,10 @@ defineMatrixMul vi@ValueInfo{..} (left, inner, right) = do
   (matP', elemVars') <- conPE matN "b" len'
   let rows = chunks inner elemVars
       cols = stripes right elemVars'
-      dotE row col = foldl1 (infixApp' $ varE _valueAdd) products
-        where products = uncurry (infixApp' $ varE _valueMul) <$> zip row col
       dotEs = do
         row <- rows
         col <- cols
-        return $ dotE row col
+        return $ dotE vi row col
       resultE = appsE (conE matN'' : dotEs)
       mulClause = clause [matP, matP'] (normalB resultE) []
       matT = conT matN
@@ -52,6 +49,46 @@ defineMatrixMul vi@ValueInfo{..} (left, inner, right) = do
       matT'' = conT matN''
       mulN = mkName $ "mul" ++ show left ++ "x" ++ show inner ++ "x" ++ show right
       mulT = arrowsT [matT, matT', matT'']
+  funSigDef mulN mulT [mulClause]
+
+defineMatrixMulVector :: ValueInfo -> (Int, Int) -> DecsQ
+defineMatrixMulVector vi@ValueInfo{..} dims@(left, inner) = do
+  let (matN, len) = makeMatrixNL vi dims
+      vecN = makeVectorN inner
+      vecN' = makeVectorN left
+  (matP, elemVars) <- conPE matN "a" len
+  (vecP, col) <- conPE vecN "b" inner
+  let rows = chunks inner elemVars
+      dotEs = do
+        row <- rows
+        return $ dotE vi row col
+      resultE = appsE (conE vecN' : dotEs)
+      mulN = mkName $ "mul" ++ show left ++ "x" ++ show inner ++ "c"
+      mulClause = clause [matP, vecP] (normalB resultE) []
+      matT = conT matN
+      vecT = conT vecN
+      vecT' = conT vecN'
+      mulT = arrowsT [matT, vecT, vecT']
+  funSigDef mulN mulT [mulClause]
+
+defineVectorMulMatrix :: ValueInfo -> (Int, Int) -> DecsQ
+defineVectorMulMatrix vi@ValueInfo{..} dims@(inner, right) = do
+  let vecN = makeVectorN inner
+      (matN, len) = makeMatrixNL vi dims
+      vecN' = makeVectorN right
+  (vecP, row) <- conPE vecN "b" inner
+  (matP, elemVars) <- conPE matN "a" len
+  let cols = stripes right elemVars
+      dotEs = do
+        col <- cols
+        return $ dotE vi row col
+      resultE = appsE (conE vecN' : dotEs)
+      mulN = mkName $ "mulr" ++ show inner ++ "x" ++ show right
+      mulClause = clause [vecP, matP] (normalB resultE) []
+      vecT = conT vecN
+      matT = conT matN
+      vecT' = conT vecN'
+      mulT = arrowsT [vecT, matT, vecT']
   funSigDef mulN mulT [mulClause]
 
 chunks :: Int -> [a] -> [[a]]
