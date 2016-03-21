@@ -24,9 +24,15 @@ makeMatrixType vi@ValueInfo{..} dims = do
                  , deriveShow
                  , deriveArbitrary
                  ]
+      definers' = [ defineMatrixMulVector
+                  , defineVectorMulMatrix
+                  , defineDiagMulMatrix
+                  , defineMatrixMulDiag
+                  ]
   impls <- concat <$> mapM (\f -> f matrixN vi len) definers
+  impls' <- concat <$> mapM (\f -> f vi dims) definers'
   matrixD <- dataD (cxt []) matrixN [] [normalC matrixN (replicate len constrArg)] []
-  return $ matrixD : impls
+  return $ matrixD : impls ++ impls'
 
 defineMatrixMul :: ValueInfo -> (Int, Int, Int) -> DecsQ
 defineMatrixMul vi@ValueInfo{..} (left, inner, right) = do
@@ -42,13 +48,13 @@ defineMatrixMul vi@ValueInfo{..} (left, inner, right) = do
         col <- cols
         return $ dotE vi row col
       resultE = appsE (conE matN'' : dotEs)
-      mulClause = clause [matP, matP'] (normalB resultE) []
+      mulN = mkName $ "mul" ++ show left ++ "x" ++ show inner ++ "x" ++ show right
+      mulC = simpleClause [matP, matP'] resultE
+      mulT = arrowsT [matT, matT', matT'']
       matT = conT matN
       matT' = conT matN'
       matT'' = conT matN''
-      mulN = mkName $ "mul" ++ show left ++ "x" ++ show inner ++ "x" ++ show right
-      mulT = arrowsT [matT, matT', matT'']
-  funSigDef mulN mulT [mulClause]
+  funSigDef mulN mulT [mulC]
 
 defineMatrixMulVector :: ValueInfo -> (Int, Int) -> DecsQ
 defineMatrixMulVector vi@ValueInfo{..} dims@(left, inner) = do
@@ -63,32 +69,66 @@ defineMatrixMulVector vi@ValueInfo{..} dims@(left, inner) = do
         return $ dotE vi row col
       resultE = appsE (conE vecN' : dotEs)
       mulN = mkName $ "mul" ++ show left ++ "x" ++ show inner ++ "c"
-      mulClause = clause [matP, vecP] (normalB resultE) []
+      mulC = simpleClause [matP, vecP] resultE
+      mulT = arrowsT [matT, vecT, vecT']
       matT = conT matN
       vecT = conT vecN
       vecT' = conT vecN'
-      mulT = arrowsT [matT, vecT, vecT']
-  funSigDef mulN mulT [mulClause]
+  funSigDef mulN mulT [mulC]
 
 defineVectorMulMatrix :: ValueInfo -> (Int, Int) -> DecsQ
 defineVectorMulMatrix vi@ValueInfo{..} dims@(inner, right) = do
   let vecN = makeVectorN inner
       (matN, len) = makeMatrixNL vi dims
       vecN' = makeVectorN right
-  (vecP, row) <- conPE vecN "b" inner
-  (matP, elemVars) <- conPE matN "a" len
+  (vecP, row) <- conPE vecN "a" inner
+  (matP, elemVars) <- conPE matN "b" len
   let cols = stripes right elemVars
       dotEs = do
         col <- cols
         return $ dotE vi row col
       resultE = appsE (conE vecN' : dotEs)
       mulN = mkName $ "mulr" ++ show inner ++ "x" ++ show right
-      mulClause = clause [vecP, matP] (normalB resultE) []
+      mulC = simpleClause [vecP, matP] resultE
+      mulT = arrowsT [vecT, matT, vecT']
       vecT = conT vecN
       matT = conT matN
       vecT' = conT vecN'
-      mulT = arrowsT [vecT, matT, vecT']
-  funSigDef mulN mulT [mulClause]
+  funSigDef mulN mulT [mulC]
+
+defineDiagMulMatrix :: ValueInfo -> (Int, Int) -> DecsQ
+defineDiagMulMatrix vi@ValueInfo{..} dims@(inner, right) = do
+  let vecN = makeVectorN inner
+      (matN, len) = makeMatrixNL vi dims
+  (vecP, diag) <- conPE vecN "a" inner
+  (matP, elemVars) <- conPE matN "b" len
+  let rows = chunks right elemVars
+      rowE scalar = fmap (infixApp' (varE _valueMul) scalar)
+      rowEs = zipWith rowE diag rows
+      resultE = appsE (conE matN : concat rowEs)
+      mulN = mkName $ "muld" ++ show inner ++ "x" ++ show right
+      mulC = simpleClause [vecP, matP] resultE
+      mulT = arrowsT [vecT, matT, matT]
+      vecT = conT vecN
+      matT = conT matN
+  funSigDef mulN mulT [mulC]
+
+defineMatrixMulDiag :: ValueInfo -> (Int, Int) -> DecsQ
+defineMatrixMulDiag vi@ValueInfo{..} dims@(left, inner) = do
+  let vecN = makeVectorN inner
+      (matN, len) = makeMatrixNL vi dims
+  (matP, elemVars) <- conPE matN "a" len
+  (vecP, diag) <- conPE vecN "b" inner
+  let cols = stripes inner elemVars
+      colE scalar = fmap (infixApp' (varE _valueMul) scalar)
+      colEs = zipWith colE diag cols
+      resultE = appsE (conE matN : concat colEs)
+      mulN = mkName $ "mul" ++ show left ++ "x" ++ show inner ++ "d"
+      mulC = simpleClause [matP, vecP] resultE
+      mulT = arrowsT [matT, vecT, matT]
+      vecT = conT vecN
+      matT = conT matN
+  funSigDef mulN mulT [mulC]
 
 chunks :: Int -> [a] -> [[a]]
 chunks _ [] = []

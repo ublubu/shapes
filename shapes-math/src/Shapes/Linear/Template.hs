@@ -168,3 +168,6 @@ genPEWith x n mkP mkE = do
 
 genPE :: String -> Int -> Q ([PatQ], [ExpQ])
 genPE x n = genPEWith x n varP varE
+
+simpleClause :: [PatQ] -> ExpQ -> ClauseQ
+simpleClause ps e = clause ps (normalB e) []

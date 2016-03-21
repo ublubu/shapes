@@ -13,8 +13,6 @@ import Shapes.Linear.ValueInfos (doubleInfo)
 $(makeVectorType doubleInfo 2)
 $(makeMatrixType doubleInfo (2, 2))
 $(defineMatrixMul doubleInfo (2, 2, 2))
-$(defineMatrixMulVector doubleInfo (2, 2))
-$(defineVectorMulMatrix doubleInfo (2, 2))
 
 testV2 :: V2
 testV2 = V2 0.0## 1.0##
