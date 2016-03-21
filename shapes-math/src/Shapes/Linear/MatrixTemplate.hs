@@ -9,13 +9,13 @@ import Language.Haskell.TH
 
 import Shapes.Linear.Template
 
-makeMatrixNL :: ValueInfo -> (Int, Int) -> (Name, Int)
-makeMatrixNL ValueInfo{..} (rows, cols) =
+makeMatrixNL :: (Int, Int) -> (Name, Int)
+makeMatrixNL (rows, cols) =
   (mkName $ "M" ++ show rows ++ "x" ++ show cols, rows * cols)
 
 makeMatrixType :: ValueInfo -> (Int, Int) -> DecsQ
 makeMatrixType vi@ValueInfo{..} dims = do
-  let (matrixN, len) = makeMatrixNL vi dims
+  let (matrixN, len) = makeMatrixNL dims
       constrArg = strictType notStrict (conT _valueN)
       definers = [ defineLift
                  , defineLift2
@@ -28,6 +28,7 @@ makeMatrixType vi@ValueInfo{..} dims = do
                   , defineVectorMulMatrix
                   , defineDiagMulMatrix
                   , defineMatrixMulDiag
+                  , defineVectorOuterProduct
                   ]
   impls <- concat <$> mapM (\f -> f matrixN vi len) definers
   impls' <- concat <$> mapM (\f -> f vi dims) definers'
@@ -36,9 +37,9 @@ makeMatrixType vi@ValueInfo{..} dims = do
 
 defineMatrixMul :: ValueInfo -> (Int, Int, Int) -> DecsQ
 defineMatrixMul vi@ValueInfo{..} (left, inner, right) = do
-  let (matN, len) = makeMatrixNL vi (left, inner)
-      (matN', len') = makeMatrixNL vi (inner, right)
-      (matN'', _) = makeMatrixNL vi (left, right)
+  let (matN, len) = makeMatrixNL (left, inner)
+      (matN', len') = makeMatrixNL (inner, right)
+      (matN'', _) = makeMatrixNL (left, right)
   (matP, elemVars) <- conPE matN "a" len
   (matP', elemVars') <- conPE matN "b" len'
   let rows = chunks inner elemVars
@@ -58,7 +59,7 @@ defineMatrixMul vi@ValueInfo{..} (left, inner, right) = do
 
 defineMatrixMulVector :: ValueInfo -> (Int, Int) -> DecsQ
 defineMatrixMulVector vi@ValueInfo{..} dims@(left, inner) = do
-  let (matN, len) = makeMatrixNL vi dims
+  let (matN, len) = makeMatrixNL dims
       vecN = makeVectorN inner
       vecN' = makeVectorN left
   (matP, elemVars) <- conPE matN "a" len
@@ -79,7 +80,7 @@ defineMatrixMulVector vi@ValueInfo{..} dims@(left, inner) = do
 defineVectorMulMatrix :: ValueInfo -> (Int, Int) -> DecsQ
 defineVectorMulMatrix vi@ValueInfo{..} dims@(inner, right) = do
   let vecN = makeVectorN inner
-      (matN, len) = makeMatrixNL vi dims
+      (matN, len) = makeMatrixNL dims
       vecN' = makeVectorN right
   (vecP, row) <- conPE vecN "a" inner
   (matP, elemVars) <- conPE matN "b" len
@@ -97,9 +98,9 @@ defineVectorMulMatrix vi@ValueInfo{..} dims@(inner, right) = do
   funSigDef mulN mulT [mulC]
 
 defineDiagMulMatrix :: ValueInfo -> (Int, Int) -> DecsQ
-defineDiagMulMatrix vi@ValueInfo{..} dims@(inner, right) = do
+defineDiagMulMatrix ValueInfo{..} dims@(inner, right) = do
   let vecN = makeVectorN inner
-      (matN, len) = makeMatrixNL vi dims
+      (matN, len) = makeMatrixNL dims
   (vecP, diag) <- conPE vecN "a" inner
   (matP, elemVars) <- conPE matN "b" len
   let rows = chunks right elemVars
@@ -114,9 +115,9 @@ defineDiagMulMatrix vi@ValueInfo{..} dims@(inner, right) = do
   funSigDef mulN mulT [mulC]
 
 defineMatrixMulDiag :: ValueInfo -> (Int, Int) -> DecsQ
-defineMatrixMulDiag vi@ValueInfo{..} dims@(left, inner) = do
+defineMatrixMulDiag ValueInfo{..} dims@(left, inner) = do
   let vecN = makeVectorN inner
-      (matN, len) = makeMatrixNL vi dims
+      (matN, len) = makeMatrixNL dims
   (matP, elemVars) <- conPE matN "a" len
   (vecP, diag) <- conPE vecN "b" inner
   let cols = stripes inner elemVars
@@ -127,6 +128,26 @@ defineMatrixMulDiag vi@ValueInfo{..} dims@(left, inner) = do
       mulC = simpleClause [matP, vecP] resultE
       mulT = arrowsT [matT, vecT, matT]
       vecT = conT vecN
+      matT = conT matN
+  funSigDef mulN mulT [mulC]
+
+defineVectorOuterProduct :: ValueInfo -> (Int, Int) -> DecsQ
+defineVectorOuterProduct ValueInfo{..} dims@(left, right) = do
+  let vecN = makeVectorN left
+      vecN' = makeVectorN right
+      (matN, _) = makeMatrixNL dims
+  (vecP, elemVars) <- conPE vecN "a" left
+  (vecP', elemVars') <- conPE vecN' "b" right
+  let elemEs = do
+        x <- elemVars
+        y <- elemVars'
+        return $ infixApp' (varE _valueMul) x y
+      resultE = appsE (conE matN : elemEs)
+      mulN = mkName $ "mulT" ++ show left ++ "x" ++ show right
+      mulC = simpleClause [vecP, vecP'] resultE
+      mulT = arrowsT [vecT, vecT', matT]
+      vecT = conT vecN
+      vecT' = conT vecN'
       matT = conT matN
   funSigDef mulN mulT [mulC]
 
