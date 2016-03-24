@@ -115,7 +115,7 @@ defineJoinSplit ValueInfo{..} (left, right) = do
       vecN'' = makeVectorN (left + right)
   (vecP, elemVs) <- conPE vecN "a" left
   (vecP', elemVs') <- conPE vecN' "b" right
-  (vecP'', elemVs'') <- conPE vecN' "c" right
+  (vecP'', elemVs'') <- conPE vecN'' "c" (left + right)
   let joinE = appsE (conE vecN'' : elemVs ++ elemVs')
       joinC = simpleClause [vecP, vecP'] joinE
       joinN = mkName $ "join" ++ show left ++ "v" ++ show right

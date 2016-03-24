@@ -8,7 +8,7 @@ import Test.QuickCheck
 
 import GHC.Types (Double(..))
 
-import Shapes.Linear.Template (makeVectorType)
+import Shapes.Linear.Template (makeVectorType, defineJoinSplit)
 import Shapes.Linear.MatrixTemplate (makeMatrixType, defineMatrixMul)
 import Shapes.Linear.ValueInfos (doubleInfo)
 
@@ -19,6 +19,8 @@ import qualified Linear.Matrix as L
 $(makeVectorType doubleInfo 2)
 $(makeMatrixType doubleInfo (2, 2))
 $(defineMatrixMul doubleInfo (2, 2, 2))
+$(makeVectorType doubleInfo 4)
+$(defineJoinSplit doubleInfo (2, 2))
 
 spec :: Spec
 spec = do
@@ -29,6 +31,8 @@ spec = do
   it "show" $ show (V2 0.0## 1.0##) `shouldBe` "V2 0.0 1.0"
   it "2x2 * 2x2" $ property $
     \(m1, m2) -> toListM2x2 (m1 `mul2x2x2` m2) == toListLM22 (toLM22 m1 L.!*! toLM22 m2)
+  it "split 4 into 2+2 and join back into 4" $ property $
+    \v -> (toListV4 . uncurry join2v2 . split2v2 $ v) == toListV4 v
 
 pairToList :: (a, a) -> [a]
 pairToList (x, y) = [x, y]

@@ -6,13 +6,16 @@ module Shapes.Linear.Double where
 import GHC.Prim
 import GHC.Types (Double(..))
 
-import Shapes.Linear.Template (makeVectorType)
+import Shapes.Linear.Template
 import Shapes.Linear.MatrixTemplate
 import Shapes.Linear.ValueInfos (doubleInfo)
 
 $(makeVectorType doubleInfo 2)
 $(makeMatrixType doubleInfo (2, 2))
 $(defineMatrixMul doubleInfo (2, 2, 2))
+$(makeVectorType doubleInfo 6)
+$(makeVectorType doubleInfo 3)
+$(defineJoinSplit doubleInfo (3, 3))
 
 testV2 :: V2
 testV2 = V2 0.0## 1.0##
