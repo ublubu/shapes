@@ -52,6 +52,7 @@ cabal-version:       >=1.10
 library
   -- Modules exported by the library.
   exposed-modules:     Shapes.Linear.Template
+                     , Shapes.Linear.MatrixTemplate
                      , Shapes.Linear.ValueInfos
   
   -- Modules included in this library but not exported.
