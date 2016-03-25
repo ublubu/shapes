@@ -10,7 +10,7 @@
 
 module Physics.Contact.OptConvexHull where
 
-import GHC.Prim ((/##), negateDouble#)
+import GHC.Prim (Double#, (/##), negateDouble#)
 import GHC.Types (Double(D#))
 
 import Control.Lens (makeLenses)
@@ -108,8 +108,8 @@ support ConvexHull{..} dir = snd . foldl1 g $ fmap f _hullNeighborhoods
   --transform t = flip transformHull (transform t)
   --untransform t = flip transformHull (untransform t)
 
-rectangleVertices :: Double -> Double -> Vertices
-rectangleVertices (D# w) (D# h) =
+rectangleVertices :: Double# -> Double# -> Vertices
+rectangleVertices w h =
   [ P2 $ V2 w2 h2
   , P2 $ V2 nw2 h2
   , P2 $ V2 nw2 nh2
@@ -119,7 +119,7 @@ rectangleVertices (D# w) (D# h) =
         nw2 = negateDouble# w2
         nh2 = negateDouble# h2
 
-rectangleHull :: Double -> Double -> ConvexHull
+rectangleHull :: Double# -> Double# -> ConvexHull
 rectangleHull w h = listToHull $ rectangleVertices w h
 
 listToHull :: [P2] -> ConvexHull

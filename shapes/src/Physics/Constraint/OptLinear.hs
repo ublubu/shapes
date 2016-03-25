@@ -20,8 +20,10 @@ $(makeVectorType doubleInfo 2)
 $(makeVectorType doubleInfo 3)
 $(makeVectorType doubleInfo 6)
 $(makeMatrixType doubleInfo (2, 2))
+$(makeMatrixType doubleInfo (3, 3))
 $(makeMatrixType doubleInfo (6, 6))
 $(defineMatrixMul doubleInfo (2, 2, 2))
+$(defineMatrixMul doubleInfo (3, 3, 3))
 $(defineJoinSplit doubleInfo (3, 3))
 
 newtype Diag6 = Diag6 V6 deriving Show
@@ -92,6 +94,27 @@ invM2x2 (M2x2 a b c d) =
 negateV2 :: V2 -> V2
 negateV2 = liftV2 negateDouble#
 
+identity2x2 :: M2x2
+identity2x2 = M2x2 1.0## 0.0## 0.0## 1.0##
+
+identity3x3 :: M3x3
+identity3x3 =
+  M3x3
+  1.0## 0.0## 0.0##
+  0.0## 1.0## 0.0##
+  0.0## 0.0## 1.0##
+
+afmul :: M3x3 -> V2 -> V2
+afmul t (V2 a b) = V2 x y
+  where !(V3 x y _) = t `mul3x3c` V3 a b 1.0##
+
+afmul' :: M3x3 -> P2 -> P2
+afmul' t (P2 v) = P2 $ t `afmul` v
+
+{-
+WORKING WITH LINES
+-}
+
 data Line2 = Line2 { linePoint :: !P2
                    , lineNormal :: !V2 }
 
@@ -111,6 +134,10 @@ intersect2 (Line2 p n@(V2 n0 n1)) (Line2 p' n'@(V2 n2 n3)) =
         !(D# b0) = p `afdot` n
         !(D# b1) = p' `afdot` n'
         m = M2x2 n0 n1 n2 n3
+
+{-
+CLIPPING LINE SEGMENTS
+-}
 
 data ClipResult a = ClipLeft !a | ClipRight !a | ClipBoth !a | ClipNone
 
@@ -159,3 +186,45 @@ clipSegment boundary (SP incident (SP a b))
         a' = a `afdot` n
         b' = b `afdot` n
         c' = c `afdot` n
+
+{-
+TRANSFORMS
+-}
+
+rotate22_ :: Double# -> Double# -> M2x2
+rotate22_ cosv sinv = M2x2 cosv (negateDouble# sinv) sinv cosv
+
+rotate22 :: Double# -> M2x2
+rotate22 ori = rotate22_ c s
+  where c = cosDouble# ori
+        s = sinDouble# ori
+
+afmat33 :: M2x2 -> M3x3
+afmat33 (M2x2 x0 x1 y0 y1) =
+  M3x3
+  x0 x1 zer
+  y0 y1 zer
+  zer zer one
+  where !one = 1.0##
+        !zer = 0.0##
+
+aftranslate33 :: V2 -> M3x3
+aftranslate33 (V2 x y) =
+  M3x3
+  one zer x
+  zer one y
+  zer zer one
+  where !one = 1.0##
+        !zer = 0.0##
+
+afrotate33 :: Double# -> M3x3
+afrotate33 ori = afmat33 (rotate22 ori)
+
+afscale33 :: V2 -> M3x3
+afscale33 (V2 x y) =
+  M3x3
+  x zer zer
+  zer y zer
+  zer zer one
+  where !one = 1.0##
+        !zer = 0.0##

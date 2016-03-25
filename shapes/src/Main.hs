@@ -27,6 +27,7 @@ import Physics.Scenes.Stacks
 import qualified Physics.BenchGeometry as BG
 import qualified BenchLinear as BL
 import qualified Physics.Constraint.Benchmark as BC
+import qualified Physics.Contact.Benchmark as BC'
 
 type EngineState n = SP (World (WorldObj n)) (S.ContactSolverState n (WorldObj n))
 
@@ -67,4 +68,4 @@ main :: IO ()
 --main = do
 --  (SP x y) <- return $ stepWorld 200 initialState
 --  return ()
-main = BC.main
+main = BC'.main
