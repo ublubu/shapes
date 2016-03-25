@@ -15,6 +15,9 @@ makeLenses ''SP
 toSP :: (a, b) -> SP a b
 toSP (x, y) = SP x y
 
+spMap :: (a -> b) -> SP a a -> SP b b
+spMap f (SP x y) = SP (f x) (f y)
+
 pairMap :: (a -> b) -> (a, a) -> (b, b)
 pairMap f (x, y) = (f x, f y)
 
