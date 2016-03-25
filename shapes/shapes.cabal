@@ -101,6 +101,7 @@ library
                      , ghc-prim
                      , lens
                      , linear
+                     , shapes-math
                      , vector
   
   -- Directories containing source files.
@@ -135,6 +136,7 @@ executable shapes-prof
                      , ghc-prim
                      , lens
                      , linear
+                     , shapes-math
                      , vector
   
   -- Directories containing source files.

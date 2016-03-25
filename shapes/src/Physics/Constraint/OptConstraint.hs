@@ -3,6 +3,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MagicHash #-}
+{-# LANGUAGE BangPatterns #-}
 
 module Physics.Constraint.OptConstraint where
 
@@ -10,24 +11,18 @@ import GHC.Prim (Double#, (==##))
 import GHC.Types (Double(D#), isTrue#)
 
 import Control.Lens hiding (transform)
-import Linear.V2
-import Linear.V3
-import Linear.Vector
-import Linear.Metric
---import Physics.Linear
-import Physics.Transform
+import Physics.Constraint.OptLinear
 import Utils.Utils
 
 data InvMass2 = InvMass2 { _imLin :: Double#
                          , _imRot :: Double#
                          } deriving (Show, Eq)
-data PhysicalObj = PhysicalObj { _physObjVel :: !(V2 Double)
+data PhysicalObj = PhysicalObj { _physObjVel :: !V2
                                , _physObjRotVel :: !Double
-                               , _physObjPos :: !(V2 Double)
+                               , _physObjPos :: !V2
                                , _physObjRotPos :: !Double
                                , _physObjInvMass :: !InvMass2
-                               } deriving (Show, Eq)
-
+                               } deriving (Show)
 makeLenses ''PhysicalObj
 
 class Physical p where
@@ -36,31 +31,31 @@ class Physical p where
 instance Physical PhysicalObj where
   physObj = id
 
-_physObjVel3 :: PhysicalObj -> V3 Double
+_physObjVel3 :: PhysicalObj -> V3
 _physObjVel3 po = _physObjVel po `append2` _physObjRotVel po
 
-physObjVel3 :: Functor f => (V3 Double -> f (V3 Double)) -> PhysicalObj -> f PhysicalObj
+physObjVel3 :: Functor f => (V3 -> f V3) -> PhysicalObj -> f PhysicalObj
 physObjVel3 f po = fmap g (f (_physObjVel3 po))
   where g v3' = po & physObjVel .~ v & physObjRotVel .~ vr
-          where (v, vr) = split3 v3'
+          where !(v, vr) = split3 v3'
 
 -- TODO: between incremental solutions, jacobian is expected to remain constant?
 --       otherwise, how to clamp?
-data Constraint = Constraint !(V6 Double) !Double deriving Show
+data Constraint = Constraint !V6 !Double deriving Show
 type Constraint' p = (p, p) -> Constraint
 type ConstraintResult = (Double, Constraint)
 type PhysObjChanged = PhysicalObj -> PhysicalObj -> Bool
 
-_constrainedVel6 :: (PhysicalObj, PhysicalObj) -> V6 Double
-_constrainedVel6 cp = uncurry join33 (pairMap (view physObjVel3) cp)
+_constrainedVel6 :: (PhysicalObj, PhysicalObj) -> V6
+_constrainedVel6 cp = uncurry join3v3 (pairMap (view physObjVel3) cp)
 
-constrainedVel6 :: (Functor f) => (V6 Double -> f (V6 Double)) -> (PhysicalObj, PhysicalObj) -> f (PhysicalObj, PhysicalObj)
+constrainedVel6 :: (Functor f) => (V6 -> f V6) -> (PhysicalObj, PhysicalObj) -> f (PhysicalObj, PhysicalObj)
 constrainedVel6 f cp = fmap g (f (_constrainedVel6 cp))
-  where g v6 = pairMap h (split33 v6) `pairAp` cp
+  where g v6 = pairMap h (split3v3 v6) `pairAp` cp
         h v3 po = po & physObjVel3 .~ v3
 
-invMassM2 :: InvMass2 -> InvMass2 -> Diag6 Double
-invMassM2 (InvMass2 ma ia) (InvMass2 mb ib) = toDiag6 [D# ma, D# ma, D# ia, D# mb, D# mb, D# ib]
+invMassM2 :: InvMass2 -> InvMass2 -> Diag6
+invMassM2 (InvMass2 ma ia) (InvMass2 mb ib) = Diag6 (V6 ma ma ia mb mb ib)
 
 isStatic :: InvMass2 -> Bool
 isStatic = (== InvMass2 0.0## 0.0##)
@@ -71,37 +66,37 @@ isStaticLin x = isTrue# (0.0## ==## _imLin x)
 isStaticRot :: InvMass2 -> Bool
 isStaticRot x = isTrue# (0.0## ==## _imRot x)
 
-_constrainedInvMassM2 :: (PhysicalObj, PhysicalObj) -> Diag6 Double
+_constrainedInvMassM2 :: (PhysicalObj, PhysicalObj) -> Diag6
 _constrainedInvMassM2 cp = uncurry invMassM2 (pairMap (view physObjInvMass) cp)
 
-_physObjTransform :: PhysicalObj -> WorldTransform Double
-_physObjTransform obj = toTransform (_physObjPos obj) (_physObjRotPos obj)
+--_physObjTransform :: PhysicalObj -> WorldTransform Double
+--_physObjTransform obj = toTransform (_physObjPos obj) (_physObjRotPos obj)
 
-velocity2 :: PhysicalObj -> PhysicalObj -> V6 Double
-velocity2 a b = (va `append2` wa) `join33` (vb `append2` wb)
+velocity2 :: PhysicalObj -> PhysicalObj -> V6
+velocity2 a b = (va `append2` wa) `join3v3` (vb `append2` wb)
   where va = _physObjVel a
         vb = _physObjVel b
         wa = _physObjRotVel a
         wb = _physObjRotVel b
 
 lagrangian2 :: (Physical p) => (p, p) -> Constraint -> Double
-lagrangian2 os (Constraint j b) = (-(j `dot` v + b)) / mc
+lagrangian2 os (Constraint j b) = (-((D# (j `dotV6` v)) + b)) / mc
   where v = velocity2 o1 o2
         mc = effMassM2 j o1 o2
         (o1, o2) = _physPair os
 
-effMassM2 :: V6 Double -> PhysicalObj -> PhysicalObj -> Double
-effMassM2 j a b = (j `mulDiag6` im) `dot` j
+effMassM2 :: V6 -> PhysicalObj -> PhysicalObj -> Double
+effMassM2 j a b = D# ((j `vmulDiag6` im) `dotV6` j)
   where im = curry _constrainedInvMassM2 a b
 
-constraintImpulse2 :: V6 Double -> Double -> V6 Double
-constraintImpulse2 j lagr = j ^* lagr
+constraintImpulse2 :: V6 -> Double -> V6
+constraintImpulse2 = smulV6'
 
 -- pc = impulse from constraint forces
-updateVelocity2_ :: V6 Double -> Diag6 Double -> V6 Double -> V6 Double
-updateVelocity2_ v im pc = v + (im `mulDiag6'` pc)
+updateVelocity2_ :: V6 -> Diag6 -> V6 -> V6
+updateVelocity2_ v im pc = v `plusV6` (im `vmulDiag6'` pc)
 
-applyLagrangian2 :: Diag6 Double -> V6 Double -> Double -> (PhysicalObj, PhysicalObj) -> (PhysicalObj, PhysicalObj)
+applyLagrangian2 :: Diag6 -> V6 -> Double -> (PhysicalObj, PhysicalObj) -> (PhysicalObj, PhysicalObj)
 applyLagrangian2 im j lagr = constrainedVel6 %~ f
   where f v6 = updateVelocity2_ v6 im (constraintImpulse2 j lagr)
 
@@ -126,7 +121,7 @@ applyConstraintResult (lagr, Constraint j _) ab = overWith physObj f ab
 
 advanceObj :: PhysicalObj -> Double -> PhysicalObj
 advanceObj obj dt = obj & physObjPos %~ f & physObjRotPos %~ g
-  where f pos = (dt *^ (obj ^. physObjVel)) + pos
+  where f pos = (dt `smulV2` (obj ^. physObjVel)) `plusV2` pos
         g ori = (dt * (obj ^. physObjRotVel)) + ori
 
 _physPair :: (Physical a) => (a, a) -> (PhysicalObj, PhysicalObj)

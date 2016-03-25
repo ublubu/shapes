@@ -1,16 +1,25 @@
 {-# LANGUAGE MagicHash #-}
 
-module Physics.Contact.Benchmark where
+module Physics.Constraint.Benchmark where
 
 import GHC.Types (Double(D#))
 
 import Criterion.Main
+import Data.Vector (toList)
 import Linear.V2
+import Linear.V
 
 import qualified Physics.Constraint as C
 import qualified Physics.Constraint.OptConstraint as OC
+import qualified Physics.Constraint.OptLinear as OL
 import Physics.Linear
 import Utils.Utils
+
+toOLV6 :: V6 Double -> OL.V6
+toOLV6 = OL.fromListV6 . toList . toVector
+
+toOLV2 :: V2 Double -> OL.V2
+toOLV2 (V2 a b) = OL.fromListV2 [a, b]
 
 testConstraint :: C.Constraint Double
 testConstraint = C.Constraint j 0
@@ -23,7 +32,7 @@ testConstraint = C.Constraint j 0
         n = V2 0 1
 
 toOptConstraint :: C.Constraint Double -> OC.Constraint
-toOptConstraint (C.Constraint j b) = OC.Constraint j b
+toOptConstraint (C.Constraint j b) = OC.Constraint (toOLV6 j) b
 
 testOptConstraint :: OC.Constraint
 testOptConstraint = toOptConstraint testConstraint
@@ -44,7 +53,7 @@ toOptInvMass :: C.InvMass2 Double -> OC.InvMass2
 toOptInvMass (D# m, D# i) = OC.InvMass2 m i
 
 toOptObj :: C.PhysicalObj Double -> OC.PhysicalObj
-toOptObj (C.PhysicalObj a b c d e) = OC.PhysicalObj a b c d (toOptInvMass e)
+toOptObj (C.PhysicalObj a b c d e) = OC.PhysicalObj (toOLV2 a) b (toOLV2 c) d (toOptInvMass e)
 
 testOptObjPair :: (OC.PhysicalObj, OC.PhysicalObj)
 testOptObjPair = pairMap toOptObj testObjPair
@@ -56,4 +65,7 @@ benchOpty :: Benchmark
 benchOpty = bench "opt solveConstraint" $ whnf (toSP . uncurry OC.solveConstraint) (testOptConstraint, testOptObjPair)
 
 main :: IO ()
-main = defaultMain [benchy, benchOpty]
+main = do
+  print $ C.solveConstraint testConstraint testObjPair
+  print $ OC.solveConstraint testOptConstraint testOptObjPair
+  defaultMain [benchy, benchOpty]
