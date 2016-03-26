@@ -1,53 +1,40 @@
 module Physics.Scenes.Rolling where
 
-import Linear.Affine
-import Linear.Epsilon
-import Linear.V2
-import Physics.Constraint
-import Physics.Contact
-import Physics.ConvexHull
-import Physics.External
-import Physics.Object
-import Physics.World
+import Data.Proxy
+import Physics.Engine.Class
 import Physics.Scenes.Scene
 
-shapeA :: (Fractional a, Eq a) => PhysicalObj a
-shapeA = PhysicalObj { _physObjVel = V2 0 0
-                     , _physObjRotVel = 0
-                     , _physObjPos = V2 0 (-6)
-                     , _physObjRotPos = 0
-                     , _physObjInvMass = toInvMass2 (0, 0) }
+shapeA :: (PhysicsEngine e) => Proxy e -> PEPhysicalObj e
+shapeA p = makePhysicalObj p (0, 0) 0 (0, -6) 0 (0, 0)
 
-shapeB :: (Fractional a, Eq a) => PhysicalObj a
-shapeB = PhysicalObj { _physObjVel = V2 0 0
-                     , _physObjRotVel = -3
-                     , _physObjPos = V2 (-7) 12
-                     , _physObjRotPos = 0
-                     , _physObjInvMass = toInvMass2 (1, 0.5) }
+shapeB :: (PhysicsEngine e) => Proxy e -> PEPhysicalObj e
+shapeB p = makePhysicalObj p (0, 0) (-3) (-7, 12) 0 (1, 0.5)
 
-shapeA' :: (Epsilon a, Floating a, Ord a) => WorldObj a
-shapeA' = makeWorldObj shapeA 0.5 $ listToHull [ P $ V2 9 (-0.5)
-                                               , P $ V2 (-9) 10
-                                               , P $ V2 (-9) (-0.5)]
+shapeA' :: (PhysicsEngine e) => Proxy e -> PEWorldObj e
+shapeA' p = makeWorldObj p (shapeA p) 0.5 $ makeHull p [ (9, -0.5)
+                                                       , (-9, 10)
+                                                       , (-9, -0.5)
+                                                       ]
 
-shapeB' :: (Epsilon a, Floating a, Ord a) => WorldObj a
-shapeB' = makeWorldObj shapeB 0.5 $ listToHull [ P $ V2 2 1
-                                               , P $ V2 1 2
-                                               , P $ V2 (-1) 2
-                                               , P $ V2 (-2) 1
-                                               , P $ V2 (-2) (-1)
-                                               , P $ V2 (-1) (-2)
-                                               , P $ V2 1 (-2)
-                                               , P $ V2 2 (-1) ]
+shapeB' :: (PhysicsEngine e) => Proxy e -> PEWorldObj e
+shapeB' p = makeWorldObj p (shapeB p) 0.5 $ makeHull p [ (2, 1)
+                                                       , (1, 2)
+                                                       , (-1, 2)
+                                                       , (-2, 1)
+                                                       , (-2, -1)
+                                                       , (-1, -2)
+                                                       , (1, -2)
+                                                       , (2, -1)
+                                                       ]
 
-world :: (Epsilon a, Floating a, Ord a) => World (WorldObj a)
-world = fromList [shapeA', shapeB']
+world :: (PhysicsEngine e) => Proxy e -> PEWorld e (PEWorldObj e)
+world p = makeWorld p [shapeA' p, shapeB' p]
 
-externals :: (Physical n a, Epsilon n, Floating n, Ord n) => [External n a]
-externals = [constantAccel (V2 0 (-4))]
+externals :: (PhysicsEngine e) => Proxy e -> [PEExternal' e]
+externals p = [makeConstantAccel p (0, -4)]
 
-contactBehavior :: (Floating a) => ContactBehavior a
-contactBehavior = ContactBehavior 0.01 0.02
+contactBehavior :: (PhysicsEngine e) => Proxy e -> PEContactBehavior e
+contactBehavior p = makeContactBehavior p 0.01 0.02
 
-scene :: (Physical a p, Epsilon a, Floating a, Ord a, Eq a) => Scene a p
-scene = Scene world externals contactBehavior
+scene :: (PhysicsEngine e) => Proxy e -> Scene e
+scene p = Scene (world p) (externals p) (contactBehavior p)

@@ -3,11 +3,11 @@
 module Physics.Scenes.Scene where
 
 import Control.Lens
-import Physics.Contact
-import Physics.Object
-import Physics.World
+import Physics.Engine.Class
 
-data Scene a p = Scene { _scWorld :: World (WorldObj a)
-                       , _scExts :: [External a p]
-                       , _scContactBeh :: ContactBehavior a }
+data Scene e =
+  Scene { _scWorld :: PEWorld e (PEWorldObj e)
+        , _scExts :: [PEExternal' e]
+        , _scContactBeh :: PEContactBehavior e
+        }
 makeLenses ''Scene

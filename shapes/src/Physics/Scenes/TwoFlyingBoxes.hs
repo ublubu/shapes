@@ -1,42 +1,31 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 module Physics.Scenes.TwoFlyingBoxes where
 
-import Linear.Epsilon
-import Linear.V2
-import Physics.Constraint
-import Physics.Contact
-import Physics.ConvexHull
-import Physics.Object
-import Physics.World
+import Data.Proxy
+import Physics.Engine.Class
 import Physics.Scenes.Scene
 
-boxA :: (Fractional a, Eq a) => PhysicalObj a
-boxA = PhysicalObj { _physObjVel = V2 1 0
-                   , _physObjRotVel = 0
-                   , _physObjPos = V2 (-5) 0
-                   , _physObjRotPos = 0
-                   , _physObjInvMass = toInvMass2 (2, 1) }
+boxA :: (PhysicsEngine e) => Proxy e -> PEPhysicalObj e
+boxA p = makePhysicalObj p (1, 0) 0 (-5, 0) 0 (2, 1)
 
-boxB :: (Fractional a, Eq a) => PhysicalObj a
-boxB = PhysicalObj { _physObjVel = V2 (-4) 0
-                   , _physObjRotVel = 0
-                   , _physObjPos = V2 5 2
-                   , _physObjRotPos = 0
-                   , _physObjInvMass = toInvMass2 (1, 0.5) }
+boxB :: (PhysicsEngine e) => Proxy e -> PEPhysicalObj e
+boxB p = makePhysicalObj p (-4, 0) 0 (5, 2) 0 (1, 0.5)
 
-boxA' :: (Epsilon a, Floating a, Ord a) => WorldObj a
-boxA' = makeWorldObj boxA 0.2 $ rectangleHull 4 4
+boxA' :: (PhysicsEngine e) => Proxy e -> PEWorldObj e
+boxA' p = makeWorldObj p (boxA p) 0.2 $ makeRectangleHull p 4 4
 
-boxB' :: (Epsilon a, Floating a, Ord a) => WorldObj a
-boxB' = makeWorldObj boxB 0.2 $ rectangleHull 2 2
+boxB' :: (PhysicsEngine e) => Proxy e -> PEWorldObj e
+boxB' p = makeWorldObj p (boxB p) 0.2 $ makeRectangleHull p 2 2
 
-world :: (Epsilon a, Floating a, Ord a) => World (WorldObj a)
-world = fromList [boxA', boxB']
+world :: (PhysicsEngine e) => Proxy e -> PEWorld e (PEWorldObj e)
+world p = makeWorld p [boxA' p, boxB' p]
 
-externals :: (Physical n a, Epsilon n, Floating n, Ord n) => [External n a]
-externals = []
+externals :: (PhysicsEngine e) => Proxy e -> [PEExternal' e]
+externals _ = []
 
-contactBehavior :: (Floating a) => ContactBehavior a
-contactBehavior = ContactBehavior 0.01 0.02
+contactBehavior :: (PhysicsEngine e) => Proxy e -> PEContactBehavior e
+contactBehavior p = makeContactBehavior p 0.01 0.02
 
-scene :: (Physical a p, Epsilon a, Floating a, Ord a, Eq a) => Scene a p
-scene = Scene world externals contactBehavior
+scene :: (PhysicsEngine e) => Proxy e -> Scene e
+scene p = Scene (world p) (externals p) (contactBehavior p)
