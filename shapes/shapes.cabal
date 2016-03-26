@@ -59,7 +59,6 @@ library
                      , Physics.ConvexHull
                      , Physics.External
                      , Physics.Friction
-                     , Physics.Labels
                      , Physics.Linear
                      , Physics.NonPenetration
                      , Physics.Object

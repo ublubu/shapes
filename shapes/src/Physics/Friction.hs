@@ -6,7 +6,6 @@ import Control.Lens
 import Linear.Affine
 import Physics.Constraint
 import Physics.Contact
-import Physics.ContactSolver
 import Physics.ConvexHull
 import Physics.Linear
 import Utils.Utils

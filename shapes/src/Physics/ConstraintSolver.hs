@@ -10,11 +10,8 @@ import Control.Lens
 import qualified Data.IntMap.Strict as IM
 import Data.List (foldl')
 import Data.Maybe
-import Physics.Constraint
 import Physics.PairMap
-import Physics.World hiding (solveOne, solveMany)
 import Physics.WorldSolver
-import Utils.Utils
 
 {-
 n/x = dt (number type)
@@ -33,7 +30,7 @@ type PairCacheInitializer a c wc = Key -> (a, a) -> Maybe c -> wc -> (Maybe c, w
 type PairUpdater a c wc = Key -> (a, a) -> c -> wc -> ((a, a), c, wc)
 
 -- initialize global solver cache
-type WorldCacheInitializer a x wc = WSGen (World a) Key (a, a) x wc
+type WorldCacheInitializer w a x wc = WSGen (w a) Key (a, a) x wc
 
 -- (was: State)
 data ConstraintSolverState c wc =
@@ -43,8 +40,8 @@ data ConstraintSolverState c wc =
 makeLenses ''ConstraintSolverState
 
 initConstraintSolverState :: PairCacheInitializer a c wc
-                          -> WorldCacheInitializer a x wc
-                          -> WSGen (World a) Key (a, a) x (ConstraintSolverState c wc)
+                          -> WorldCacheInitializer w a x wc
+                          -> WSGen (w a) Key (a, a) x (ConstraintSolverState c wc)
 initConstraintSolverState pairCacheInit worldCacheInit pairKeys l world dt csState0 =
   foldl' f (ConstraintSolverState IM.empty worldCache1) pairKeys
   where worldCache1 = worldCacheInit pairKeys l world dt (csState0 ^. csWorldCache)
@@ -53,8 +50,8 @@ initConstraintSolverState pairCacheInit worldCacheInit pairKeys l world dt csSta
 
 initOnePairCache :: PairCacheInitializer a c wc
                  -> Key
-                 -> WorldLens Key (World a) (a, a)
-                 -> World a
+                 -> WorldLens Key (w a) (a, a)
+                 -> w a
                  -> PairMap c
                  -> ConstraintSolverState c wc
                  -> ConstraintSolverState c wc
@@ -66,7 +63,7 @@ initOnePairCache pairCacheInit pairKey l world pairCachesSrc csStateAccum =
                                    (csStateAccum ^. csWorldCache)
         setPairCache = maybe id (insertPair pairKey) pairCache
 
-improve :: PairUpdater a c wc -> WSFunc (World a) Key (a, a) (ConstraintSolverState c wc)
+improve :: PairUpdater a c wc -> WSFunc (w a) Key (a, a) (ConstraintSolverState c wc)
 improve pairUpdater l world0 csState0 =
   foldl' f (world0, csState0) pairKeys
   where f (world, csState) pairKey =
@@ -75,10 +72,10 @@ improve pairUpdater l world0 csState0 =
 
 improveOne :: PairUpdater a c wc
            -> Key
-           -> WorldLens Key (World a) (a, a)
-           -> World a
+           -> WorldLens Key (w a) (a, a)
+           -> w a
            -> ConstraintSolverState c wc
-           -> (World a, ConstraintSolverState c wc)
+           -> (w a, ConstraintSolverState c wc)
 improveOne pairUpdater pairKey l world csState =
   (world', csState')
   where ab = fromJust $ world ^? l pairKey

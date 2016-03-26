@@ -2,7 +2,6 @@
 
 module Physics.Solver where
 
-import Control.Applicative
 import Control.Lens
 
 data Solver x k a = Solver !(SolverFunc x k a) !(SolverGen x k a)

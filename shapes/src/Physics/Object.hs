@@ -2,12 +2,11 @@
 
 module Physics.Object where
 
-import Control.Lens ((&), (%~), (^.), makeLenses)
+import Control.Lens ((&), (%~), makeLenses)
 import Linear.Epsilon
 import Physics.Constraint
 import Physics.Contact
 import Physics.ConvexHull
-import Physics.SAT
 import Physics.Transform
 
 data WorldObj n = WorldObj { _worldPhysObj :: !(PhysicalObj n)

@@ -39,6 +39,9 @@ split3 (V3 a b c) = (V2 a b, D# c)
 smulV2 :: Double -> V2 -> V2
 smulV2 (D# s) = liftV2 (*## s)
 
+smulV2' :: V2 -> Double -> V2
+smulV2' = flip smulV2
+
 sdivV2 :: Double -> V2 -> V2
 sdivV2 (D# s) = liftV2 (/## s)
 
@@ -63,11 +66,17 @@ plusV6 = lift2V6 (+##)
 minusV2 :: V2 -> V2 -> V2
 minusV2 = lift2V2 (-##)
 
+crossV2 :: V2 -> V2 -> Double
+crossV2 (V2 ax ay) (V2 bx by) = D# ((ax *## by) -## (ay *## bx))
+
 vmulDiag6 :: V6 -> Diag6 -> V6
 vmulDiag6 v (Diag6 m) = lift2V6 (*##) v m
 
 vmulDiag6' :: Diag6 -> V6 -> V6
 vmulDiag6' (Diag6 m) v = lift2V6 (*##) v m
+
+flip3v3 :: V6 -> V6
+flip3v3 (V6 a b c d e f) = V6 d e f a b c
 
 afdot :: P2 -> V2 -> Double
 afdot (P2 v0) v1 = D# (v0 `dotV2` v1)

@@ -12,6 +12,7 @@ import GHC.Types (Double(D#), isTrue#)
 
 import Control.Lens hiding (transform)
 import Physics.Constraint.OptLinear
+import Physics.Transform.OptTransform
 import Utils.Utils
 
 data InvMass2 = InvMass2 { _imLin :: Double#
@@ -69,8 +70,9 @@ isStaticRot x = isTrue# (0.0## ==## _imRot x)
 _constrainedInvMassM2 :: (PhysicalObj, PhysicalObj) -> Diag6
 _constrainedInvMassM2 cp = uncurry invMassM2 (pairMap (view physObjInvMass) cp)
 
---_physObjTransform :: PhysicalObj -> WorldTransform Double
---_physObjTransform obj = toTransform (_physObjPos obj) (_physObjRotPos obj)
+_physObjTransform :: PhysicalObj -> WorldTransform
+_physObjTransform obj = toTransform (_physObjPos obj) rot
+  where !(D# rot) = _physObjRotPos obj
 
 velocity2 :: PhysicalObj -> PhysicalObj -> V6
 velocity2 a b = (va `append2` wa) `join3v3` (vb `append2` wb)
