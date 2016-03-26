@@ -1,4 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
 module Physics.Broadphase where
 
 import Control.Lens (view)
@@ -11,7 +10,6 @@ import Physics.Contact
 import Physics.ConvexHull
 import Physics.SAT
 import Physics.Linear
-import Physics.Transform
 import Physics.World
 
 type Aabb n = V2 (n, n)

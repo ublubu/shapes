@@ -1,10 +1,12 @@
-{-# LANGUAGE TemplateHaskell, FlexibleContexts, RankNTypes #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE RankNTypes #-}
 
-module Physics.World where
+module Physics.World.OptWorld where
 
 import Control.Lens
 import qualified Data.IntMap.Strict as IM
-import Physics.Constraint hiding (solveConstraint)
+import Physics.Constraint.OptConstraint hiding (solveConstraint)
 import Utils.Utils
 
 data World a = World { _worldObjs :: !(IM.IntMap a)
@@ -25,8 +27,8 @@ worldPair :: (Int, Int) -> Traversal' (World a) (a, a)
 worldPair ij = worldObjs . pairiix ij
 
 data WorldPair a = WorldPair (Int, Int) a deriving Show
-type External' n = n -> PhysicalObj n -> PhysicalObj n
-type External n a = n -> a -> a
+type External' = Double -> PhysicalObj -> PhysicalObj
+type External a = Double -> a -> a
 type WorldChanged a = World a -> World a -> Bool
 
 instance Functor WorldPair where
@@ -38,7 +40,7 @@ fromPair (WorldPair _ a) = a
 pairIndex :: WorldPair a -> (Int, Int)
 pairIndex (WorldPair ij _) = ij
 
-advanceWorld :: (Physical n a, Num n) => n -> World a -> World a
+advanceWorld :: (Physical a) => Double -> World a -> World a
 advanceWorld dt w = w & worldObjs.traverse.physObj %~ (`advanceObj` dt)
 
 allPairs :: World a -> [WorldPair (a, a)]
@@ -49,14 +51,14 @@ allPairs w = fst $ ifoldlOf (worldObjs.traversed) f ([], []) w
 allKeys :: World a -> [(Int, Int)]
 allKeys = fmap pairIndex . allPairs
 
-wrapExternal :: (Physical n a) => External' n -> External n a
+wrapExternal :: (Physical a) => External' -> External a
 wrapExternal f dt = over physObj (f dt)
 
-applyExternals :: [External n a] -> n -> World a -> World a
+applyExternals :: [External a] -> Double -> World a -> World a
 applyExternals exts dt w = foldl f w exts
   where f w0 ext = w0 & worldObjs.traverse %~ ext dt
 
-getWorldChanged :: (Physical n a) => PhysObjChanged n -> WorldChanged a
+getWorldChanged :: (Physical a) => PhysObjChanged -> WorldChanged a
 getWorldChanged objChanged w w' = anyOf traverse id (ixZipWith f os os')
   where f o mo' = case mo' of
           Just o' -> objChanged (o ^. physObj) (o' ^. physObj)

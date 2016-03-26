@@ -12,6 +12,8 @@ data SP a b = SP { _spFst :: !a
                  } deriving (Show, Eq)
 makeLenses ''SP
 
+type SP' a = SP a a
+
 toSP :: (a, b) -> SP a b
 toSP (x, y) = SP x y
 
