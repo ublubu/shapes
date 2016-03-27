@@ -14,7 +14,7 @@ class (Fractional (PENumber e)) => PhysicsEngine e where
   type PENumber e :: *
   type PEConvexHull e :: *
 
-  -- vel, rotvel, pos, rotpos, invmass
+  -- vel, rotvel, pos, rotpos, mass
   makePhysicalObj :: Proxy e
                   -> (PENumber e, PENumber e)
                   -> PENumber e
