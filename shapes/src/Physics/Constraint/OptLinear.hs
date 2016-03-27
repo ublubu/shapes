@@ -2,12 +2,16 @@
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
 
 module Physics.Constraint.OptLinear where
 
+import GHC.Generics (Generic)
 import GHC.Prim
 import GHC.Types (Double(D#))
 
+import Control.DeepSeq
 import Control.Lens
 
 import Shapes.Linear.Template (makeVectorType, defineJoinSplit)
@@ -28,7 +32,10 @@ $(defineJoinSplit doubleInfo (3, 3))
 
 newtype Diag6 = Diag6 V6 deriving Show
 
-newtype P2 = P2 V2 deriving Show
+newtype P2 = P2 V2 deriving (Generic, Show, NFData)
+
+instance NFData V2 where
+  rnf (V2 _ _) = ()
 
 append2 :: V2 -> Double -> V3
 (V2 a b) `append2` (D# c) = V3 a b c

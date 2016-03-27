@@ -1,7 +1,12 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
 
 module Physics.World.OptObject where
 
+import GHC.Generics (Generic)
+
+import Control.DeepSeq
 import Control.Lens ((&), (%~), makeLenses)
 import Physics.Constraint.OptConstraint
 import Physics.Contact.OptContact
@@ -12,7 +17,7 @@ data WorldObj =
   WorldObj { _worldPhysObj :: !PhysicalObj
            , _worldObjMu :: !Double
            , _worldShape :: !ConvexHull
-           }
+           } deriving (Generic, NFData)
 makeLenses ''WorldObj
 
 instance Show WorldObj where

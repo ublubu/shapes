@@ -7,12 +7,15 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE MagicHash #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
 
 module Physics.Contact.OptConvexHull where
 
+import GHC.Generics (Generic)
 import GHC.Prim (Double#, (/##), negateDouble#)
-import GHC.Types (Double(D#))
 
+import Control.DeepSeq
 import Control.Lens (makeLenses)
 import Data.Array
 import Physics.Constraint.OptLinear
@@ -23,14 +26,17 @@ data Neighborhood = Neighborhood { _neighborhoodCenter :: !P2
                                  , _neighborhoodPrev :: Neighborhood
                                  , _neighborhoodUnitNormal :: !V2
                                  , _neighborhoodIndex :: !Int
-                                 }
+                                 } deriving (Generic)
 makeLenses ''Neighborhood
+
+instance NFData Neighborhood where
+  rnf (Neighborhood a _ _ b c) = rnf (a, b, c)
 
 data Extent f =
   Extent { _extentMin :: !f
          , _extentMax :: !f
          , _extentProjection :: !(SP Double Double)
-         } deriving (Show, Eq)
+         } deriving (Show, Eq, Generic, NFData)
 makeLenses ''Extent
 
 instance Functor Extent where
@@ -52,7 +58,7 @@ data ConvexHull =
              , _hullNeighborhoods :: Array Int Neighborhood
              , _hullExtents :: !(Array Int (Int, Int))
              , _hullLocalVertices :: !(Array Int P2)
-             } deriving (Show)
+             } deriving (Show, Generic, NFData)
 makeLenses ''ConvexHull
 
 _hullNeighborhood :: Int -> ConvexHull -> Neighborhood

@@ -1,7 +1,16 @@
-{-# LANGUAGE PatternSynonyms, TemplateHaskell, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses #-}
+{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
 
 module Physics.Object where
 
+import GHC.Generics (Generic)
+
+import Control.DeepSeq
 import Control.Lens ((&), (%~), makeLenses)
 import Linear.Epsilon
 import Physics.Constraint
@@ -12,7 +21,7 @@ import Physics.Transform
 data WorldObj n = WorldObj { _worldPhysObj :: !(PhysicalObj n)
                            , _worldObjMu :: !n
                            , _worldShape :: !(ConvexHull n)
-                           } deriving (Eq)
+                           } deriving (Eq, Generic, NFData)
 makeLenses ''WorldObj
 
 instance (Show n) => Show (WorldObj n) where

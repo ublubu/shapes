@@ -96,6 +96,7 @@ library
   build-depends:       array
                      , base
                      , containers
+                     , deepseq
                      , either
                      , ghc-prim
                      , lens
@@ -130,6 +131,7 @@ executable shapes-prof
   build-depends:       array
                      , base
                      , containers
+                     , deepseq
                      , criterion
                      , either
                      , ghc-prim

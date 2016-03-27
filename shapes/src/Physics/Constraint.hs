@@ -1,7 +1,15 @@
-{-# LANGUAGE DataKinds, TemplateHaskell, FunctionalDependencies, FlexibleInstances #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
 
 module Physics.Constraint where
 
+import GHC.Generics (Generic)
+
+import Control.DeepSeq
 import Control.Lens hiding (transform)
 import Linear.V2
 import Linear.V3
@@ -17,7 +25,7 @@ data PhysicalObj a = PhysicalObj { _physObjVel :: !(V2 a)
                                  , _physObjPos :: !(V2 a)
                                  , _physObjRotPos :: !a
                                  , _physObjInvMass :: !(InvMass2 a)
-                                 } deriving (Show, Eq)
+                                 } deriving (Show, Eq, Generic, NFData)
 
 makeLenses ''PhysicalObj
 

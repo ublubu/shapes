@@ -1,7 +1,14 @@
-{-# LANGUAGE FlexibleContexts, RankNTypes, TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
 
 module Utils.Utils where
 
+import GHC.Generics (Generic)
+
+import Control.DeepSeq
 import Control.Lens
 import Data.Maybe
 import Data.Tuple
@@ -9,7 +16,7 @@ import qualified Data.IntMap.Strict as IM
 
 data SP a b = SP { _spFst :: !a
                  , _spSnd :: !b
-                 } deriving (Show, Eq)
+                 } deriving (Show, Eq, Generic, NFData)
 makeLenses ''SP
 
 type SP' a = SP a a

@@ -4,12 +4,16 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
 
 module Physics.Constraint.OptConstraint where
 
+import GHC.Generics (Generic)
 import GHC.Prim (Double#, (==##))
 import GHC.Types (Double(D#), isTrue#)
 
+import Control.DeepSeq
 import Control.Lens hiding (transform)
 import Physics.Constraint.OptLinear
 import Physics.Transform.OptTransform
@@ -18,12 +22,16 @@ import Utils.Utils
 data InvMass2 = InvMass2 { _imLin :: Double#
                          , _imRot :: Double#
                          } deriving (Show, Eq)
+
+instance NFData InvMass2 where
+  rnf (InvMass2 _ _) = ()
+
 data PhysicalObj = PhysicalObj { _physObjVel :: !V2
                                , _physObjRotVel :: !Double
                                , _physObjPos :: !V2
                                , _physObjRotPos :: !Double
                                , _physObjInvMass :: !InvMass2
-                               } deriving (Show)
+                               } deriving (Show, Generic, NFData)
 makeLenses ''PhysicalObj
 
 class Physical p where

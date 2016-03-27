@@ -6,10 +6,15 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
 
 module Physics.ConvexHull where
 
-import Control.Lens ((^.), (.~), (%~), makeLenses)
+import GHC.Generics (Generic)
+
+import Control.DeepSeq
+import Control.Lens (makeLenses)
 import Data.Array
 import Linear.Affine
 import Linear.Epsilon
@@ -17,15 +22,17 @@ import Linear.Metric
 import Linear.V2
 import Utils.Utils
 import Physics.Linear
-import Physics.Transform
 
 data Neighborhood a = Neighborhood { _neighborhoodCenter :: !(P2 a)
                                    , _neighborhoodNext :: Neighborhood a
                                    , _neighborhoodPrev :: Neighborhood a
                                    , _neighborhoodUnitNormal :: !(V2 a)
                                    , _neighborhoodIndex :: !Int
-                                   } deriving (Eq)
+                                   } deriving (Eq, Generic)
 makeLenses ''Neighborhood
+
+instance (NFData a) => NFData (Neighborhood a) where
+  rnf (Neighborhood a _ _ b c) = rnf (a, b, c)
 
 data Extent a f =
   Extent { _extentMin :: !f
@@ -53,7 +60,7 @@ data ConvexHull a =
              , _hullNeighborhoods :: Array Int (Neighborhood a)
              , _hullExtents :: !(Array Int (Int, Int))
              , _hullLocalVertices :: !(Array Int (P2 a))
-             } deriving (Show, Eq)
+             } deriving (Show, Eq, Generic, NFData)
 makeLenses ''ConvexHull
 
 _hullNeighborhood :: Int -> ConvexHull a -> Neighborhood a
@@ -172,10 +179,10 @@ makeNeighborhoods hull@ConvexHull{..} =
 
 makeNeighborhood :: ConvexHull a -> Int -> Neighborhood a
 makeNeighborhood ConvexHull{..} i =
-  Neighborhood { _neighborhoodCenter = (_hullVertices ! i)
-               , _neighborhoodNext = (_hullNeighborhoods ! (nextIndex maxIndex i))
-               , _neighborhoodPrev = (_hullNeighborhoods ! (prevIndex maxIndex i))
-               , _neighborhoodUnitNormal = (_hullEdgeNormals ! i)
+  Neighborhood { _neighborhoodCenter = _hullVertices ! i
+               , _neighborhoodNext = _hullNeighborhoods ! nextIndex maxIndex i
+               , _neighborhoodPrev = _hullNeighborhoods ! prevIndex maxIndex i
+               , _neighborhoodUnitNormal = _hullEdgeNormals ! i
                , _neighborhoodIndex = i
                }
   where maxIndex = arrMaxBound _hullVertices
@@ -186,7 +193,7 @@ ixedMap f arr = listArray (bounds arr) $ fmap (f arr) (indices arr)
 edgeNormal :: (Num a, Ord a) => Int -> Array Int (P2 a) -> Int -> V2 a
 edgeNormal maxIndex vs i = clockwise2 (v' .-. v)
   where v = vs ! i
-        v' = vs ! (nextIndex maxIndex i)
+        v' = vs ! nextIndex maxIndex i
 
 unitEdgeNormal :: (Epsilon a, Floating a, Ord a) => Int -> Array Int (P2 a) -> Int -> V2 a
 unitEdgeNormal maxIndex vs = normalize . edgeNormal maxIndex vs

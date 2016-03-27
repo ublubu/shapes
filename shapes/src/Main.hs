@@ -1,5 +1,6 @@
 module Main where
 
+import Control.DeepSeq
 import Criterion.Main
 import Data.Proxy
 import Utils.Utils
@@ -14,7 +15,7 @@ import qualified Physics.Broadphase.Benchmark as BB
 import qualified Physics.Engine.SimpleMain as SM
 import qualified Physics.Engine.OptMain as OM
 
-benchy :: (Num n, Show world)
+benchy :: (Num n, NFData world)
        => String
        -> Proxy e
        -> (Proxy e -> scene)
@@ -22,7 +23,7 @@ benchy :: (Num n, Show world)
        -> (scene -> n -> SP world cache -> SP world cache)
        -> Benchmark
 benchy prefix p sceneGen stateGen stepGen =
-  bench (prefix ++ " updateWorld 10") $ whnf (show . _spFst . f) s0
+  bench (prefix ++ " updateWorld 10") $ nf (_spFst . f) s0
   where s0 = stepGen scene 10 $ stateGen scene
         f = stepGen scene 10
         scene = sceneGen p

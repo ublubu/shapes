@@ -1,16 +1,21 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
 
 module Physics.World.OptWorld where
 
+import GHC.Generics (Generic)
+
+import Control.DeepSeq
 import Control.Lens
 import qualified Data.IntMap.Strict as IM
 import Physics.Constraint.OptConstraint hiding (solveConstraint)
 import Utils.Utils
 
 data World a = World { _worldObjs :: !(IM.IntMap a)
-                     , _worldNextKey :: !Int } deriving Show
+                     , _worldNextKey :: !Int } deriving (Show, Generic, NFData)
 makeLenses ''World
 
 emptyWorld :: World a
