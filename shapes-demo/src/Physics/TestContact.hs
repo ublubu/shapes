@@ -17,8 +17,9 @@ import Physics.ConvexHull
 import Physics.Linear
 import Physics.Object
 import Physics.SAT (contactDebug, minOverlap', penetratingEdge, penetratedEdge, Overlap(..), _MinOverlap, Contact(..))
-import Physics.Transform
 import Physics.Draw
+import Physics.Draw.Canonical (transform, transCanon)
+import Physics.Draw.Simple
 import SDL.Event
 import GameInit
 import GameLoop hiding (testStep)
@@ -45,8 +46,8 @@ boxA _ = makeBox (V2 0 0) 0 (4, 4)
 boxB :: TestState -> WorldObj Double
 boxB (TestState _ posB angleB) = makeBox posB angleB (2, 2)
 
-vt :: WorldTransform Double
-vt = viewTransform (V2 800 600) (V2 40 40) (V2 0 0)
+vt :: M33 Double
+vt = fst $ viewTransform (V2 800 600) (V2 40 40) (V2 0 0)
 
 overlapTest :: R.Renderer -> ConvexHull Double -> ConvexHull Double -> IO ()
 overlapTest r sa sb = do
@@ -56,7 +57,7 @@ overlapTest r sa sb = do
 renderOverlap :: R.Renderer -> Maybe (Overlap Double) -> IO ()
 renderOverlap r ovl = do
   setColor r red
-  maybe (print "no overlap") (drawOverlap r . LocalT vt) ovl
+  maybe (print "no overlap") (drawOverlap r . transCanon vt) ovl
   maybe (return ()) (drawLine_ r . transform vt) pene
   maybe (return ()) (drawLine_ r . transform vt) edge
 
@@ -75,14 +76,14 @@ contactTest r sa sb = do
         c :: Maybe (Either (Contact Double) (Contact Double))
         c = fmap flipAsEither . unwrapContactResult $ mFlipContact
         drawC = either f f
-          where f = drawContact r . LocalT vt
+          where f = drawContact r . transCanon vt
 
 contactTest' :: R.Renderer -> WorldObj Double -> WorldObj Double -> IO ()
 contactTest' r a b = do
   setColor r cyan
   mapM_ f contacts
   where contacts = generateContacts (a, b)
-        f = drawContact' r . LocalT vt . flipExtract
+        f = drawContact r . transCanon vt . flipExtract
 
 renderTest :: R.Renderer -> TestState -> IO ()
 renderTest r state = do

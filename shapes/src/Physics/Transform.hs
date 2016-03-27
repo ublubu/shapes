@@ -66,6 +66,7 @@ instance Functor WorldT where
 
 -- wExtract and wInject don't change the transform - they only move between types
 class WorldTransformable t a where
+  -- TODO: deduplicate - these are just opposite sides of a tuple
   transform :: WorldTransform a -> t -> t
   untransform :: WorldTransform a -> t -> t
 

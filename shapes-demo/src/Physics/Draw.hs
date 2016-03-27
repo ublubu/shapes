@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Physics.Draw where
 
@@ -7,12 +8,9 @@ import Control.Lens ((^.), _1, _2)
 import Linear.Affine
 import Linear.V2
 import qualified SDL.Video.Renderer as R
-import Physics.Contact
-import Physics.ConvexHull
-import Physics.SAT
-import Physics.Transform
+import Physics.Draw.Canonical
+import Physics.Transform (WorldTransform, joinTransforms', translateTransform, scaleTransform, translateTransform)
 import Physics.Linear
-import Utils.Utils
 
 toRenderable :: (Functor f, RealFrac a, Integral b) => f a -> f b
 toRenderable = fmap floor
@@ -39,8 +37,8 @@ drawPoint r p = R.drawPoint r (toRenderable p)
 drawThickPoint :: (RealFrac a) => R.Renderer -> P2 a -> IO ()
 drawThickPoint r p = R.fillRect r (Just . toRenderable $ centeredRectangle p (V2 4 4))
 
-drawAabb :: (Floating a, RealFrac a) => R.Renderer -> LocalT a (V2 (a, a)) -> IO ()
-drawAabb r aabb = do
+drawAabb :: R.Renderer -> Aabb -> IO ()
+drawAabb r (Aabb aabb) = do
   drawLine r nw ne
   drawLine r ne se
   drawLine r se sw
@@ -49,73 +47,32 @@ drawAabb r aabb = do
         ne = extractCorner _2 _2
         sw = extractCorner _1 _1
         se = extractCorner _2 _1
-        f lx ly aabb' = P $ V2 (aabb' ^._x.lx) (aabb' ^._y.ly)
-        extractCorner lx ly = wExtract_ (lmap (f lx ly) aabb)
+        extractCorner lx ly = P $ V2 (aabb ^._x.lx) (aabb ^._y.ly)
 
-drawConvexHull :: (RealFrac a) => R.Renderer -> Vertices a -> IO ()
+drawConvexHull :: R.Renderer -> Polygon -> IO ()
 drawConvexHull r vertices = sequence_ (fmap f segments)
   where f (v1, v2) = drawLine r v1 v2
         segments = zip vertices (tail vertices ++ [head vertices])
 
-extractDepth :: (Floating a, Ord a) => LocalT a (Overlap a) -> V2 a
-extractDepth = wExtract_ . lmap f
-  where f ovl = fmap (*(-s)) n
-          where s = _overlapDepth ovl
-                n = _neighborhoodUnitNormal . _overlapEdge $ ovl
-
-extractEdge :: (Floating a, Ord a) => LocalT a (Overlap a) -> (P2 a, P2 a)
-extractEdge = wExtract_ . lmap f
-  where f ovl = (_neighborhoodCenter a, _neighborhoodCenter b)
-          where a = _overlapEdge ovl
-                b = _neighborhoodNext a
-
-extractPenetrator :: (Floating a, Ord a) => LocalT a (Overlap a) -> P2 a
-extractPenetrator = wExtract_ . lmap (_neighborhoodCenter . _overlapPenetrator)
-
-drawOverlap :: (Floating a, RealFrac a, Ord a) => R.Renderer -> LocalT a (Overlap a) -> IO ()
-drawOverlap r ovl = do
+drawOverlap :: R.Renderer -> Overlap -> IO ()
+drawOverlap r Overlap{..} = do
   drawLine r a b
   drawLine r c c'
-  drawThickPoint r pen
-  where depth = extractDepth ovl
-        (a, b) = extractEdge ovl
+  drawThickPoint r _overlapPenetrator
+  where (a, b) = _overlapEdge
         c = center2 a b
-        c' = c .+^ depth
-        pen = extractPenetrator ovl
+        c' = c .+^ _overlapVector
 
-extractContactPoints :: forall a . (Floating a)
-                     => LocalT a (Contact a)
-                     -> Either (P2 a) (P2 a, P2 a)
-extractContactPoints cont =
-  either (Left . f) (Right . f') $ flipEither (lmap _contactPenetrator cont)
-  where flipEither :: LocalT a (Either b c) -> Either (LocalT a b) (LocalT a c)
-        flipEither (LocalT t (Left x)) = Left (LocalT t x)
-        flipEither (LocalT t (Right x)) = Right (LocalT t x)
-        f = wExtract_ . lmap _neighborhoodCenter
-        f' = wExtract_ . lmap (pairMap _neighborhoodCenter)
-
-extractContactNormal :: (Floating a) => LocalT a (Contact a) -> V2 a
-extractContactNormal = wExtract_ . lmap (_neighborhoodUnitNormal . _contactEdge)
-
-drawContact' :: (Floating a, RealFrac a, Show a) => R.Renderer -> LocalT a (Contact' a) -> IO ()
-drawContact' r cont = do
-  drawThickPoint r p
-  drawLine r p (p .+^ n)
-  where p = wExtract_ . lmap (_neighborhoodCenter . _contactPenetrator') $ cont
-        n = wExtract_ . lmap (_neighborhoodUnitNormal . _contactEdge') $ cont
-
-drawContact :: (Floating a, RealFrac a) => R.Renderer -> LocalT a (Contact a) -> IO ()
-drawContact r cont = do
-  (c, c') <- either f g ps
+drawContact :: R.Renderer -> Contact -> IO ()
+drawContact r Contact{..} = do
+  (c, c') <- either f g _contactPoints
   drawLine r c c'
   where f a = do
           drawThickPoint r a
-          return (a, a .+^ n)
+          return (a, a .+^ _contactNormal)
         g (a, b) = do
           drawThickPoint r a
           drawThickPoint r b
           return (c, c')
             where c = center2 a b
-                  c' = c .+^ n
-        ps = extractContactPoints cont
-        n = extractContactNormal cont
+                  c' = c .+^ _contactNormal

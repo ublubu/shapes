@@ -1,19 +1,24 @@
-{-# LANGUAGE PatternSynonyms, TemplateHaskell, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Physics.TestWorld where
 
 import Control.Monad
-import Control.Lens
+import Control.Lens ((^.), (.~), (%~), (&), makeLenses)
 import qualified Data.IntMap.Strict as IM
 import EasySDL.Draw
 import GHC.Word
 import Linear.V2
+import Linear.Matrix
 import Physics.Broadphase
 import Physics.Contact
 import qualified Physics.Solvers as S
-import Physics.Transform
 import Physics.Draw
-import Physics.DrawWorld
+import Physics.Draw.Canonical
+import Physics.Draw.Simple
 import Physics.World
 import GameLoop hiding (testStep)
 import qualified SDL.Event as E
@@ -37,8 +42,8 @@ data TestState = TestState { _testWorldState :: EngineState
                            }
 makeLenses ''TestState
 
-vt :: WorldTransform Double
-vt = viewTransform (V2 400 300) (V2 20 20) (V2 0 0)
+vt :: M33 Double
+vt = fst $ viewTransform (V2 400 300) (V2 20 20) (V2 0 0)
 
 initialState :: Int -> TestState
 initialState i =
@@ -64,13 +69,13 @@ renderContacts r s = do
   setColor r pink
   sequence_ . join $ fmap f cs
   where f (WorldPair _ fcs) = fmap g fcs
-        g = drawContact' r . LocalT vt . flipExtract
+        g = drawContact r . transCanon vt . flipExtract
         cs = fmap generateContacts <$> culledPairs (s ^. testWorldState . spFst)
 
 renderAabbs :: R.Renderer -> TestState -> IO ()
 renderAabbs r s = do
   setColor r silver
-  mapM_ (drawAabb r . LocalT vt) $ IM.elems (toAabbs world)
+  mapM_ (drawAabb r . transform vt . Aabb) $ IM.elems (toAabbs world)
   where world = s ^.testWorldState.spFst
 
 testStep :: R.Renderer -> TestState -> Word32 -> IO TestState
