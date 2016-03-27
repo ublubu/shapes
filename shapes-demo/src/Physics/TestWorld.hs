@@ -7,20 +7,14 @@ import Control.Lens
 import qualified Data.IntMap.Strict as IM
 import EasySDL.Draw
 import GHC.Word
-import Linear.Epsilon
 import Linear.V2
 import Physics.Broadphase
-import Physics.Constraint
-import Physics.ConstraintSolver
-import Physics.ContactSolver
 import Physics.Contact
-import Physics.Object
 import qualified Physics.Solvers as S
 import Physics.Transform
 import Physics.Draw
 import Physics.DrawWorld
-import Physics.World hiding (testWorld)
-import Physics.WorldSolver
+import Physics.World
 import GameLoop hiding (testStep)
 import qualified SDL.Event as E
 import qualified SDL.Time as T
@@ -29,37 +23,27 @@ import qualified SDL.Input.Keyboard as K
 import qualified SDL.Input.Keyboard.Codes as KC
 import Utils.Utils
 
+import Physics.Engine.Simple
+import Physics.Engine.SimpleMain
 import Physics.Scenes.Scene
 import Physics.Scenes.Scenes
 
-type EngineState n = SP (World (WorldObj n)) (S.ContactSolverState n (WorldObj n))
-data TestState = TestState { _testWorldState :: EngineState Double
+data TestState = TestState { _testWorldState :: EngineState
                            , _testFinished :: Bool
-                           , _testScene :: Scene Double (WorldObj Double)
+                           , _testScene :: Scene SimpleEngine
                            , _testSceneIndex :: Int
                            , _testDrawDebug :: Bool
                            , _testPrintDebug :: Bool
                            }
 makeLenses ''TestState
 
-updateWorld :: (Epsilon n, Floating n, Ord n) => Scene n (WorldObj n) -> n -> EngineState n -> EngineState n
-updateWorld scene dt (SP w s) = SP w''' s'
-  where w1 = applyExternals (scene ^. scExts) dt w
-        maxSolverIterations = 1
-        worldChanged = const . const $ True
-        (w', s') = wsolve' S.contactSolver' worldChanged maxSolverIterations (culledKeys w1) worldPair w1 dt s
-        w'' = advanceWorld dt w'
-        w''' = w'' & worldObjs %~ fmap updateShape
-
 vt :: WorldTransform Double
 vt = viewTransform (V2 400 300) (V2 20 20) (V2 0 0)
 
 initialState :: Int -> TestState
 initialState i =
-  TestState (SP (scene ^. scWorld)
-             (S.emptyContactSolverState $ scene ^. scContactBeh))
-  False scene i True False
-  where scene = scenes !! i
+  TestState (defaultInitialState scene) False scene i True False
+  where scene = scenes engine !! i
 
 nextInitialState :: TestState -> Int -> TestState
 nextInitialState state0 i =
@@ -118,11 +102,12 @@ handleKeypress state KC.ScancodeN km
   | K.keyModifierLeftShift km || K.keyModifierRightShift km =
     nextInitialState state $
     (state ^. testSceneIndex - 1)
-    `posMod` length (scenes :: [Scene Double (WorldObj Double)])
+    `posMod` sceneCount
   | otherwise =
     nextInitialState state $
     (state ^. testSceneIndex + 1)
-    `mod` length (scenes :: [Scene Double (WorldObj Double)])
+    `mod` sceneCount
+  where sceneCount = length $ scenes engine
 handleKeypress state KC.ScancodeD _ =
   state & testDrawDebug %~ not
 handleKeypress state KC.ScancodeP _ =

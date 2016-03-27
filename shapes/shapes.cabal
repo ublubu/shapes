@@ -50,13 +50,27 @@ cabal-version:       >=1.10
 
 library
   exposed-modules:     Physics.Broadphase
+                     , Physics.Broadphase.OptAabb
                      , Physics.Constraint
+                     , Physics.Constraint.OptConstraint
+                     , Physics.Constraint.OptLinear
                      , Physics.ConstraintError
                      , Physics.ConstraintSolver
+                     , Physics.Constraints.OptContactConstraints
+                     , Physics.Constraints.OptFriction
+                     , Physics.Constraints.OptNonPenetration
                      , Physics.Contact
+                     , Physics.Contact.OptContact
+                     , Physics.Contact.OptConvexHull
+                     , Physics.Contact.OptSAT
                      , Physics.ContactConstraints
                      , Physics.ContactSolver
                      , Physics.ConvexHull
+                     , Physics.Engine.Class
+                     , Physics.Engine.Opt
+                     , Physics.Engine.OptMain
+                     , Physics.Engine.Simple
+                     , Physics.Engine.SimpleMain
                      , Physics.External
                      , Physics.Friction
                      , Physics.Linear
@@ -67,11 +81,18 @@ library
                      , Physics.SAT
                      , Physics.SolutionProcessors
                      , Physics.Solver
+                     , Physics.Solver.OptContactSolver
                      , Physics.Solvers
+                     , Physics.Solvers.OptSolutionProcessors
+                     , Physics.Solvers.OptSolvers
                      , Physics.TestPairMap
                      , Physics.TestSolver
                      , Physics.Transform
+                     , Physics.Transform.OptTransform
                      , Physics.World
+                     , Physics.World.OptExternal
+                     , Physics.World.OptObject
+                     , Physics.World.OptWorld
                      , Physics.WorldSolver
                      , Physics.Scenes.FourBoxesTwoStatic
                      , Physics.Scenes.Rolling
