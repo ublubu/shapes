@@ -40,6 +40,9 @@ physObjVel3 f po = fmap g (f (_physObjVel3 po))
   where g v3' = po & physObjVel .~ v & physObjRotVel .~ vr
           where !(v, vr) = split3 v3'
 
+toInvMass2 :: (Double, Double) -> InvMass2
+toInvMass2 (D# iml, D# imr) = InvMass2 iml imr
+
 -- TODO: between incremental solutions, jacobian is expected to remain constant?
 --       otherwise, how to clamp?
 data Constraint = Constraint !V6 !Double deriving Show
