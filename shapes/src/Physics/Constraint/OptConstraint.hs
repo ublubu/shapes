@@ -10,7 +10,7 @@
 module Physics.Constraint.OptConstraint where
 
 import GHC.Generics (Generic)
-import GHC.Prim (Double#, (==##))
+import GHC.Prim (Double#, (==##), (/##))
 import GHC.Types (Double(D#), isTrue#)
 
 import Control.DeepSeq
@@ -49,7 +49,8 @@ physObjVel3 f po = fmap g (f (_physObjVel3 po))
           where !(v, vr) = split3 v3'
 
 toInvMass2 :: (Double, Double) -> InvMass2
-toInvMass2 (D# iml, D# imr) = InvMass2 iml imr
+toInvMass2 (D# ml, D# mr) = InvMass2 (invert ml) (invert mr)
+  where invert m = 1.0## /## m
 
 -- TODO: between incremental solutions, jacobian is expected to remain constant?
 --       otherwise, how to clamp?

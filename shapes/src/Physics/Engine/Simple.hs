@@ -7,7 +7,7 @@ import Physics.Engine.Class
 import Physics.World (World, External, fromList)
 import Physics.Object (WorldObj)
 import qualified Physics.Object as PO
-import Physics.Constraint (PhysicalObj(..))
+import Physics.Constraint (PhysicalObj(..), toInvMass2)
 import Physics.Contact (ContactBehavior(..))
 import Physics.ConvexHull (ConvexHull, rectangleHull, listToHull)
 import Physics.External (constantAccel)
@@ -29,8 +29,8 @@ instance PhysicsEngine SimpleEngine where
   type PENumber SimpleEngine = Double
   type PEConvexHull SimpleEngine = ConvexHull Double
 
-  makePhysicalObj _ vel rotvel pos =
-    PhysicalObj (pairToV2 vel) rotvel (pairToV2 pos)
+  makePhysicalObj _ vel rotvel pos rotpos =
+    PhysicalObj (pairToV2 vel) rotvel (pairToV2 pos) rotpos . toInvMass2
   makeWorldObj _ = PO.makeWorldObj
   makeWorld _ = fromList
   makeContactBehavior _ = ContactBehavior
