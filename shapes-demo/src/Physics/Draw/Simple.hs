@@ -13,9 +13,9 @@ import Data.Either.Combinators
 
 import Linear.Matrix
 import qualified SDL.Video.Renderer as R
+import Physics.Draw
 
 import Physics.ConvexHull
-import Physics.Draw
 import Physics.Object (WorldObj(..))
 import qualified Physics.SAT as S
 import qualified Physics.Contact as S

@@ -37,6 +37,8 @@ newtype P2 = P2 V2 deriving (Generic, Show, NFData)
 instance NFData V2 where
   rnf (V2 _ _) = ()
 
+makeLenses ''P2
+
 append2 :: V2 -> Double -> V3
 (V2 a b) `append2` (D# c) = V3 a b c
 

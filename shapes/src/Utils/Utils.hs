@@ -24,6 +24,9 @@ type SP' a = SP a a
 toSP :: (a, b) -> SP a b
 toSP (x, y) = SP x y
 
+fromSP :: SP a b -> (a, b)
+fromSP (SP x y) = (x, y)
+
 spMap :: (a -> b) -> SP a a -> SP b b
 spMap f (SP x y) = SP (f x) (f y)
 

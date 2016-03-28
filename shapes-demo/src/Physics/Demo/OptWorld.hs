@@ -1,27 +1,27 @@
 {-# LANGUAGE TypeFamilies #-}
 
-module Physics.Demo.SimpleWorld where
+module Physics.Demo.OptWorld where
 
 import Control.Lens
 import Control.Monad
 import qualified Data.IntMap.Strict as IM
 
-import qualified Physics.Broadphase as B
-import Physics.Contact
-import Physics.Engine.Simple
-import qualified Physics.Engine.SimpleMain as SM
-import Physics.World
-import Physics.Solvers (toShowableSolverState)
+import qualified Physics.Broadphase.OptAabb as B
+import Physics.Contact.OptContact
+import Physics.Engine.Opt
+import qualified Physics.Engine.OptMain as OM
+import Physics.World.OptWorld
+import Physics.Solvers.OptSolvers (toShowableSolverState)
 
 import Physics.Draw.Canonical
-import qualified Physics.Draw.Simple as D
+import qualified Physics.Draw.Opt as D
 import Physics.Demo.World (Demo(..))
 
 import Utils.Utils
 
-instance Demo SimpleEngine where
-  type DEngineState SimpleEngine = SM.EngineState
-  initialEngineState _ = SM.defaultInitialState
+instance Demo Engine where
+  type DEngineState Engine = OM.EngineState
+  initialEngineState _ = OM.defaultInitialState
   drawWorld _ = D.drawWorld
   demoWorld _ = _spFst
   worldContacts _ world =
@@ -29,6 +29,6 @@ instance Demo SimpleEngine where
     where f (WorldPair _ fcs) = fmap (toCanonical . flipExtract) fcs
           cs = fmap generateContacts <$> B.culledPairs world
   worldAabbs _ world =
-    Aabb <$> IM.elems (B.toAabbs world)
+    toCanonical <$> IM.elems (B.toAabbs world)
   debugEngineState _ = show . over spSnd toShowableSolverState
-  updateWorld _ = SM.updateWorld
+  updateWorld _ = OM.updateWorld

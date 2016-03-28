@@ -67,6 +67,7 @@ executable shapes-demo
                      , base
                      , containers
                      , either
+                     , ghc-prim
                      , lens
                      , linear
                      , monad-extras

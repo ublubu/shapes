@@ -54,6 +54,7 @@ library
                      , Physics.Constraint
                      , Physics.Constraint.OptConstraint
                      , Physics.Constraint.OptLinear
+                     , Physics.Constraint.ConvertLinear
                      , Physics.ConstraintError
                      , Physics.ConstraintSolver
                      , Physics.Constraints.OptContactConstraints
