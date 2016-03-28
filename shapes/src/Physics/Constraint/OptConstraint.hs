@@ -70,6 +70,9 @@ constrainedVel6 f cp = fmap g (f (_constrainedVel6 cp))
 invMassM2 :: InvMass2 -> InvMass2 -> Diag6
 invMassM2 (InvMass2 ma ia) (InvMass2 mb ib) = Diag6 (V6 ma ma ia mb mb ib)
 
+blep :: InvMass2
+blep = InvMass2 0.0## 0.0##
+
 isStatic :: InvMass2 -> Bool
 isStatic = (== InvMass2 0.0## 0.0##)
 
