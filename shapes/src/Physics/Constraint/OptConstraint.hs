@@ -50,7 +50,7 @@ physObjVel3 f po = fmap g (f (_physObjVel3 po))
 
 toInvMass2 :: (Double, Double) -> InvMass2
 toInvMass2 (D# ml, D# mr) = InvMass2 (invert ml) (invert mr)
-  where invert m = 1.0## /## m
+  where invert m = if isTrue# (m ==## 0.0##) then 0.0## else 1.0## /## m
 
 -- TODO: between incremental solutions, jacobian is expected to remain constant?
 --       otherwise, how to clamp?

@@ -15,5 +15,5 @@ import qualified Physics.Demo.Contact as Contact
 import qualified Physics.Demo.World as World
 
 main :: IO ()
---main = runMain "physics test" (V2 400 300) $ World.demoMain Opt.engine
-main = runMain "contact test" (V2 800 600) $ Contact.demoMain Opt.engine
+main = runMain "physics test" (V2 400 300) $ World.demoMain Opt.engine
+--main = runMain "contact test" (V2 800 600) $ Contact.demoMain Opt.engine
