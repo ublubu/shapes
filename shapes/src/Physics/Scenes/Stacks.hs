@@ -1,6 +1,7 @@
 module Physics.Scenes.Stacks where
 
 import Control.Lens
+import Control.Monad
 import Data.Proxy
 import Physics.Engine.Class
 import Physics.Scenes.Scene
@@ -47,6 +48,19 @@ boxStack p size@(_, h) bottom vel spacing n =
   box' p size bottom vel : boxStack p size bottom' vel spacing (n - 1)
   where bottom' = bottom & _2 %~ (+ (h + spacing))
 
+stacks :: (PhysicsEngine e)
+       => Proxy e
+       -> (PENumber e, PENumber e)
+       -> (PENumber e, PENumber e)
+       -> (PENumber e, PENumber e)
+       -> PENumber e
+       -> (Int, Int)
+       -> [PEWorldObj e]
+stacks p size@(w, _) (center, bottom) vel spacing (n_w, n_h) =
+  join . fmap f . take n_w $ iterate (+ w) leftmost
+  where leftmost = center - (w * fromIntegral (n_w - 1) / 2)
+        f left = boxStack p size (left, bottom) vel spacing n_h
+
 world :: (PhysicsEngine e) => Proxy e -> PEWorld e (PEWorldObj e)
 world p = makeWorld p ([boxFloor' p] ++ boxStack p (2, 2) (8, -4.5) (-1, 0) 0 5 ++ boxStack p (2, 2) (5.5, -4.5) (-2, 0) 0 5)
 
@@ -55,31 +69,11 @@ world' p = makeWorld p ([boxFloor' p] ++ boxStack p (2, 2) (0, -4.5) (0, 0) 0 5 
 
 world'' :: (PhysicsEngine e) => Proxy e -> PEWorld e (PEWorldObj e)
 world'' p =
-  makeWorld p ([boxFloor' p]
-               ++ boxStack p (1, 1) (-4.5, -4.5) (0, 0) 1 7
-               ++ boxStack p (1, 1) (-3.5, -4.5) (0, 0) 1 7
-               ++ boxStack p (1, 1) (-2.5, -4.5) (0, 0) 1 7
-               ++ boxStack p (1, 1) (-1.5, -4.5) (0, 0) 1 7
-               ++ boxStack p (1, 1) (-0.5, -4.5) (0, 0) 1 7
-               ++ boxStack p (1, 1) (0.5, -4.5) (0, 0) 1 7
-               ++ boxStack p (1, 1) (1.5, -4.5) (0, 0) 1 7
-               ++ boxStack p (1, 1) (2.5, -4.5) (0, 0) 1 7
-               ++ boxStack p (1, 1) (3.5, -4.5) (0, 0) 1 7
-               ++ boxStack p (1, 1) (4.5, -4.5) (0, 0) 1 7)
+  makeWorld p (boxFloor' p : stacks p (1, 1) (0, -4.5) (0, 0) 1 (10, 10))
 
 world''' :: (PhysicsEngine e) => Proxy e -> PEWorld e (PEWorldObj e)
 world''' p =
-  makeWorld p ([boxFloor' p]
-               ++ boxStack p (1, 1) (-4.5, -4.5) (0, 0) 1 10
-               ++ boxStack p (1, 1) (-3.5, -4.5) (0, 0) 1 10
-               ++ boxStack p (1, 1) (-2.5, -4.5) (0, 0) 1 10
-               ++ boxStack p (1, 1) (-1.5, -4.5) (0, 0) 1 10
-               ++ boxStack p (1, 1) (-0.5, -4.5) (0, 0) 1 10
-               ++ boxStack p (1, 1) (0.5, -4.5) (0, 0) 1 10
-               ++ boxStack p (1, 1) (1.5, -4.5) (0, 0) 1 10
-               ++ boxStack p (1, 1) (2.5, -4.5) (0, 0) 1 10
-               ++ boxStack p (1, 1) (3.5, -4.5) (0, 0) 1 10
-               ++ boxStack p (1, 1) (4.5, -4.5) (0, 0) 1 10)
+  makeWorld p (boxFloor' p : stacks p (0.75, 0.75) (0, -4.5) (0, 0) 1 (15, 15))
 
 externals :: (PhysicsEngine e) => Proxy e -> [PEExternal' e]
 externals p = [makeConstantAccel p (0, -2)]
@@ -97,4 +91,4 @@ scene'' :: (PhysicsEngine e) => Proxy e -> Scene e
 scene'' p = Scene (world'' p) (externals p) (contactBehavior p)
 
 scene''' :: (PhysicsEngine e) => Proxy e -> Scene e
-scene''' p = Scene (world'' p) (externals p) (contactBehavior p)
+scene''' p = Scene (world''' p) (externals p) (contactBehavior p)
