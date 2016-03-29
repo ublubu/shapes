@@ -24,15 +24,15 @@ benchy :: (Num n, NFData world)
        -> Benchmark
 benchy prefix p sceneGen stateGen stepGen =
   bench (prefix ++ " updateWorld 10") $ nf (_spFst . f) s0
-  where s0 = stepGen scene 10 $ stateGen scene
+  where s0 = stepGen scene 100 $ stateGen scene
         f = stepGen scene 10
         scene = sceneGen p
 
 -- TODO: use something other than show to ensure evaluation of the world
 main :: IO ()
 main = defaultMain [
-  benchy "simple" SM.engine Stacks.scene''' SM.defaultInitialState SM.stepWorld,
-  benchy "opt" OM.engine Stacks.scene''' OM.defaultInitialState OM.stepWorld ]
+  benchy "simple" SM.engine (Stacks.makeScene (30, 30)) SM.defaultInitialState SM.stepWorld,
+  benchy "opt" OM.engine (Stacks.makeScene (30, 30)) OM.defaultInitialState OM.stepWorld ]
 --main = do
 --  (SP x y) <- return $ stepWorld 200 initialState
 --  return ()
