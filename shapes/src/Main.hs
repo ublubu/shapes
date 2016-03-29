@@ -6,14 +6,12 @@ import Data.Proxy
 import Utils.Utils
 import qualified Physics.Scenes.Stacks as Stacks
 
-import qualified Physics.BenchGeometry as BG
-import qualified BenchLinear as BL
 import qualified Physics.Constraint.Benchmark as BC
 import qualified Physics.Contact.Benchmark as BC'
 import qualified Physics.Broadphase.Benchmark as BB
 
-import qualified Physics.Engine.SimpleMain as SM
-import qualified Physics.Engine.OptMain as OM
+import qualified Physics.Engine.Simple.Main as SM
+import qualified Physics.Engine.Opt.Main as OM
 
 benchy :: (Num n, NFData world)
        => String
@@ -31,8 +29,8 @@ benchy prefix p sceneGen stateGen stepGen =
 -- TODO: use something other than show to ensure evaluation of the world
 main :: IO ()
 main = defaultMain [
-  benchy "simple" SM.engine (Stacks.makeScene (30, 30)) SM.defaultInitialState SM.stepWorld,
-  benchy "opt" OM.engine (Stacks.makeScene (30, 30)) OM.defaultInitialState OM.stepWorld ]
+  benchy "simple" SM.engine (Stacks.makeScene (10, 10)) SM.defaultInitialState SM.stepWorld,
+  benchy "opt" OM.engine (Stacks.makeScene (10, 10)) OM.defaultInitialState OM.stepWorld ]
 --main = do
 --  (SP x y) <- return $ stepWorld 200 initialState
 --  return ()

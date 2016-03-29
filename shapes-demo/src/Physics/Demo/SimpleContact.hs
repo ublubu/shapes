@@ -6,12 +6,12 @@ import Control.Lens
 
 import Linear.V2
 
-import Physics.Constraint
-import qualified Physics.Contact as S
-import Physics.ConvexHull
-import qualified Physics.SAT as S
+import Physics.Constraint.Simple
+import qualified Physics.Contact.Simple as S
+import Physics.Contact.Simple.ConvexHull
+import qualified Physics.Contact.Simple.SAT as S
 import Physics.Engine.Simple
-import Physics.Object
+import Physics.World.Simple.Object
 
 import Physics.Draw.Canonical
 import Physics.Draw.Simple()

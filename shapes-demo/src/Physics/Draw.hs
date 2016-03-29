@@ -9,8 +9,8 @@ import Linear.Affine
 import Linear.V2
 import qualified SDL.Video.Renderer as R
 import Physics.Draw.Canonical
-import Physics.Transform (WorldTransform, joinTransforms', translateTransform, scaleTransform, translateTransform)
-import Physics.Linear
+import Physics.Transform.Simple (WorldTransform, joinTransforms', translateTransform, scaleTransform, translateTransform)
+import Physics.Linear.Simple
 
 toRenderable :: (Functor f, RealFrac a, Integral b) => f a -> f b
 toRenderable = fmap floor

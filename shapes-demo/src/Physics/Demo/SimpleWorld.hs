@@ -6,12 +6,12 @@ import Control.Lens
 import Control.Monad
 import qualified Data.IntMap.Strict as IM
 
-import qualified Physics.Broadphase as B
-import Physics.Contact
+import qualified Physics.Broadphase.Simple.Aabb as B
+import Physics.Contact.Simple
 import Physics.Engine.Simple
-import qualified Physics.Engine.SimpleMain as SM
-import Physics.World
-import Physics.Solvers (toShowableSolverState)
+import qualified Physics.Engine.Simple.Main as SM
+import Physics.World.Simple
+import Physics.Solvers.Simple (toShowableSolverState)
 
 import Physics.Draw.Canonical
 import qualified Physics.Draw.Simple as D

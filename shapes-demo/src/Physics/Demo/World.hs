@@ -29,7 +29,7 @@ import Physics.Engine.Class
 import Utils.Utils
 
 import Physics.Scenes.Scene
-import Physics.Scenes.Scenes
+import Physics.Demo.Scenes
 
 class (PhysicsEngine e) => Demo e where
   type DEngineState e

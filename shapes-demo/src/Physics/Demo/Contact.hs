@@ -13,7 +13,7 @@ import GHC.Word
 
 import Linear.Matrix
 import Linear.V2
-import Physics.Linear
+import Physics.Linear.Simple
 
 import EasySDL.Draw
 import GameLoop hiding (testStep)

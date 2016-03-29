@@ -4,10 +4,10 @@ module Physics.Broadphase.Benchmark where
 
 import Criterion.Main
 
-import qualified Physics.Broadphase.OptAabb as OB
-import qualified Physics.Broadphase as B
-import qualified Physics.Contact.OptConvexHull as OC
-import qualified Physics.ConvexHull as C
+import qualified Physics.Broadphase.Opt.Aabb as OB
+import qualified Physics.Broadphase.Simple.Aabb as B
+import qualified Physics.Contact.Opt.ConvexHull as OC
+import qualified Physics.Contact.Simple.ConvexHull as C
 
 import Utils.Utils
 

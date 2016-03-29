@@ -9,10 +9,10 @@ import Data.Vector (toList)
 import Linear.V2
 import Linear.V
 
-import qualified Physics.Constraint as C
-import qualified Physics.Constraint.OptConstraint as OC
-import qualified Physics.Constraint.OptLinear as OL
-import Physics.Linear
+import qualified Physics.Constraint.Simple as C
+import qualified Physics.Constraint.Opt as OC
+import qualified Physics.Linear.Opt as OL
+import Physics.Linear.Simple
 import Utils.Utils
 
 toOLV6 :: V6 Double -> OL.V6

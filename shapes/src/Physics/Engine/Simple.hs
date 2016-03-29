@@ -4,13 +4,13 @@
 module Physics.Engine.Simple where
 
 import Physics.Engine.Class
-import Physics.World (World, External, fromList)
-import Physics.Object (WorldObj)
-import qualified Physics.Object as PO
-import Physics.Constraint (PhysicalObj(..), toInvMass2)
-import Physics.Contact (ContactBehavior(..))
-import Physics.ConvexHull (ConvexHull, rectangleHull, listToHull)
-import Physics.External (constantAccel)
+import Physics.World.Simple (World, External, fromList)
+import Physics.World.Simple.Object (WorldObj)
+import qualified Physics.World.Simple.Object as PO
+import Physics.Constraint.Simple (PhysicalObj(..), toInvMass2)
+import Physics.Contact.Simple (ContactBehavior(..))
+import Physics.Contact.Simple.ConvexHull (ConvexHull, rectangleHull, listToHull)
+import Physics.World.Simple.External (constantAccel)
 
 import Linear.V2
 import Linear.Affine

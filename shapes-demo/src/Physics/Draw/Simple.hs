@@ -15,11 +15,11 @@ import Linear.Matrix
 import qualified SDL.Video.Renderer as R
 import Physics.Draw
 
-import Physics.ConvexHull
-import Physics.Object (WorldObj(..))
-import qualified Physics.SAT as S
-import qualified Physics.Contact as S
-import Physics.World (World(..), worldObjs)
+import Physics.Contact.Simple.ConvexHull
+import Physics.World.Simple.Object (WorldObj(..))
+import qualified Physics.Contact.Simple.SAT as S
+import qualified Physics.Contact.Simple as S
+import Physics.World.Simple (World(..), worldObjs)
 import Utils.Utils
 
 instance ToCanonical (S.ContactPoints Double) where

@@ -7,13 +7,13 @@ import GHC.Types (Double(D#))
 import Criterion.Main
 import Linear.V2
 
-import qualified Physics.ConvexHull as C
-import qualified Physics.SAT as S
-import qualified Physics.Contact.OptConvexHull as OC
-import qualified Physics.Contact.OptSAT as OS
-import qualified Physics.Constraint.OptLinear as OL
-import qualified Physics.Transform as T
-import qualified Physics.Transform.OptTransform as OT
+import qualified Physics.Contact.Simple.ConvexHull as C
+import qualified Physics.Contact.Simple.SAT as S
+import qualified Physics.Contact.Opt.ConvexHull as OC
+import qualified Physics.Contact.Opt.SAT as OS
+import qualified Physics.Linear.Opt as OL
+import qualified Physics.Transform.Simple as T
+import qualified Physics.Transform.Opt as OT
 
 import Utils.Utils
 

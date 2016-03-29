@@ -7,13 +7,13 @@ import Control.Lens
 
 import qualified Linear.V2 as L
 
-import Physics.Constraint.ConvertLinear
-import qualified Physics.Contact.OptContact as S
-import Physics.Contact.OptConvexHull
-import qualified Physics.Contact.OptSAT as S
+import Physics.Linear.Opt.Convert
+import qualified Physics.Contact.Opt as S
+import Physics.Contact.Opt.ConvexHull
+import qualified Physics.Contact.Opt.SAT as S
 import Physics.Engine.Class
 import Physics.Engine.Opt
-import qualified Physics.World.OptObject as S
+import qualified Physics.World.Opt.Object as S
 
 import Physics.Draw.Canonical
 import Physics.Draw.Opt()
