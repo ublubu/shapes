@@ -6,7 +6,6 @@ import Data.Proxy
 import Physics.Engine.Class
 import Physics.Scenes.Scene
 
---box :: (Fractional a, Eq a) => (a, a) -> (a, a) -> (a, a) -> PhysicalObj a
 box :: (PhysicsEngine e)
     => Proxy e
     -> (PENumber e, PENumber e)
@@ -19,7 +18,6 @@ boxFloor :: (PhysicsEngine e) => Proxy e -> PEPhysicalObj e
 boxFloor p =
   makePhysicalObj p (0, 0) 0 (0, -6) 0 (0, 0)
 
---box' :: (Epsilon a, Floating a, Ord a) => (a, a) -> (a, a) -> (a, a) -> WorldObj a
 box' :: (PhysicsEngine e)
      => Proxy e
      -> (PENumber e, PENumber e)
@@ -29,12 +27,10 @@ box' :: (PhysicsEngine e)
 box' p (w, h) center velocity =
   makeWorldObj p (box p center velocity) 0.2 (makeRectangleHull p w h)
 
---boxFloor' :: (Epsilon a, Floating a, Ord a) => WorldObj a
 boxFloor' :: (PhysicsEngine e) => Proxy e -> PEWorldObj e
 boxFloor' p =
   makeWorldObj p (boxFloor p) 0.2 (makeRectangleHull p 18 1)
 
---boxStack :: (Epsilon a, Floating a, Ord a) => (a, a) -> (a, a) -> (a, a) -> a -> Int -> [WorldObj a]
 boxStack :: (PhysicsEngine e)
          => Proxy e
          -> (PENumber e, PENumber e)
