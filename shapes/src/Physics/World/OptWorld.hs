@@ -10,6 +10,7 @@ import GHC.Generics (Generic)
 
 import Control.DeepSeq
 import Control.Lens
+import Data.Foldable (foldl')
 import qualified Data.IntMap.Strict as IM
 import Physics.Constraint.OptConstraint hiding (solveConstraint)
 import Utils.Utils
@@ -50,7 +51,7 @@ advanceWorld dt w = w & worldObjs.traverse.physObj %~ (`advanceObj` dt)
 
 allPairs :: World a -> [WorldPair (a, a)]
 allPairs w = fst $ ifoldlOf (worldObjs.traversed) f ([], []) w
-  where f i (pairs, xs) x = (foldl g pairs xs, (i, x):xs)
+  where f i (pairs, xs) x = (foldl' g pairs xs, (i, x):xs)
           where g ps (j, x') = WorldPair (i, j) (x, x') : ps
 
 allKeys :: World a -> [(Int, Int)]
