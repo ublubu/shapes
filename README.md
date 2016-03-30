@@ -35,7 +35,7 @@ https://youtu.be/j1Abxcc86yU?list=PLmozfF6FosKjmPMnlPoVbWosiExbD0SUF
      apply the previous frame's constraint solution.
   4. Evaluate and solve each constraint generator in sequence. (Optional: repeat this step)
   
-  **Note**: The solution to a constraint is a change in velocity.
+  **Note**: Solving a constraint affects the velocity of the object(s).
 
 ## `Opt` vs `Simple` ##
 
