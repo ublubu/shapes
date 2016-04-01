@@ -5,6 +5,7 @@ module Physics.Demo.OptWorld where
 import Control.Lens
 import Control.Monad
 import qualified Data.IntMap.Strict as IM
+import qualified Data.Vector.Unboxed as V
 
 import qualified Physics.Broadphase.Opt.Aabb as B
 import Physics.Contact.Opt
@@ -29,6 +30,6 @@ instance Demo Engine where
     where f (WorldPair _ fcs) = fmap (toCanonical . flipExtract) fcs
           cs = fmap generateContacts <$> B.culledPairs world
   worldAabbs _ world =
-    toCanonical <$> IM.elems (B.toAabbs world)
+    (toCanonical . snd) <$> V.toList (B.toAabbs world)
   debugEngineState _ = show . over spSnd toShowableSolverState
   updateWorld _ = OM.updateWorld

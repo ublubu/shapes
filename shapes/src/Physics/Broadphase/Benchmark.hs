@@ -3,15 +3,27 @@
 module Physics.Broadphase.Benchmark where
 
 import Criterion.Main
+import Data.Proxy
 
 import qualified Physics.Broadphase.Opt.Aabb as OB
 import qualified Physics.Broadphase.Simple.Aabb as B
 import qualified Physics.Contact.Opt.ConvexHull as OC
 import qualified Physics.Contact.Simple.ConvexHull as C
 
+import Physics.Engine.Class
+import Physics.Engine.Opt (Engine)
+import Physics.Engine.Simple (SimpleEngine)
+import Physics.Scenes.Stacks
+
 import Utils.Utils
 
 import Physics.Contact.Benchmark (testBoxes, testOptBoxes)
+
+simpleEngine :: Proxy SimpleEngine
+simpleEngine = Proxy
+
+optEngine :: Proxy Engine
+optEngine = Proxy
 
 -- TODO: report this somehow? probably doesn't segfault in GHCI or without -O.
 {-
@@ -51,14 +63,27 @@ testOptAabb a b = SP (SP boxA boxB) (OB.aabbCheck boxA boxB)
   where boxA = OB.toAabb a
         boxB = OB.toAabb b
 
-benchy :: Benchmark
-benchy = bench "aabb" $ whnf (uncurry testAabb) testBoxes
+testWorld :: (PhysicsEngine e) => Proxy e -> PEWorld' e
+testWorld p =
+  makeWorld p $ stacks p (0.2, 0.2) (0, -4.5) (0, 0) 0 (30, 30)
 
-benchy' :: Benchmark
-benchy' = bench "opt aabb" $ whnf (uncurry testOptAabb) testOptBoxes
+simpleWorld :: PEWorld' SimpleEngine
+simpleWorld = testWorld simpleEngine
+
+optWorld :: PEWorld' Engine
+optWorld = testWorld optEngine
+
+benchy :: [Benchmark]
+benchy = [ bench "aabb" $ whnf (uncurry testAabb) testBoxes
+         , bench "broadphase" $ nf B.culledKeys simpleWorld ]
+
+benchy' :: [Benchmark]
+benchy' = [ bench "opt aabb" $ whnf (uncurry testOptAabb) testOptBoxes
+          , bench "opt broadphase" $ nf OB.culledKeys optWorld
+          ]
 
 main :: IO ()
 main = do
   print . uncurry testAabb $ testBoxes
   print . uncurry testOptAabb $ testOptBoxes
-  defaultMain [benchy, benchy']
+  defaultMain $ benchy ++ benchy'

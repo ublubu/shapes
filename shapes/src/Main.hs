@@ -28,10 +28,10 @@ benchy prefix p sceneGen stateGen stepGen =
 
 -- TODO: use something other than show to ensure evaluation of the world
 main :: IO ()
-main = defaultMain [
-  benchy "simple" SM.engine (Stacks.makeScene (10, 10)) SM.defaultInitialState SM.stepWorld,
-  benchy "opt" OM.engine (Stacks.makeScene (10, 10)) OM.defaultInitialState OM.stepWorld ]
+--main = defaultMain [
+  --benchy "simple" SM.engine (Stacks.makeScene (10, 10)) SM.defaultInitialState SM.stepWorld,
+  --benchy "opt" OM.engine (Stacks.makeScene (10, 10)) OM.defaultInitialState OM.stepWorld ]
 --main = do
 --  (SP x y) <- return $ stepWorld 200 initialState
 --  return ()
---main = BB.main
+main = BB.main
