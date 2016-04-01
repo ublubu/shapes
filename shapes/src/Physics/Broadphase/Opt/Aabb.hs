@@ -23,8 +23,8 @@ import Physics.Contact.Opt
 import Physics.Contact.Opt.ConvexHull
 import Physics.World.Opt
 
-data Bounds = Bounds { _bmin :: !Double
-                     , _bmax :: !Double
+data Bounds = Bounds { _bmin :: Double
+                     , _bmax :: Double
                      } deriving Show
 
 derivingUnbox "Bounds"
@@ -32,8 +32,8 @@ derivingUnbox "Bounds"
   [| \Bounds{..} -> (_bmin, _bmax) |]
   [| \(bmin', bmax') -> Bounds bmin' bmax' |]
 
-data Aabb = Aabb { _aabbx :: !Bounds
-                 , _aabby :: !Bounds
+data Aabb = Aabb { _aabbx :: Bounds
+                 , _aabby :: Bounds
                  } deriving Show
 
 derivingUnbox "Aabb"

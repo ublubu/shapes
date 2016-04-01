@@ -65,7 +65,7 @@ testOptAabb a b = SP (SP boxA boxB) (OB.aabbCheck boxA boxB)
 
 testWorld :: (PhysicsEngine e) => Proxy e -> PEWorld' e
 testWorld p =
-  makeWorld p $ stacks p (0.2, 0.2) (0, -4.5) (0, 0) 0 (30, 30)
+  makeWorld p $ stacks p (0.2, 0.2) (0, -4.5) (0, 0) 0 (100, 100)
 
 simpleWorld :: PEWorld' SimpleEngine
 simpleWorld = testWorld simpleEngine
@@ -83,6 +83,7 @@ benchy' = [ bench "opt aabb" $ whnf (uncurry testOptAabb) testOptBoxes
 
 main :: IO ()
 main = do
-  print . uncurry testAabb $ testBoxes
-  print . uncurry testOptAabb $ testOptBoxes
-  defaultMain $ benchy ++ benchy'
+  print $ length (OB.culledKeys optWorld)
+  --print . uncurry testAabb $ testBoxes
+  --print . uncurry testOptAabb $ testOptBoxes
+  --defaultMain $ benchy ++ benchy'

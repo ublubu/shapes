@@ -135,12 +135,12 @@ executable shapes-prof
   -- .hs or .lhs file containing the Main module.
   main-is:             Main.hs
 
-  ghc-options:         -O2
-                       -threaded
-                       -fexcess-precision
-                       -optc-O3
-                       -optc-ffast-math
-                       -funfolding-use-threshold=16
+  ghc-options:         -rtsopts 
+                       -threaded 
+                       -eventlog
+                       -Odph -fno-liberate-case
+                       -funfolding-use-threshold100
+                       -funfolding-keeness-factor100
   
   -- Modules included in this executable, other than Main.
   -- other-modules:       
