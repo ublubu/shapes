@@ -74,7 +74,7 @@ instance ToCanonical ConvexHull where
 instance ToCanonical B.Aabb where
   type Canonical B.Aabb = Aabb
   toCanonical (B.Aabb (B.Bounds x0 x1) (B.Bounds y0 y1)) =
-    Aabb $ L.V2 (D# x0, D# x1) (D# y0, D# y1)
+    Aabb $ L.V2 (x0, x1) (y0, y1)
 
 drawObj :: R.Renderer -> L.M33 Double -> ConvexHull -> IO ()
 drawObj r viewtrans hull =

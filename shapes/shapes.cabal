@@ -120,8 +120,10 @@ library
                      , ghc-prim
                      , lens
                      , linear
+                     , repa
                      , shapes-math
                      , vector
+                     , vector-th-unbox
   
   -- Directories containing source files.
   hs-source-dirs:      src
@@ -156,8 +158,10 @@ executable shapes-prof
                      , ghc-prim
                      , lens
                      , linear
+                     , repa
                      , shapes-math
                      , vector
+                     , vector-th-unbox
   
   -- Directories containing source files.
   hs-source-dirs:      src
