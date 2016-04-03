@@ -3,6 +3,8 @@
 
 module Physics.Engine.Simple where
 
+import Data.Proxy
+
 import Physics.Engine.Class
 import Physics.World.Simple (World, External, fromList)
 import Physics.World.Simple.Object (WorldObj)
@@ -16,6 +18,9 @@ import Linear.V2
 import Linear.Affine
 
 data SimpleEngine
+
+engineP :: Proxy SimpleEngine
+engineP = Proxy
 
 pairToV2 :: (a, a) -> V2 a
 pairToV2 (x, y) = V2 x y

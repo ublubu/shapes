@@ -4,6 +4,8 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Physics.Linear.Opt where
 
@@ -13,6 +15,7 @@ import GHC.Types (Double(D#))
 
 import Control.DeepSeq
 import Control.Lens
+import Data.Vector.Unboxed.Deriving
 
 import Shapes.Linear.Template (makeVectorType, defineJoinSplit)
 import Shapes.Linear.MatrixTemplate
@@ -32,12 +35,27 @@ $(defineJoinSplit doubleInfo (3, 3))
 
 newtype Diag6 = Diag6 V6 deriving Show
 
-newtype P2 = P2 V2 deriving (Generic, Show, NFData)
-
 instance NFData V2 where
   rnf (V2 _ _) = ()
 
+newtype P2 = P2 V2 deriving (Generic, Show, NFData)
+
 makeLenses ''P2
+
+derivingUnbox "V2"
+  [t| V2 -> (Double, Double) |]
+  [| \(V2 a b) -> (D# a, D# b) |]
+  [| \(D# a, D# b) -> V2 a b |]
+
+derivingUnbox "P2"
+  [t| P2 -> V2 |]
+  [| \(P2 v) -> v |]
+  [| P2 |]
+
+derivingUnbox "V6"
+  [t| V6 -> (Double, Double, Double, Double, Double, Double) |]
+  [| \(V6 a b c d e f) -> (D# a, D# b, D# c, D# d, D# e, D# f) |]
+  [| \(D# a, D# b, D# c, D# d, D# e, D# f) -> V6 a b c d e f |]
 
 append2 :: V2 -> Double -> V3
 (V2 a b) `append2` (D# c) = V3 a b c

@@ -1,42 +1,52 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TemplateHaskell #-}
 
-module Physics.Engine.Simple.Main where
+module Physics.Engine.Simple.Main ( module Physics.Engine.Simple.Main
+                                  , module Physics.Engine.Simple
+                                  ) where
 
 import Control.Lens
-import Data.Proxy
+
 import Physics.Broadphase.Simple.Aabb
 import Physics.World.Simple.Object
+import Physics.Contact.Simple (ContactBehavior(..))
 import qualified Physics.Solvers.Simple as S
 import Physics.World.Simple
 import Physics.Solver.World
-import Utils.Utils
 
 import Physics.Engine.Simple
 import Physics.Scenes.Scene
 
-engine :: Proxy SimpleEngine
-engine = Proxy
+data EngineState = EngineState { _esWorld :: !(World (WorldObj Double))
+                               , _esBeh :: !(ContactBehavior Double)
+                               , _esExts :: ![External Double (WorldObj Double)]
+                               , _esSolver :: !(S.ContactSolverState Double (WorldObj Double))
+                               }
+makeLenses ''EngineState
 
-type EngineState = SP (World (WorldObj Double)) (S.ContactSolverState Double (WorldObj Double))
-
-updateWorld :: Scene SimpleEngine -> Double -> EngineState -> EngineState
-updateWorld scene dt (SP w s) = SP w''' s'
-  where w1 = applyExternals (scene ^. scExts) dt w
+updateWorld :: Double -> EngineState -> EngineState
+updateWorld dt eState@EngineState{..} = eState { _esWorld = w''', _esSolver = s' }
+  where w1 = applyExternals _esExts dt _esWorld
         maxSolverIterations = 3
         worldChanged = const . const $ True
         ks = culledKeys w1
-        (w', s') = wsolve' S.contactSolver' worldChanged maxSolverIterations ks worldPair w1 dt s
+        (w', s') = wsolve' S.contactSolver' worldChanged maxSolverIterations ks worldPair w1 dt _esSolver
         w'' = advanceWorld dt w'
         w''' = w'' & worldObjs %~ fmap updateShape
 
-stepWorld :: Scene SimpleEngine -> Int -> EngineState -> EngineState
-stepWorld _ 0 !s = s
-stepWorld scene !x !s = stepWorld scene (x - 1) $ updateWorld scene 0.01 s
+stepWorld :: Int -> EngineState -> EngineState
+stepWorld 0 !s = s
+stepWorld !x !s = stepWorld (x - 1) $ updateWorld 0.01 s
 
 defaultInitialState :: Scene SimpleEngine -> EngineState
-defaultInitialState scene =
-  SP (scene ^. scWorld) (S.emptyContactSolverState (scene ^. scContactBeh))
+defaultInitialState Scene{..} =
+  EngineState _scWorld _scContactBeh _scExts (S.emptyContactSolverState _scContactBeh)
 
 defaultInitialStateOpt :: Scene SimpleEngine -> EngineState
-defaultInitialStateOpt scene =
-  SP (scene ^. scWorld) (S.emptyOptContactSolverState (scene ^. scContactBeh))
+defaultInitialStateOpt Scene{..} =
+  EngineState _scWorld _scContactBeh _scExts (S.emptyOptContactSolverState _scContactBeh)
+
+runWorld :: Scene SimpleEngine -> Int -> World (WorldObj Double)
+runWorld scene steps =
+  _esWorld . stepWorld steps $ defaultInitialState scene

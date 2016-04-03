@@ -54,8 +54,8 @@ instance ToCanonical O.Contact' where
   type Canonical O.Contact' = Contact
   toCanonical O.Contact'{..} =
     Contact
-    (Left . toCanonical . _neighborhoodCenter $ _contactPenetrator')
-    (toCanonical . _neighborhoodUnitNormal $ _contactEdge')
+    (Left . toCanonical $ _contactPenetrator')
+    (toCanonical $ _contactEdgeNormal')
 
 instance ToCanonical O.Overlap where
   type Canonical O.Overlap = Overlap

@@ -3,6 +3,7 @@ module GameLoop where
 import qualified SDL.Time
 import Control.Concurrent
 import Control.Monad.State
+import Control.Monad.IO.Class
 import GHC.Word
 
 testStep :: Integer -> Word32 -> IO Integer
@@ -18,7 +19,7 @@ testTimedRunWhile = do
   t0 <- SDL.Time.ticks
   timedRunUntil t0 1000 0 testTest testStep
 
-updater :: (a -> Word32 -> IO a) -> StateT a IO ()
+updater :: MonadIO m => (a -> Word32 -> IO a) -> StateT a m ()
 updater f = do
   result <- get
   time <- SDL.Time.ticks
@@ -26,33 +27,48 @@ updater f = do
   put result'
   return ()
 
-timedUpdater :: Word32 -> (a -> Word32 -> IO a) -> StateT (Word32, a) IO ()
+timedUpdater :: MonadIO m
+             => Word32
+             -> (a -> Word32 -> m a)
+             -> StateT (Word32, a) m ()
 timedUpdater dt f = do
   (target, s) <- get
   time <- SDL.Time.ticks
   let wait = target - time in when (target > time) (liftIO $ threadDelay (1000 * fromIntegral wait))
   time' <- SDL.Time.ticks
-  s' <- liftIO $ f s time'
+  s' <- lift $ f s time'
   put (target + dt, s')
   return ()
 
-timedRunWhile :: Word32 -> Word32 -> a -> (a -> Bool) -> (a -> Word32 -> IO a) -> IO ()
+timedRunWhile :: MonadIO m
+              => Word32
+              -> Word32
+              -> a
+              -> (a -> Bool)
+              -> (a -> Word32 -> m a)
+              -> m ()
 timedRunWhile t0 dt s0 test f = void $ runStateT u' (t0, s0)
   where u = timedUpdater dt f
         u' = do
           (_, s) <- get
           when (test s) $ u >> u'
 
-runWhile :: a -> (a -> Bool) -> StateT a IO () -> IO ()
+runWhile :: MonadIO m => a -> (a -> Bool) -> StateT a m () -> m ()
 runWhile s0 test f = void $ runStateT f' s0
   where f' = do
           s <- get
           when (test s) $ f >> f'
 
-runUntil :: a -> (a -> Bool) -> StateT a IO () -> IO ()
+runUntil :: MonadIO m => a -> (a -> Bool) -> StateT a m () -> m ()
 runUntil s0 test = runWhile s0 (not . test)
 
-timedRunUntil :: Word32 -> Word32 -> a -> (a -> Bool) -> (a -> Word32 -> IO a) -> IO ()
+timedRunUntil :: MonadIO m
+              => Word32
+              -> Word32
+              -> a
+              -> (a -> Bool)
+              -> (a -> Word32 -> m a)
+              -> m ()
 timedRunUntil t0 dt s0 test = timedRunWhile t0 dt s0 (not . test)
 
 timeSteps :: (RealFrac a, Integral b) => a -> a -> (b, a)

@@ -75,6 +75,7 @@ executable shapes-demo
                      , sdl2
                      , shapes
                      , text
+                     , transformers
                      , vector
   
   -- Directories containing source files.

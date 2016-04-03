@@ -2,8 +2,11 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Utils.Utils where
 
@@ -15,11 +18,17 @@ import Data.Hashable
 import Data.Maybe
 import Data.Tuple
 import qualified Data.IntMap.Strict as IM
+import qualified Data.Vector.Unboxed as V
+import Data.Vector.Unboxed.Deriving
 
 data SP a b = SP { _spFst :: !a
                  , _spSnd :: !b
-                 } deriving (Show, Eq, Generic, NFData, Hashable)
+                 } deriving (Show, Eq, Generic, NFData, Hashable, Ord)
 makeLenses ''SP
+derivingUnbox "SP"
+  [t| forall a b. (V.Unbox a, V.Unbox b) => SP a b -> (a, b) |]
+  [| \SP{..} -> (_spFst, _spSnd) |]
+  [| uncurry SP |]
 
 type SP' a = SP a a
 
@@ -114,6 +123,15 @@ folds _ _ [] = []
 folds f a0 (_:xs) = a0 : folds f (f a0) xs
 
 data Flipping a = Same !a | Flip !a deriving Show
+
+flipToTuple :: Flipping a -> (Bool, a)
+flipToTuple (Same x) = (True, x)
+flipToTuple (Flip x) = (False, x)
+
+derivingUnbox "Flipping"
+  [t| forall a. (V.Unbox a) => Flipping a -> (Bool, a) |]
+  [| flipToTuple |]
+  [| \(isSame, x) -> if isSame then Same x else Flip x |]
 
 -- TODO: write an iso for Flipping and Either
 flipAsEither :: Flipping a -> Either a a
@@ -213,3 +231,20 @@ pairix ij@(i, j) f t = maybe (pure t) change pair
           return (a, b)
         change pair' = uncurry g <$> indexed f ij pair'
           where g a b = set (ix j) b . set (ix i) a $ t
+
+newtype Descending a =
+  Descending { _descList :: [a] } deriving (Generic, NFData)
+makeLenses ''Descending
+
+instance Functor Descending where
+  fmap f (Descending xs) = Descending $ fmap f xs
+
+instance Applicative Descending where
+  pure = Descending . pure
+  (Descending fs) <*> (Descending xs) = Descending (fs <*> xs)
+
+instance Monad Descending where
+  (Descending xs) >>= f = Descending (xs >>= _descList . f)
+
+instance Foldable Descending where
+  foldMap f (Descending xs) = foldMap f xs

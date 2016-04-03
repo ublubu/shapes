@@ -31,5 +31,5 @@ instance ContactDemo SimpleEngine where
           mFlipContact = fmap toCanonical <$> S.unwrapContactResult mFlipResult
   penetratingEdge _ = pairMap _neighborhoodCenter . S.penetratingEdge
   penetratedEdge _ = pairMap _neighborhoodCenter . S.penetratedEdge
-  generateContacts _ a b = (toCanonical . flipExtract) <$> S.generateContacts (a, b)
+  generateContacts _ a b = (toCanonical . flipExtractUnsafe) <$> S.generateContacts (a, b)
   objHull _ = _worldShape

@@ -33,5 +33,6 @@ instance ContactDemo Engine where
           mFlipContact = fmap toCanonical <$> S.unwrapContactResult mFlipResult
   penetratingEdge _ = fromSP . spMap (toLP2 . _neighborhoodCenter) . S.penetratingEdge
   penetratedEdge _ = fromSP . spMap (toLP2 . _neighborhoodCenter) . S.penetratedEdge
-  generateContacts _ a b = (toCanonical . flipExtract) <$> S.generateContacts (a, b)
+  generateContacts _ a b =
+    _descList $ toCanonical . flipExtractUnsafe . snd <$> S.generateContacts (a, b)
   objHull _ = S._worldShape

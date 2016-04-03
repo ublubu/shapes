@@ -28,10 +28,14 @@ benchy prefix p sceneGen stateGen stepGen =
 
 -- TODO: use something other than show to ensure evaluation of the world
 main :: IO ()
+-- 10 frames 15x15
+-- 770ms simple 3x
+-- 310ms opt+hashtable 3x
+-- 210ms opt+vector 3x
+-- 140ms opt+vector 1x
 main = defaultMain [
-  benchy "simple" SM.engine (Stacks.makeScene (10, 10) 0) SM.defaultInitialState SM.stepWorld,
-  bench "opt updateWorld 10" $ nf (OM.runWorld (Stacks.makeScene (10, 10) 0 OM.engineP)) 10]
+  bench "simple updateWorld 10" $ nf (SM.runWorld (Stacks.makeScene (15, 15) 0 SM.engineP)) 10,
+  bench "opt updateWorld 10" $ nf (OM.runWorld (Stacks.makeScene (15, 15) 0 OM.engineP)) 10]
 --main = do
---  (SP x y) <- return $ stepWorld 200 initialState
---  return ()
+  --print $ OM.runWorld (Stacks.makeScene (30, 30) 0 OM.engineP) 10
 --main = BB.main

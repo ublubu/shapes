@@ -11,7 +11,7 @@ module Physics.Broadphase.Opt.Aabb where
 import GHC.Prim (Double#, (>##), (<##))
 import GHC.Types (Double(D#), isTrue#)
 
-import Control.Lens (view, over, _2, traverse, (^?))
+import Control.Lens (over, _2, (^?), (%~), (&))
 import Data.Array (elems)
 import qualified Data.IntMap.Strict as IM
 import Data.Maybe
@@ -21,6 +21,8 @@ import Physics.Linear.Opt
 import Physics.Contact.Opt
 import Physics.Contact.Opt.ConvexHull
 import Physics.World.Opt
+
+import Utils.Utils
 
 -- TODO: explore rewrite rules or other alternatives to manually using primops
 
@@ -81,15 +83,15 @@ unorderedPairs n
         f x 0 = (x, 0) : f (x - 1) (x - 2)
         f x y = (x, y) : f x (y - 1)
 
-culledKeys :: (Contactable a) => World a -> [(Int, Int)]
-culledKeys w = catMaybes $ fmap f ijs
+culledKeys :: (Contactable a) => World a -> Descending (Int, Int)
+culledKeys w = Descending . catMaybes $ fmap f ijs
   where aabbs = toAabbs w
         ijs = unorderedPairs $ V.length aabbs
         f (i, j) = if aabbCheck a b then Just (i', j') else Nothing
           where (i', a) = aabbs V.! i
                 (j', b) = aabbs V.! j
 
-culledPairs :: (Contactable a) => World a -> [WorldPair (a, a)]
+culledPairs :: (Contactable a) => World a -> Descending (WorldPair (a, a))
 culledPairs world =
-  catMaybes (f <$> culledKeys world)
+  culledKeys world & descList %~ catMaybes . fmap f
   where f ij = WorldPair ij <$> world ^? worldPair ij

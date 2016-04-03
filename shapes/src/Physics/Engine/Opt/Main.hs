@@ -9,7 +9,8 @@ module Physics.Engine.Opt.Main ( module Physics.Engine.Opt.Main
 import Control.Lens
 import Control.Monad.State.Strict
 import Control.Monad.ST
-import qualified Data.HashTable.ST.Basic as H
+import qualified Data.Vector.Unboxed as V
+import qualified Data.Vector.Generic.Mutable as MV
 
 import Physics.Broadphase.Opt.Aabb
 import Physics.World.Opt.Object
@@ -24,34 +25,53 @@ import Physics.Scenes.Scene
 
 type World' = World WorldObj
 
-type EngineState s = (World', H.HashTable s ObjectFeatureKey ContactSolution, ContactBehavior, [External WorldObj])
+type EngineCache s = V.MVector s (ObjectFeatureKey, ContactSolution)
+type EngineState s = (World', EngineCache s, ContactBehavior, [External WorldObj])
 type EngineT s = StateT (EngineState s) (ST s)
 
 initEngine :: Scene Engine -> ST s (EngineState s)
 initEngine Scene{..} = do
-  cache <- H.new
+  cache <- MV.new 0
   return (_scWorld, cache, _scContactBeh, _scExts)
 
+changeScene :: Scene Engine -> EngineT s ()
+changeScene scene = do
+  eState <- lift $ initEngine scene
+  put eState
+
 -- TODO: can I do this with _1?
-wrapUpdater :: (World' -> ST s World') -> EngineT s World'
+wrapUpdater :: (EngineCache s -> World' -> ST s World') -> EngineT s World'
 wrapUpdater f = do
-  (world, x, y, z) <- get
+  (world, cache, x, y) <- get
+  world' <- lift $ f cache world
+  put (world', cache, x, y)
+  return world'
+
+wrapUpdater' :: (World' -> ST s World') -> EngineT s World'
+wrapUpdater' f = do
+  (world, cache, x, y) <- get
   world' <- lift $ f world
-  put (world', x, y, z)
+  put (world', cache, x, y)
+  return world'
+
+wrapInitializer :: (EngineCache s -> World' -> ST s (EngineCache s, World'))
+                -> EngineT s World'
+wrapInitializer f = do
+  (world, cache, x, y) <- get
+  (cache', world') <- lift $ f cache world
+  put (world', cache', x, y)
   return world'
 
 updateWorld :: Double -> EngineT s World'
 updateWorld dt = do
-  (world, cache, beh, exts) <- get
+  (world, _, beh, exts) <- get
   let keys = culledKeys world
       kContacts = prepareFrame keys world
-  void . wrapUpdater $ return . applyExternals exts dt
-  void . wrapUpdater $ applyCachedSlns (fst <$> kContacts) cache
-  void . wrapUpdater $ improveWorld beh contactSlnProc dt kContacts cache
-  void . wrapUpdater $ improveWorld beh contactSlnProc dt kContacts cache
-  void . wrapUpdater $ improveWorld beh contactSlnProc dt kContacts cache
-  void . wrapUpdater $ return . advanceWorld dt
-  wrapUpdater $ return . over worldObjs (fmap updateShape)
+  void . wrapUpdater' $ return . applyExternals exts dt
+  void . wrapInitializer $ applyCachedSlns beh dt kContacts
+  void . wrapUpdater $ improveWorld contactSlnProc kContacts
+  void . wrapUpdater' $ return . advanceWorld dt
+  wrapUpdater' $ return . over worldObjs (fmap updateShape)
 
 stepWorld :: Int -> EngineT s World'
 stepWorld 0 = view _1 <$> get

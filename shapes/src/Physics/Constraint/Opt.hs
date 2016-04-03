@@ -2,10 +2,13 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Physics.Constraint.Opt where
 
@@ -15,6 +18,8 @@ import GHC.Types (Double(D#), isTrue#)
 
 import Control.DeepSeq
 import Control.Lens hiding (transform)
+import Data.Vector.Unboxed.Deriving
+
 import Physics.Linear.Opt
 import Physics.Transform.Opt
 import Utils.Utils
@@ -54,10 +59,20 @@ toInvMass2 (D# ml, D# mr) = InvMass2 (invert ml) (invert mr)
 
 -- TODO: between incremental solutions, jacobian is expected to remain constant?
 --       otherwise, how to clamp?
-data Constraint = Constraint !V6 !Double deriving Show
+data Constraint = Constraint { _constraintJ :: !V6
+                             , _constraintB :: !Double
+                             } deriving Show
 type Constraint' p = (p, p) -> Constraint
 type ConstraintResult = (Double, Constraint)
 type PhysObjChanged = PhysicalObj -> PhysicalObj -> Bool
+
+derivingUnbox "Constraint"
+  [t| Constraint -> (V6, Double) |]
+  [| \Constraint{..} -> (_constraintJ, _constraintB) |]
+  [| \(j, b) -> Constraint j b |]
+
+instance Flippable Constraint where
+  flipp (Constraint j b) = Constraint (flip3v3 j) b
 
 _constrainedVel6 :: (PhysicalObj, PhysicalObj) -> V6
 _constrainedVel6 cp = uncurry join3v3 (pairMap (view physObjVel3) cp)

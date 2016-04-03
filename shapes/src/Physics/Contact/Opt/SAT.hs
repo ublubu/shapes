@@ -101,9 +101,12 @@ contactPoints' = mapBoth f g
   where f = _neighborhoodCenter
         g = spMap f
 
-flattenContactPoints :: ContactPoints -> [Neighborhood]
-flattenContactPoints (Left p) = [p]
-flattenContactPoints (Right (SP p1 p2)) = [p1, p2]
+flattenContactPoints :: ContactPoints -> Descending Neighborhood
+flattenContactPoints (Left p) = Descending [p]
+flattenContactPoints (Right (SP p1 p2)) =
+  if _neighborhoodIndex p1 > _neighborhoodIndex p2
+  then Descending [p1, p2]
+  else Descending [p2, p1]
 
 clipEdge :: SP Neighborhood Neighborhood -> V2 -> SP Neighborhood Neighborhood -> Maybe ContactPoints
 clipEdge (SP aa bb) n inc_ = do

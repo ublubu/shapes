@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -6,8 +7,8 @@
 module Physics.Contact.Opt where
 
 import Control.Lens
-import Control.Monad
-import Data.Maybe
+import Data.Vector.Unboxed.Deriving
+
 import Physics.Constraint.Opt
 import Physics.Linear.Opt
 import Physics.Contact.Opt.ConvexHull
@@ -24,7 +25,12 @@ data Contact' =
            , _contactPenetrator' :: !P2
            , _contactDepth' :: !Double
            } deriving Show
+
 makeLenses ''Contact'
+derivingUnbox "Contact'"
+  [t| Contact' -> (V2, P2, Double) |]
+  [| \Contact'{..} -> (_contactEdgeNormal', _contactPenetrator', _contactDepth') |]
+  [| \(n, p, d) -> Contact' n p d |]
 
 contactDepth :: Neighborhood
              -> Neighborhood
@@ -52,10 +58,11 @@ unwrapContactResult :: Maybe (Flipping (Either Neighborhood Contact))
 unwrapContactResult contactInfo = (flipInjectF . fmap eitherToMaybe) =<< contactInfo
 
 flattenContactResult :: Maybe (Flipping Contact)
-                     -> [Flipping ((Int, Int), Contact')]
-flattenContactResult =
-  (flipInjectF . fmap flatten) <=< maybeToList
-  where flatten :: Contact -> [((Int, Int), Contact')]
+                     -> Descending ((Int, Int), Flipping Contact')
+flattenContactResult Nothing = Descending []
+flattenContactResult (Just fContact) =
+  fmap f . flipInjectF . fmap flatten $ fContact
+  where flatten :: Contact -> Descending ((Int, Int), Contact')
         flatten Contact{..} = g <$> flattenContactPoints _contactPenetrator
           where g :: Neighborhood -> ((Int, Int), Contact')
                 g pen =
@@ -65,6 +72,8 @@ flattenContactResult =
                              , _contactDepth' = contactDepth _contactEdge pen
                              }
                   )
+        f :: Flipping ((Int, Int), Contact') -> ((Int, Int), Flipping Contact')
+        f x = (flipExtractPair fst x, snd <$> x)
 
 generateContacts' :: (Contactable p)
                  => (p, p)
@@ -74,5 +83,5 @@ generateContacts' contactPair = unwrapContactResult $ uncurry contact shapes
 
 generateContacts :: (Contactable p)
                  => (p, p)
-                 -> [Flipping ((Int, Int), Contact')]
+                 -> Descending ((Int, Int), Flipping Contact')
 generateContacts = flattenContactResult . generateContacts'

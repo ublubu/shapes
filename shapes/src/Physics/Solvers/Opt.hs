@@ -1,10 +1,9 @@
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE MagicHash #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Physics.Solvers.Opt where
 
@@ -12,7 +11,8 @@ import Control.Lens
 import Control.Monad
 import Control.Monad.ST
 import Data.Maybe
-import qualified Data.HashTable.Class as H
+import qualified Data.Vector.Unboxed as V
+import qualified Data.Vector.Generic.Mutable as MV
 
 import Physics.Constraint.Opt
 import Physics.Constraints.Opt.Contact
@@ -22,32 +22,12 @@ import Physics.World.Opt
 import Utils.Utils
 
 prepareFrame :: (Contactable a)
-             => [(Int, Int)]
+             => Descending (Int, Int)
              -> World a
-             -> [(ObjectFeatureKey, Contact')]
+             -> Descending (ObjectFeatureKey, Flipping Contact')
 prepareFrame pairKeys w =
-  concatMap f pairKeys
+  join $ f <$> pairKeys
   where f pairKey = keyedContacts pairKey (fromJust $ w ^? worldPair pairKey)
-
-applyCachedSlns :: (Contactable a, H.HashTable h)
-                => [ObjectFeatureKey]
-                -> h s ObjectFeatureKey ContactSolution
-                -> World a
-                -> ST s (World a)
-applyCachedSlns keys cache world =
-  foldM f world keys
-  where f world' key = applyCachedSln key cache world'
-
-applyCachedSln :: (Contactable a, H.HashTable h)
-               => ObjectFeatureKey
-               -> h s ObjectFeatureKey ContactSolution
-               -> World a
-               -> ST s (World a)
-applyCachedSln key@ObjectFeatureKey{..} cache world = do
-  mSln <- H.lookup cache key
-  return $ case mSln of
-    Nothing -> world
-    Just sln -> world & worldPair (fromSP _ofkObjKeys) %~ applySln sln
 
 applySln :: (Contactable a)
          => ContactSolution
@@ -56,56 +36,82 @@ applySln :: (Contactable a)
 applySln ContactSolution{..} =
   applyConstraintResult _contactFriction . applyConstraintResult _contactNonPen
 
-improveSln' :: (Contactable a, H.HashTable h)
+--TODO: reader monad for stuff that's const between frames (beh, dt)
+applyCachedSlns :: forall s a. (Contactable a)
+                => ContactBehavior
+                -> Double
+                -> Descending (ObjectFeatureKey, Flipping Contact')
+                -> V.MVector s (ObjectFeatureKey, ContactSolution)
+                -> World a
+                -> ST s (V.MVector s (ObjectFeatureKey, ContactSolution), World a)
+applyCachedSlns beh dt (Descending kContacts) cache world0 = do
+  cache' <- MV.new keyCount
+  let f :: (Int, Int, World a)
+        -> (ObjectFeatureKey, Flipping Contact')
+        -> ST s (Int, Int, World a)
+      f (cache_i, cache_i', world) kc@(key@ObjectFeatureKey{..}, _)
+        | cache_i < cacheCount = do
+            (key', sln) <- MV.read cache cache_i
+            if key > key'
+              then f (cache_i + 1, cache_i', world) kc -- keep looking
+              else if key == key'
+                   then h' cache_i cache_i' world kc sln
+                   else g' cache_i cache_i' world kc
+        | otherwise = g' cache_i cache_i' world kc
+      g :: Int -> World a -> ObjectFeatureKey -> Flipping Contact' -> ST s (World a)
+      g cache_i' world key@ObjectFeatureKey{..} fContact = do
+        let ab = fromJust $ world ^? worldPair (fromSP _ofkObjKeys)
+            sln = solveContact beh dt ab fContact
+        MV.write cache' cache_i' (key, sln)
+        return $ world & worldPair (fromSP _ofkObjKeys) %~ applySln sln
+      g' cache_i cache_i' world (key@ObjectFeatureKey{..}, fContact) = do
+        world' <- g cache_i' world key fContact
+        return (cache_i, cache_i' + 1, world')
+      h cache_i' world key@ObjectFeatureKey{..} fContact sln = do
+        let ab = fromJust $ world ^? worldPair (fromSP _ofkObjKeys)
+            sln' = updateContactSln beh dt sln ab fContact
+        MV.write cache' cache_i' (key, sln')
+        return $ world & worldPair (fromSP _ofkObjKeys) %~ applySln sln
+      h' cache_i cache_i' world (key@ObjectFeatureKey{..}, fContact) sln = do
+        world' <- h cache_i' world key fContact sln
+        return (cache_i + 1, cache_i' + 1, world')
+  (_, _, world1) <- foldM f (0, 0, world0) kContacts
+  return (cache', world1)
+  where keyCount = length kContacts
+        cacheCount = MV.length cache
+
+improveSln :: (Contactable a)
             => SolutionProcessor a
             -> ObjectFeatureKey
-            -> ContactSolution
-            -> h s ObjectFeatureKey ContactSolution
+            -> Int
+            -> V.MVector s (ObjectFeatureKey, ContactSolution)
             -> (a, a)
             -> ST s (a, a)
-improveSln' slnProc key sln cache ab = do
-  mCachedSln <- H.lookup cache key
-  let (slnCache, slnApply) = case mCachedSln of
-        Nothing -> (sln, sln)
-        Just cachedSln -> slnProc cachedSln sln ab
-  H.insert cache key slnCache
+improveSln slnProc key cache_i cache ab = do
+  (_, cachedSln) <- MV.read cache cache_i
+  let sln = solveContactAgain cachedSln ab
+      (slnCache, slnApply) = slnProc cachedSln sln ab
+  MV.write cache cache_i (key, slnCache)
   return $ applySln slnApply ab
 
-improveSln :: (Contactable a, H.HashTable h)
-           => ContactBehavior
-           -> SolutionProcessor a
-           -> Double
-           -> ObjectFeatureKey
-           -> Contact'
-           -> h s ObjectFeatureKey ContactSolution
-           -> (a, a)
-           -> ST s (a, a)
-improveSln beh slnProc dt key contact cache ab =
-  let sln = solveContact beh dt ab contact
-  in improveSln' slnProc key sln cache ab
-
-improveWorld' :: (Contactable a, H.HashTable h)
-              => ContactBehavior
-              -> SolutionProcessor a
-              -> Double
+improveWorld' :: (Contactable a)
+              => SolutionProcessor a
               -> ObjectFeatureKey
-              -> Contact'
-              -> h s ObjectFeatureKey ContactSolution
+              -> Int
+              -> V.MVector s (ObjectFeatureKey, ContactSolution)
               -> World a
               -> ST s (World a)
-improveWorld' beh slnProc dt key@ObjectFeatureKey{..} contact cache =
+improveWorld' slnProc key@ObjectFeatureKey{..} cache_i cache =
   worldPair (fromSP _ofkObjKeys) f
-  where f = improveSln beh slnProc dt key contact cache
+  where f = improveSln slnProc key cache_i cache
 
-improveWorld :: (Contactable a, H.HashTable h)
-             => ContactBehavior
-             -> SolutionProcessor a
-             -> Double
-             -> [(ObjectFeatureKey, Contact')]
-             -> h s ObjectFeatureKey ContactSolution
+improveWorld :: (Contactable a)
+             => SolutionProcessor a
+             -> Descending (ObjectFeatureKey, Flipping Contact')
+             -> V.MVector s (ObjectFeatureKey, ContactSolution)
              -> World a
              -> ST s (World a)
-improveWorld beh slnProc dt kContacts cache world =
-  foldM f world kContacts
-  where f world' (key, contact) =
-          improveWorld' beh slnProc dt key contact cache world'
+improveWorld slnProc kContacts cache world0 =
+  snd <$> foldM f (0, world0) kContacts
+  where f (cache_i, world) (key, _) =
+          (,) (cache_i + 1) <$> improveWorld' slnProc key cache_i cache world
