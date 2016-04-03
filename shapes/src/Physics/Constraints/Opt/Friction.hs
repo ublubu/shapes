@@ -5,7 +5,6 @@ module Physics.Constraints.Opt.Friction where
 import Physics.Constraint.Opt
 import Physics.Linear.Opt
 import Physics.Contact.Opt
-import Physics.Contact.Opt.ConvexHull
 import Utils.Utils
 
 toConstraint :: ContactBehavior
@@ -23,10 +22,10 @@ jacobian Contact'{..} (a, b) = ja `join3v3` jb
         jb = tb `append2` ((p' `minusV2` xb) `crossV2` tb)
         xa = _physObjPos a
         xb = _physObjPos b
-        (P2 p') = _neighborhoodCenter _contactPenetrator'
+        (P2 p') = _contactPenetrator'
         ta = negateV2 tb
         tb = clockwiseV2 n
-        n = _neighborhoodUnitNormal _contactEdge'
+        n = _contactEdgeNormal'
 
 pairMu :: (Contactable p) => (p, p) -> Double
 pairMu ab = (ua + ub) / 2

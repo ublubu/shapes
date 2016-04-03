@@ -5,7 +5,6 @@ module Physics.Constraints.Opt.NonPenetration where
 import Physics.Constraint.Opt
 import Physics.Linear.Opt
 import Physics.Contact.Opt
-import Physics.Contact.Opt.ConvexHull
 
 toConstraint :: ContactBehavior
              -> Double
@@ -23,8 +22,8 @@ jacobian Contact'{..} (a, b) = ja `join3v3` jb
         jb = n `append2` ((p' `minusV2` xb) `crossV2` n)
         xa = _physObjPos a
         xb = _physObjPos b
-        (P2 p') = _neighborhoodCenter _contactPenetrator'
-        n = _neighborhoodUnitNormal _contactEdge'
+        (P2 p') = _contactPenetrator'
+        n = _contactEdgeNormal'
 
 -- add extra energy if the penetration exceeds the allowed slop
 -- (i.e. subtract from C' = Jv + b in constraint C' <= 0)

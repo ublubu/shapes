@@ -5,6 +5,7 @@
 module Physics.Engine.Opt where
 
 import GHC.Types (Double(D#))
+import Data.Proxy
 
 import Physics.Engine.Class
 import Physics.World.Opt (World, External, fromList)
@@ -17,6 +18,9 @@ import Physics.World.Opt.External (constantAccel)
 import Physics.Linear.Opt (V2(..), P2(..))
 
 data Engine
+
+engineP :: Proxy Engine
+engineP = Proxy
 
 pairToV2 :: (Double, Double) -> V2
 pairToV2 (D# x, D# y) = V2 x y

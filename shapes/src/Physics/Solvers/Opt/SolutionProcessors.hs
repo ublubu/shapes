@@ -1,36 +1,43 @@
 module Physics.Solvers.Opt.SolutionProcessors where
 
 import Physics.Constraint.Opt
+import Physics.Constraints.Opt.Contact
 import Physics.Contact.Opt
-import Physics.Solver.Opt.Contact
 import Physics.Constraints.Opt.Friction
 
-type SolutionProcessor' = Double -> ConstraintResult -> (Double, ConstraintResult)
+-- apply rules to total constraint impulse
+--
+-- (previously accumulated impulse) ->
+-- (current iteration's sln) ->
+-- (objects) ->
+-- (new accumulated impulse, incremental sln to apply)
+--
+type SolutionProcessor a = ContactSolution -> ContactSolution -> (a, a) -> (ContactSolution, ContactSolution)
+type SolutionProcessor' = ConstraintResult -> ConstraintResult -> (ConstraintResult, ConstraintResult)
+type SolutionProcessor'' = Double -> ConstraintResult -> (Double, ConstraintResult)
 
-simple' :: SolutionProcessor'
+
+simple' :: SolutionProcessor''
 simple' sln (lagr, c) = (sln', (lagr', c))
   where sln' = sln + lagr'
         lagr' = lagr
 
-positive' :: SolutionProcessor'
+positive' :: SolutionProcessor''
 positive' sln (lagr, c) = (sln', (lagr', c))
   where sln' = sln + lagr'
         lagr' = max lagr (-sln)
 
-toSP :: SolutionProcessor' -> SolutionProcessor a
-toSP f sln r _ = (fst <$> x, snd <$> x)
-  where x = f <$> sln <*> r
+wrapSlnProc' :: SolutionProcessor''
+             -> SolutionProcessor'
+wrapSlnProc' f (lagrCache, _) slnApply =
+  ((lagrCache', jApply'), slnApply')
+  where (lagrCache', slnApply'@(_, jApply')) = f lagrCache slnApply
 
-simple :: SolutionProcessor a
-simple = toSP simple'
-
-positive ::  SolutionProcessor a
-positive = toSP positive'
-
-contact :: (Contactable a) => SolutionProcessor a
-contact (ContactResult snp sfr) (ContactResult rnp rfr) ab = (ContactResult snp' sfr', ContactResult rnp' rfr')
-  where (snp', rnp') = positive' snp rnp
-        (sfr', rfr') = clampAbs (u * snp') sfr rfr
+contactSlnProc :: (Contactable a) => SolutionProcessor a
+contactSlnProc (ContactSolution snp sfr) (ContactSolution rnp rfr) ab =
+  (ContactSolution snp' sfr', ContactSolution rnp' rfr')
+  where (snp', rnp') = wrapSlnProc' positive' snp rnp
+        (sfr', rfr') = wrapSlnProc' (clampAbs (u * fst snp')) sfr rfr
         u = pairMu ab
 
 clampAbs :: Double -> Double -> ConstraintResult -> (Double, ConstraintResult)
@@ -41,4 +48,3 @@ clampAbs maxThresh sln (lagr, c) = (sln'', (lagr', c))
               | otherwise = sln'
         sln' = sln + lagr
         lagr' = sln'' - sln
-

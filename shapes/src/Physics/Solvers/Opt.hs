@@ -1,38 +1,111 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE MagicHash #-}
+
 module Physics.Solvers.Opt where
 
-import Control.Lens ((%~))
-import qualified Data.IntMap.Strict as IM
-import qualified Physics.Contact.Opt as C
-import qualified Physics.Constraints.Opt.Contact as CC
-import qualified Physics.Solver.Constraint as CS
-import qualified Physics.Solver.Opt.Contact as ContS
-import qualified Physics.Solvers.Opt.SolutionProcessors as SP
+import Control.Lens
+import Control.Monad
+import Control.Monad.ST
+import Data.Maybe
+import qualified Data.HashTable.Class as H
+
+import Physics.Constraint.Opt
+import Physics.Constraints.Opt.Contact
+import Physics.Contact.Opt
+import Physics.Solvers.Opt.SolutionProcessors
 import Physics.World.Opt
-import Physics.Solver.World
-import Utils.PairMap
+import Utils.Utils
 
-type ContactSolverState a = CS.ConstraintSolverState (ContS.FeaturePairCaches a) (ContS.WorldCache a)
+prepareFrame :: (Contactable a)
+             => [(Int, Int)]
+             -> World a
+             -> [(ObjectFeatureKey, Contact')]
+prepareFrame pairKeys w =
+  concatMap f pairKeys
+  where f pairKey = keyedContacts pairKey (fromJust $ w ^? worldPair pairKey)
 
-toShowableSolverState :: ContactSolverState a
-                      -> CS.ConstraintSolverState (PairMap (ContS.ContactResult Double)) (ContS.WorldCache a)
-toShowableSolverState =
-  CS.csPairCaches %~ (fmap . fmap . fmap . fmap $ fst)
+applyCachedSlns :: (Contactable a, H.HashTable h)
+                => [ObjectFeatureKey]
+                -> h s ObjectFeatureKey ContactSolution
+                -> World a
+                -> ST s (World a)
+applyCachedSlns keys cache world =
+  foldM f world keys
+  where f world' key = applyCachedSln key cache world'
 
-contactSolver :: (C.Contactable a)
-              => WSolver (World a) Key (a, a) Double (ContactSolverState a)
-contactSolver = (g, f)
-  where g = CS.initConstraintSolverState ContS.pairCacheInitializer ContS.worldCacheInitializer
-        app = ContS.pairUpdater SP.contact
-        f = CS.improve app
+applyCachedSln :: (Contactable a, H.HashTable h)
+               => ObjectFeatureKey
+               -> h s ObjectFeatureKey ContactSolution
+               -> World a
+               -> ST s (World a)
+applyCachedSln key@ObjectFeatureKey{..} cache world = do
+  mSln <- H.lookup cache key
+  return $ case mSln of
+    Nothing -> world
+    Just sln -> world & worldPair (fromSP _ofkObjKeys) %~ applySln sln
 
-contactSolver' :: (C.Contactable a)
-               => WSolver' (World a) Key (a, a) Double (ContactSolverState a)
-contactSolver' = (g, f0, f)
-  where (g, f) = contactSolver
-        f0 = CS.improve ContS.cacheApplicator
+applySln :: (Contactable a)
+         => ContactSolution
+         -> (a, a)
+         -> (a, a)
+applySln ContactSolution{..} =
+  applyConstraintResult _contactFriction . applyConstraintResult _contactNonPen
 
-emptyContactSolverState :: (C.Contactable a)
-                        => C.ContactBehavior
-                        -> ContactSolverState a
-emptyContactSolverState beh =
-  CS.ConstraintSolverState IM.empty (ContS.WorldCache 0 (CC.getGenerator beh))
+improveSln' :: (Contactable a, H.HashTable h)
+            => SolutionProcessor a
+            -> ObjectFeatureKey
+            -> ContactSolution
+            -> h s ObjectFeatureKey ContactSolution
+            -> (a, a)
+            -> ST s (a, a)
+improveSln' slnProc key sln cache ab = do
+  mCachedSln <- H.lookup cache key
+  let (slnCache, slnApply) = case mCachedSln of
+        Nothing -> (sln, sln)
+        Just cachedSln -> slnProc cachedSln sln ab
+  H.insert cache key slnCache
+  return $ applySln slnApply ab
+
+improveSln :: (Contactable a, H.HashTable h)
+           => ContactBehavior
+           -> SolutionProcessor a
+           -> Double
+           -> ObjectFeatureKey
+           -> Contact'
+           -> h s ObjectFeatureKey ContactSolution
+           -> (a, a)
+           -> ST s (a, a)
+improveSln beh slnProc dt key contact cache ab =
+  let sln = solveContact beh dt ab contact
+  in improveSln' slnProc key sln cache ab
+
+improveWorld' :: (Contactable a, H.HashTable h)
+              => ContactBehavior
+              -> SolutionProcessor a
+              -> Double
+              -> ObjectFeatureKey
+              -> Contact'
+              -> h s ObjectFeatureKey ContactSolution
+              -> World a
+              -> ST s (World a)
+improveWorld' beh slnProc dt key@ObjectFeatureKey{..} contact cache =
+  worldPair (fromSP _ofkObjKeys) f
+  where f = improveSln beh slnProc dt key contact cache
+
+improveWorld :: (Contactable a, H.HashTable h)
+             => ContactBehavior
+             -> SolutionProcessor a
+             -> Double
+             -> [(ObjectFeatureKey, Contact')]
+             -> h s ObjectFeatureKey ContactSolution
+             -> World a
+             -> ST s (World a)
+improveWorld beh slnProc dt kContacts cache world =
+  foldM f world kContacts
+  where f world' (key, contact) =
+          improveWorld' beh slnProc dt key contact cache world'

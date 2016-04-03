@@ -1,6 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
 
@@ -10,13 +11,14 @@ import GHC.Generics (Generic)
 
 import Control.DeepSeq
 import Control.Lens
+import Data.Hashable
 import Data.Maybe
 import Data.Tuple
 import qualified Data.IntMap.Strict as IM
 
 data SP a b = SP { _spFst :: !a
                  , _spSnd :: !b
-                 } deriving (Show, Eq, Generic, NFData)
+                 } deriving (Show, Eq, Generic, NFData, Hashable)
 makeLenses ''SP
 
 type SP' a = SP a a
@@ -122,12 +124,12 @@ flipWrap :: Flipping a -> b -> Flipping b
 flipWrap (Same _) = Same
 flipWrap (Flip _) = Flip
 
-flipFlip :: (a -> (b, b) -> c) -> Flipping a -> (b, b) -> c
-flipFlip f (Same x) = f x
-flipFlip f (Flip x) = f x . swap
+flipUnsafe :: (a -> (b, b) -> c) -> Flipping a -> (b, b) -> c
+flipUnsafe f (Same x) = f x
+flipUnsafe f (Flip x) = f x . swap
 
 flipMap :: (a -> (b, b) -> c) -> Flipping a -> (b, b) -> Flipping c
-flipMap f x = flipWrap x . flipFlip f x
+flipMap f x = flipWrap x . flipUnsafe f x
 
 flipExtractWith :: (a -> b, a -> b) -> Flipping a -> b
 flipExtractWith (f, _) (Same x) = f x
@@ -146,12 +148,26 @@ instance Functor Flipping where
   fmap f (Same x) = Same (f x)
   fmap f (Flip x) = Flip (f x)
 
-flipExtract :: Flipping a -> a
+class Flippable f where
+  flipp :: f -> f
+
+instance Flippable (x, x) where
+  flipp = swap
+
+instance Flippable (Flipping x) where
+  flipp (Same x) = Flip x
+  flipp (Flip x) = Same x
+
+flipExtract :: (Flippable a) => Flipping a -> a
 flipExtract (Same x) = x
-flipExtract (Flip x) = x
+flipExtract (Flip x) = flipp x
+
+flipExtractUnsafe :: Flipping a -> a
+flipExtractUnsafe (Same x) = x
+flipExtractUnsafe (Flip x) = x
 
 flipInjectF :: Functor f => Flipping (f a) -> f (Flipping a)
-flipInjectF x = fmap (flipWrap x) . flipExtract $ x
+flipInjectF x = fmap (flipWrap x) . flipExtractUnsafe $ x
 
 eitherBranchBoth :: (b -> b -> Bool) -> Either a b -> Either a b -> Flipping (Either a b)
 eitherBranchBoth _ x@(Left _) _ = Same x

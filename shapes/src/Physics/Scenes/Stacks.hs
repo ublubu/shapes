@@ -89,6 +89,6 @@ scene'' p = Scene (world'' p) (externals p) (contactBehavior p)
 scene''' :: (PhysicsEngine e) => Proxy e -> Scene e
 scene''' p = Scene (world''' p) (externals p) (contactBehavior p)
 
-makeScene :: (PhysicsEngine e) => (Int, Int) -> Proxy e -> Scene e
-makeScene dims p = Scene w (externals p) (contactBehavior p)
-  where w = makeWorld p (boxFloor' p : stacks p (0.2, 0.2) (0, -4.5) (0, 0) 1 dims)
+makeScene :: (PhysicsEngine e) => (Int, Int) -> PENumber e -> Proxy e -> Scene e
+makeScene dims spacing p = Scene w (externals p) (contactBehavior p)
+  where w = makeWorld p (boxFloor' p : stacks p (0.2, 0.2) (0, -4.5) (0, 0) spacing dims)

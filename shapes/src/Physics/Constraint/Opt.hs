@@ -127,9 +127,8 @@ solveConstraint c@(Constraint j _) cp = cp & physPair %~ applyLagrangian2 im j l
         lagr = lagrangian2 cp' c
         cp' = _physPair cp
 
-constraintResult :: (Physical a) => Constraint' a -> (a, a) -> ConstraintResult
-constraintResult c' ab = (lagrangian2 ab c, c)
-  where c = c' ab
+constraintResult :: (Physical a) => Constraint -> (a, a) -> ConstraintResult
+constraintResult c ab = (lagrangian2 ab c, c)
 
 applyConstraintResult :: (Physical a) => ConstraintResult -> (a, a) -> (a, a)
 applyConstraintResult (lagr, Constraint j _) ab = overWith physObj f ab

@@ -81,7 +81,6 @@ library
                      , Physics.Scenes.Stacks
                      , Physics.Scenes.TwoFlyingBoxes
                      , Physics.Solver.Constraint
-                     , Physics.Solver.Opt.Contact
                      , Physics.Solver.Simple.Contact
                      , Physics.Solver.World
                      , Physics.Solvers.Opt
@@ -118,9 +117,14 @@ library
                      , deepseq
                      , either
                      , ghc-prim
+                     , hashable
+                     , hashtables
                      , lens
                      , linear
+                     , monad-st
+                     , mtl
                      , shapes-math
+                     , transformers
                      , vector
                      , vector-th-unbox
   
@@ -155,9 +159,14 @@ executable shapes-prof
                      , criterion
                      , either
                      , ghc-prim
+                     , hashable
+                     , hashtables
                      , lens
                      , linear
+                     , monad-st
+                     , mtl
                      , shapes-math
+                     , transformers
                      , vector
                      , vector-th-unbox
   

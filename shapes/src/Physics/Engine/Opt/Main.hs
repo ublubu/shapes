@@ -1,38 +1,66 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
-module Physics.Engine.Opt.Main where
+module Physics.Engine.Opt.Main ( module Physics.Engine.Opt.Main
+                               , module Physics.Engine.Opt
+                               ) where
 
 import Control.Lens
-import Data.Proxy
+import Control.Monad.State.Strict
+import Control.Monad.ST
+import qualified Data.HashTable.ST.Basic as H
+
 import Physics.Broadphase.Opt.Aabb
 import Physics.World.Opt.Object
-import qualified Physics.Solvers.Opt as S
+import Physics.Contact.Opt (ContactBehavior)
+import Physics.Constraints.Opt.Contact
+import Physics.Solvers.Opt
+import Physics.Solvers.Opt.SolutionProcessors (contactSlnProc)
 import Physics.World.Opt
-import Physics.Solver.World
-import Utils.Utils
 
 import Physics.Engine.Opt
 import Physics.Scenes.Scene
 
-engine :: Proxy Engine
-engine = Proxy
+type World' = World WorldObj
 
-type EngineState = SP (World WorldObj) (S.ContactSolverState WorldObj)
+type EngineState s = (World', H.HashTable s ObjectFeatureKey ContactSolution, ContactBehavior, [External WorldObj])
+type EngineT s = StateT (EngineState s) (ST s)
 
-updateWorld :: Scene Engine -> Double -> EngineState -> EngineState
-updateWorld scene dt (SP w s) = SP w''' s'
-  where w1 = applyExternals (scene ^. scExts) dt w
-        maxSolverIterations = 3
-        worldChanged = const . const $ True
-        ks = culledKeys w1
-        (w', s') = wsolve' S.contactSolver' worldChanged maxSolverIterations ks worldPair w1 dt s
-        w'' = advanceWorld dt w'
-        w''' = w'' & worldObjs %~ fmap updateShape
+initEngine :: Scene Engine -> ST s (EngineState s)
+initEngine Scene{..} = do
+  cache <- H.new
+  return (_scWorld, cache, _scContactBeh, _scExts)
 
-stepWorld :: Scene Engine -> Int -> EngineState -> EngineState
-stepWorld _ 0 !s = s
-stepWorld scene !x !s = stepWorld scene (x - 1) $ updateWorld scene 0.01 s
+-- TODO: can I do this with _1?
+wrapUpdater :: (World' -> ST s World') -> EngineT s World'
+wrapUpdater f = do
+  (world, x, y, z) <- get
+  world' <- lift $ f world
+  put (world', x, y, z)
+  return world'
 
-defaultInitialState :: Scene Engine -> EngineState
-defaultInitialState scene =
-  SP (scene ^. scWorld) (S.emptyContactSolverState (scene ^. scContactBeh))
+updateWorld :: Double -> EngineT s World'
+updateWorld dt = do
+  (world, cache, beh, exts) <- get
+  let keys = culledKeys world
+      kContacts = prepareFrame keys world
+  void . wrapUpdater $ return . applyExternals exts dt
+  void . wrapUpdater $ applyCachedSlns (fst <$> kContacts) cache
+  void . wrapUpdater $ improveWorld beh contactSlnProc dt kContacts cache
+  void . wrapUpdater $ improveWorld beh contactSlnProc dt kContacts cache
+  void . wrapUpdater $ improveWorld beh contactSlnProc dt kContacts cache
+  void . wrapUpdater $ return . advanceWorld dt
+  wrapUpdater $ return . over worldObjs (fmap updateShape)
+
+stepWorld :: Int -> EngineT s World'
+stepWorld 0 = view _1 <$> get
+stepWorld x = updateWorld 0.01 >> stepWorld (x - 1)
+
+runEngineT :: Scene Engine -> (forall s. EngineT s a) -> a
+runEngineT scene action = runST $ do
+  state' <- initEngine scene
+  evalStateT action state'
+
+runWorld :: Scene Engine -> Int -> World'
+runWorld scene steps = runEngineT scene $ stepWorld steps
