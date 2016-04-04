@@ -15,5 +15,8 @@ import qualified Physics.Demo.Contact as Contact
 import qualified Physics.Demo.IOWorld as IOWorld
 
 main :: IO ()
-main = runMain "physics test" (V2 400 300) $ IOWorld.demoMain Opt.engineP
+main =
+  let window = V2 800 600
+      scale = V2 40 40
+  in runMain "physics test" window $ IOWorld.demoMain Opt.engineP (fmap fromIntegral window) scale
 --main = runMain "contact test" (V2 800 600) $ Contact.demoMain Opt.engineP

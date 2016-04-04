@@ -13,7 +13,7 @@ import qualified Physics.Scenes.Stacks as S3
 
 scenes :: (PhysicsEngine e) => Proxy e -> [Scene e]
 scenes p =
-  [S0.scene, S1.scene, S2.scene, S3.scene, S3.scene', S3.scene'', S3.scene'''] <*> pure p
+  [S3.makeScene (30, 30) 1, S1.scene, S2.scene, S3.scene, S3.scene', S3.scene'', S3.scene''', S0.scene] <*> pure p
 
 nextScene :: Int -> [a] -> (Int, a)
 nextScene i ss = (i', ss !! i')

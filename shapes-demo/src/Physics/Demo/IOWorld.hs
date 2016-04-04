@@ -48,21 +48,22 @@ data DemoState =
             , _demoSceneIndex :: Int
             , _demoDrawDebug :: Bool
             , _demoPrintDebug :: Bool
+            , _demoViewTransform :: M33 Double
             }
 makeLenses ''DemoState
 
-vt :: M33 Double
-vt = fst $ viewTransform (V2 400 300) (V2 20 20) (V2 0 0)
+getViewTransform :: V2 Double -> V2 Double -> M33 Double
+getViewTransform window scale = fst $ viewTransform window scale (V2 0 0)
 
-initialState :: Int -> DemoState
+initialState :: Int -> M33 Double -> DemoState
 initialState i = DemoState False i True False
 
 nextInitialState :: (Demo e) => Proxy e -> DemoState -> Int -> DemoM e DemoState
-nextInitialState p state0 i = do
+nextInitialState p DemoState{..} i = do
   resetEngine p (scenes p !! i)
-  return $ initialState i
-    & demoDrawDebug .~ (state0 ^. demoDrawDebug)
-    & demoPrintDebug .~ (state0 ^. demoPrintDebug)
+  return $ initialState i _demoViewTransform
+    & demoDrawDebug .~ _demoDrawDebug
+    & demoPrintDebug .~ _demoPrintDebug
 
 timeStep :: Num a => a
 timeStep = 10
@@ -70,19 +71,19 @@ timeStep = 10
 renderWorld :: (Demo e) => Proxy e -> R.Renderer -> DemoState -> DemoM e ()
 renderWorld p r DemoState{..} = do
   liftIO $ setColor r black
-  drawWorld p r vt
+  drawWorld p r _demoViewTransform
 
 renderContacts :: (Demo e) => Proxy e -> R.Renderer -> DemoState -> DemoM e ()
 renderContacts p r DemoState{..} = do
   liftIO $ setColor r pink
   contacts <- worldContacts p
-  liftIO $ mapM_ (drawContact r . transform vt) contacts
+  liftIO $ mapM_ (drawContact r . transform _demoViewTransform) contacts
 
 renderAabbs :: (Demo e) => Proxy e -> R.Renderer -> DemoState -> DemoM e ()
 renderAabbs p r DemoState{..} = do
   liftIO $ setColor r silver
   aabbs <- worldAabbs p
-  liftIO $ mapM_ (drawAabb r . transform vt) aabbs
+  liftIO $ mapM_ (drawAabb r . transform _demoViewTransform) aabbs
 
 demoStep :: (Demo e) => Proxy e -> R.Renderer -> DemoState -> DemoM e DemoState
 demoStep p r s0@DemoState{..} = do
@@ -134,8 +135,8 @@ handleKeypress _ state KC.ScancodeP _ =
   return $ state & demoPrintDebug %~ not
 handleKeypress _ state _ _ = return state
 
-demoMain :: (Demo e) => Proxy e -> R.Renderer -> IO ()
-demoMain p r = do
+demoMain :: (Demo e) => Proxy e -> V2 Double -> V2 Double -> R.Renderer -> IO ()
+demoMain p window scale r = do
   t0 <- T.ticks
-  let demo = timedRunUntil t0 timeStep (initialState 0) _demoFinished (\s _ -> demoStep p r s)
+  let demo = timedRunUntil t0 timeStep (initialState 0 $ getViewTransform window scale) _demoFinished (\s _ -> demoStep p r s)
   runDemo p (head $ scenes p) demo
