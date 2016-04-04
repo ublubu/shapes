@@ -38,13 +38,14 @@ applySln ContactSolution{..} =
 
 --TODO: reader monad for stuff that's const between frames (beh, dt)
 applyCachedSlns :: forall s a. (Contactable a)
-                => ContactBehavior
+                => SolutionProcessor a
+                -> ContactBehavior
                 -> Double
                 -> Descending (ObjectFeatureKey, Flipping Contact')
                 -> V.MVector s (ObjectFeatureKey, ContactSolution)
                 -> World a
                 -> ST s (V.MVector s (ObjectFeatureKey, ContactSolution), World a)
-applyCachedSlns beh dt (Descending kContacts) cache world0 = do
+applyCachedSlns slnProc beh dt (Descending kContacts) cache world0 = do
   cache' <- MV.new keyCount
   let f :: (Int, Int, World a)
         -> (ObjectFeatureKey, Flipping Contact')
@@ -62,8 +63,10 @@ applyCachedSlns beh dt (Descending kContacts) cache world0 = do
       g cache_i' world key@ObjectFeatureKey{..} fContact = do
         let ab = fromJust $ world ^? worldPair (fromSP _ofkObjKeys)
             sln = solveContact beh dt ab fContact
-        MV.write cache' cache_i' (key, sln)
-        return $ world & worldPair (fromSP _ofkObjKeys) %~ applySln sln
+            sln0 = emptyContactSln sln
+            (slnCache, slnApply) = slnProc sln0 sln ab
+        MV.write cache' cache_i' (key, slnCache)
+        return $ world & worldPair (fromSP _ofkObjKeys) %~ applySln slnApply
       g' cache_i cache_i' world (key@ObjectFeatureKey{..}, fContact) = do
         world' <- g cache_i' world key fContact
         return (cache_i, cache_i' + 1, world')

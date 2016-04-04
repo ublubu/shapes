@@ -68,7 +68,7 @@ updateWorld dt = do
   let keys = culledKeys world
       kContacts = prepareFrame keys world
   void . wrapUpdater' $ return . applyExternals exts dt
-  void . wrapInitializer $ applyCachedSlns beh dt kContacts
+  void . wrapInitializer $ applyCachedSlns contactSlnProc beh dt kContacts
   void . wrapUpdater $ improveWorld contactSlnProc kContacts
   void . wrapUpdater' $ return . advanceWorld dt
   wrapUpdater' $ return . over worldObjs (fmap updateShape)
