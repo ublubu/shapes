@@ -117,11 +117,8 @@ library
                      , deepseq
                      , either
                      , ghc-prim
-                     , hashable
-                     , hashtables
                      , lens
                      , linear
-                     , monad-st
                      , mtl
                      , shapes-math
                      , transformers
@@ -159,11 +156,8 @@ executable shapes-prof
                      , criterion
                      , either
                      , ghc-prim
-                     , hashable
-                     , hashtables
                      , lens
                      , linear
-                     , monad-st
                      , mtl
                      , shapes-math
                      , transformers

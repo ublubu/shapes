@@ -14,7 +14,6 @@ import GHC.Generics (Generic)
 
 import Control.DeepSeq
 import Control.Lens
-import Data.Hashable
 import Data.Maybe
 import Data.Tuple
 import qualified Data.IntMap.Strict as IM
@@ -23,7 +22,7 @@ import Data.Vector.Unboxed.Deriving
 
 data SP a b = SP { _spFst :: !a
                  , _spSnd :: !b
-                 } deriving (Show, Eq, Generic, NFData, Hashable, Ord)
+                 } deriving (Show, Eq, Generic, NFData, Ord)
 makeLenses ''SP
 derivingUnbox "SP"
   [t| forall a b. (V.Unbox a, V.Unbox b) => SP a b -> (a, b) |]

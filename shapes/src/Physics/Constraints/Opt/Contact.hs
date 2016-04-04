@@ -11,7 +11,6 @@ import GHC.Generics (Generic)
 
 import Control.Lens
 import Control.DeepSeq
-import Data.Hashable
 import Data.Vector.Unboxed.Deriving
 
 import Physics.Constraint.Opt
@@ -23,7 +22,7 @@ import Utils.Utils
 data ObjectFeatureKey =
   ObjectFeatureKey { _ofkObjKeys :: !(SP Int Int)
                    , _ofkFeatKeys :: !(SP Int Int)
-                   } deriving (Generic, Show, Hashable, NFData, Eq, Ord)
+                   } deriving (Generic, Show, NFData, Eq, Ord)
 makeLenses ''ObjectFeatureKey
 derivingUnbox "ObjectFeatureKey"
   [t| ObjectFeatureKey -> SP (SP Int Int) (SP Int Int) |]
