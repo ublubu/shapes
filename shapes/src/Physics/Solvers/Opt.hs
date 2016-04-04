@@ -52,7 +52,7 @@ applyCachedSlns beh dt (Descending kContacts) cache world0 = do
       f (cache_i, cache_i', world) kc@(key@ObjectFeatureKey{..}, _)
         | cache_i < cacheCount = do
             (key', sln) <- MV.read cache cache_i
-            if key > key'
+            if key < key'
               then f (cache_i + 1, cache_i', world) kc -- keep looking
               else if key == key'
                    then h' cache_i cache_i' world kc sln
