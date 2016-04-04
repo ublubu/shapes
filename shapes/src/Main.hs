@@ -34,7 +34,7 @@ main :: IO ()
 -- 210ms opt+vector 3x
 -- 140ms opt+vector 1x
 main = defaultMain [
-  bench "simple updateWorld 10" $ nf (SM.runWorld (Stacks.makeScene (15, 15) 0 SM.engineP)) 10,
+  --bench "simple updateWorld 10" $ nf (SM.runWorld (Stacks.makeScene (15, 15) 0 SM.engineP)) 10,
   bench "opt updateWorld 10" $ nf (OM.runWorld (Stacks.makeScene (15, 15) 0 OM.engineP)) 10]
 --main = do
   --print $ OM.runWorld (Stacks.makeScene (30, 30) 0 OM.engineP) 10

@@ -19,6 +19,7 @@ import Physics.Draw.Canonical
 import qualified Physics.Draw.Opt as D
 import Physics.Demo.IOWorld (Demo(..))
 
+import Utils.Descending
 import Utils.Utils
 
 instance Demo Engine where

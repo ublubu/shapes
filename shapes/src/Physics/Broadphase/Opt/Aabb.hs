@@ -22,6 +22,7 @@ import Physics.Contact.Opt
 import Physics.Contact.Opt.ConvexHull
 import Physics.World.Opt
 
+import Utils.Descending
 import Utils.Utils
 
 -- TODO: explore rewrite rules or other alternatives to manually using primops

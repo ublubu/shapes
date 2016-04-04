@@ -13,6 +13,7 @@ import Physics.Constraint.Opt
 import Physics.Linear.Opt
 import Physics.Contact.Opt.ConvexHull
 import Physics.Contact.Opt.SAT
+import Utils.Descending
 import Utils.Utils
 
 data ContactBehavior =

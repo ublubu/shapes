@@ -17,6 +17,7 @@ import Physics.Constraint.Opt
 import Physics.Contact.Opt
 import qualified Physics.Constraints.Opt.Friction as F
 import qualified Physics.Constraints.Opt.NonPenetration as NP
+import Utils.Descending
 import Utils.Utils
 
 data ObjectFeatureKey =

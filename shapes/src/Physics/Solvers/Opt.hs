@@ -19,6 +19,7 @@ import Physics.Constraints.Opt.Contact
 import Physics.Contact.Opt
 import Physics.Solvers.Opt.SolutionProcessors
 import Physics.World.Opt
+import Utils.Descending
 import Utils.Utils
 
 prepareFrame :: (Contactable a)
@@ -45,41 +46,33 @@ applyCachedSlns :: forall s a. (Contactable a)
                 -> V.MVector s (ObjectFeatureKey, ContactSolution)
                 -> World a
                 -> ST s (V.MVector s (ObjectFeatureKey, ContactSolution), World a)
-applyCachedSlns slnProc beh dt (Descending kContacts) cache world0 = do
-  cache' <- MV.new keyCount
-  let f :: (Int, Int, World a)
-        -> (ObjectFeatureKey, Flipping Contact')
-        -> ST s (Int, Int, World a)
-      f (cache_i, cache_i', world) kc@(key@ObjectFeatureKey{..}, _)
-        | cache_i < cacheCount = do
-            (key', sln) <- MV.read cache cache_i
-            if key < key'
-              then f (cache_i + 1, cache_i', world) kc -- keep looking
-              else if key == key'
-                   then h' cache_i cache_i' world kc sln
-                   else g' cache_i cache_i' world kc
-        | otherwise = g' cache_i cache_i' world kc
-      g :: Int -> World a -> ObjectFeatureKey -> Flipping Contact' -> ST s (World a)
-      g cache_i' world key@ObjectFeatureKey{..} fContact = do
+applyCachedSlns slnProc beh dt kContacts cache world0 = do
+  cache' <- MV.new $ length kContacts
+
+  let newCache :: (Int, World a)
+               -> (ObjectFeatureKey, Flipping Contact')
+               -> ST s (Int, World a)
+      newCache (cache_i', world) (key@ObjectFeatureKey{..}, fContact) = do
         let ab = fromJust $ world ^? worldPair (fromSP _ofkObjKeys)
             sln = getContactConstraint beh dt ab fContact
         MV.write cache' cache_i' (key, sln)
-        return world
-      g' cache_i cache_i' world (key@ObjectFeatureKey{..}, fContact) = do
-        world' <- g cache_i' world key fContact
-        return (cache_i, cache_i' + 1, world')
-      h cache_i' world key@ObjectFeatureKey{..} fContact sln = do
+        return (cache_i' + 1, world)
+      {-# INLINE newCache #-}
+
+      useCache :: (Int, World a)
+               -> (ObjectFeatureKey, Flipping Contact')
+               -> (ObjectFeatureKey, ContactSolution)
+               -> ST s (Int, World a)
+      useCache (cache_i', world) (key@ObjectFeatureKey{..}, fContact) (_, sln) = do
         let ab = fromJust $ world ^? worldPair (fromSP _ofkObjKeys)
             sln' = updateContactSln beh dt sln ab fContact
+            world' = world & worldPair (fromSP _ofkObjKeys) %~ applySln sln
         MV.write cache' cache_i' (key, sln')
-        return $ world & worldPair (fromSP _ofkObjKeys) %~ applySln sln
-      h' cache_i cache_i' world (key@ObjectFeatureKey{..}, fContact) sln = do
-        world' <- h cache_i' world key fContact sln
-        return (cache_i + 1, cache_i' + 1, world')
-  (_, _, world1) <- foldM f (0, 0, world0) kContacts
+        return (cache_i' + 1, world')
+      {-# INLINE useCache #-}
+
+  (_, world1) <- descZipVector fst fst useCache newCache (0, world0) kContacts cache
   return (cache', world1)
-  where keyCount = length kContacts
-        cacheCount = MV.length cache
 
 improveSln :: (Contactable a)
             => SolutionProcessor a

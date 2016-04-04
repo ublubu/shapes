@@ -18,6 +18,7 @@ import Data.Either.Combinators
 import Data.Function (on)
 import Physics.Contact.Opt.ConvexHull
 import Physics.Linear.Opt
+import Utils.Descending
 import Utils.Utils
 
 data Overlap = Overlap { _overlapEdge :: !Neighborhood

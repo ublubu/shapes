@@ -96,6 +96,7 @@ library
                      , Physics.World.Simple.External
                      , Physics.World.Simple.Object
                      , Physics.Solver
+                     , Utils.Descending
                      , Utils.PairMap
                      , Utils.Utils
 

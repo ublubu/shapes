@@ -19,6 +19,7 @@ import Physics.Draw.Canonical
 import Physics.Draw.Opt()
 import Physics.Demo.Contact (ContactDemo(..))
 
+import Utils.Descending
 import Utils.Utils
 
 instance ContactDemo Engine where

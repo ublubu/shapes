@@ -230,20 +230,3 @@ pairix ij@(i, j) f t = maybe (pure t) change pair
           return (a, b)
         change pair' = uncurry g <$> indexed f ij pair'
           where g a b = set (ix j) b . set (ix i) a $ t
-
-newtype Descending a =
-  Descending { _descList :: [a] } deriving (Generic, NFData)
-makeLenses ''Descending
-
-instance Functor Descending where
-  fmap f (Descending xs) = Descending $ fmap f xs
-
-instance Applicative Descending where
-  pure = Descending . pure
-  (Descending fs) <*> (Descending xs) = Descending (fs <*> xs)
-
-instance Monad Descending where
-  (Descending xs) >>= f = Descending (xs >>= _descList . f)
-
-instance Foldable Descending where
-  foldMap f (Descending xs) = foldMap f xs
