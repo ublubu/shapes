@@ -27,6 +27,9 @@ data ValueInfo = ValueInfo { _valueN :: Name
                            , _valueLt :: Name
                            }
 
+makeInlineD :: Name -> DecQ
+makeInlineD n = pragInlD n Inline FunLike AllPhases
+
 makeVectorN :: Int -> Name
 makeVectorN dim = mkName $ "V" ++ show dim
 
@@ -76,7 +79,7 @@ defineLift vectorN ValueInfo{..} dim = do
       valueT = conT _valueN
       vectorT = conT vectorN
       liftType = arrowsT [arrowsT [valueT, valueT], vectorT, vectorT]
-  funSigDef liftName liftType [liftClause]
+  inlSigDef liftName liftType [liftClause]
 
 defineLift2 :: Name -> ValueInfo -> Int -> DecsQ
 defineLift2 vectorN ValueInfo{..} dim = do
@@ -91,7 +94,7 @@ defineLift2 vectorN ValueInfo{..} dim = do
       valueT = conT _valueN
       vectorT = conT vectorN
       liftType = arrowsT [arrowsT [valueT, valueT, valueT], vectorT, vectorT, vectorT]
-  funSigDef liftName liftType [liftClause]
+  inlSigDef liftName liftType [liftClause]
 
 dotE :: ValueInfo -> [ExpQ] -> [ExpQ] -> ExpQ
 dotE ValueInfo{..} row col = foldl1 (infixApp' $ varE _valueAdd) products
@@ -106,7 +109,7 @@ defineDot vectorN vi@ValueInfo{..} dim = do
       valueT = conT _valueN
       vectorT = conT vectorN
       dotType = arrowsT [vectorT, vectorT, valueT]
-  funSigDef dotName dotType [dotClause]
+  inlSigDef dotName dotType [dotClause]
 
 defineJoinSplit :: ValueInfo -> (Int, Int) -> DecsQ
 defineJoinSplit ValueInfo{..} (left, right) = do
@@ -130,8 +133,8 @@ defineJoinSplit ValueInfo{..} (left, right) = do
       vecT = conT vecN
       vecT' = conT vecN'
       vecT'' = conT vecN''
-  joinI <- funSigDef joinN joinT [joinC]
-  splitI <- funSigDef splitN splitT [splitC]
+  joinI <- inlSigDef joinN joinT [joinC]
+  splitI <- inlSigDef splitN splitT [splitC]
   return $ joinI ++ splitI
 
 fromListN :: Name -> Name
@@ -150,7 +153,7 @@ defineFromList vectorN ValueInfo{..} dim = do
       vectorT = conT vectorN
       argT = appT listT (conT _valueBoxed)
       fromListType = arrowsT [argT, vectorT]
-  funSigDef (fromListN vectorN) fromListType [fromListClause0, fromListClause1]
+  inlSigDef (fromListN vectorN) fromListType [fromListClause0, fromListClause1]
 
 defineToList :: Name -> ValueInfo -> Int -> DecsQ
 defineToList vectorN ValueInfo{..} dim = do
@@ -161,10 +164,16 @@ defineToList vectorN ValueInfo{..} dim = do
       vectorT = conT vectorN
       resultT = appT listT (conT _valueBoxed)
       toListType = arrowsT [vectorT, resultT]
-  funSigDef toListName toListType [toListClause]
+  inlSigDef toListName toListType [toListClause]
 
 infixApp' :: ExpQ -> ExpQ -> ExpQ -> ExpQ
 infixApp' = flip infixApp
+
+inlSigDef :: Name -> TypeQ -> [ClauseQ] -> DecsQ
+inlSigDef funN funT funCs = do
+  sigdef <- funSigDef funN funT funCs
+  inl <- makeInlineD funN
+  return $ sigdef ++ [inl]
 
 funSigDef :: Name -> TypeQ -> [ClauseQ] -> DecsQ
 funSigDef funN funT funCs = do

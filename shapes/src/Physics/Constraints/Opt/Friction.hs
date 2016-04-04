@@ -13,6 +13,7 @@ toConstraint :: ContactBehavior
              -> (PhysicalObj, PhysicalObj)
              -> Constraint
 toConstraint _ _ c ab = Constraint (jacobian c ab) 0
+{-# INLINE toConstraint #-}
 
 jacobian :: Contact'
          -> (PhysicalObj, PhysicalObj)
@@ -26,8 +27,10 @@ jacobian Contact'{..} (a, b) = ja `join3v3` jb
         ta = negateV2 tb
         tb = clockwiseV2 n
         n = _contactEdgeNormal'
+{-# INLINE jacobian #-}
 
 pairMu :: (Contactable p) => (p, p) -> Double
 pairMu ab = (ua + ub) / 2
   where (ua, ub) = pairMap contactMu ab
+{-# INLINE pairMu #-}
 

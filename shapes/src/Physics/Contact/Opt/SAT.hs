@@ -43,18 +43,21 @@ makeLenses ''Contact
 satToEither :: SATResult -> Either Neighborhood Overlap
 satToEither (Separated x) = Left x
 satToEither (MinOverlap x) = Right x
+{-# INLINE satToEither #-}
 
 -- assumes pairs are (min, max)
 overlapTest :: (Ord a) => SP a a -> SP a a -> Bool
 overlapTest (SP a b) (SP c d) = not (c > b || d < a)
+{-# INLINE overlapTest #-}
 
 -- intervals are of distance along edge normal of shape X
 overlapAmount :: (Ord a, Num a) => SP a a -> SP a a -> Maybe a
 overlapAmount x@(SP _ edge) y@(SP penetrator _) = toMaybe (overlapTest x y) (edge - penetrator)
+{-# INLINE overlapAmount #-}
 
 overlapNormal :: Overlap -> V2
 overlapNormal = _neighborhoodUnitNormal . _overlapEdge
-
+{-# INLINE overlapNormal #-}
 
 overlap :: ConvexHull -> Neighborhood -> ConvexHull -> Maybe Overlap
 overlap sEdge edge sPen =
@@ -64,6 +67,7 @@ overlap sEdge edge sPen =
         extentP = extentAlong sPen dir
         penetrator = extentP ^. extentMin
         oval = overlapAmount (extentS ^. extentProjection) (extentP ^. extentProjection)
+{-# INLINE overlap #-}
 
 minOverlap :: ConvexHull
            -> [Neighborhood]
@@ -77,9 +81,12 @@ minOverlap sEdge edges sPen =
         f _ sep@(Separated _) = sep
         f mino@(MinOverlap mino') o@(MinOverlap o') =
           if _overlapDepth o' < _overlapDepth mino' then o else mino
+        {-# INLINE f #-}
+{-# INLINE minOverlap #-}
 
 minOverlap' :: ConvexHull -> ConvexHull -> SATResult
 minOverlap' a = minOverlap a (neighborhoods a)
+{-# INLINE minOverlap' #-}
 
 penetratingEdge :: Overlap -> SP Neighborhood Neighborhood
 penetratingEdge (Overlap edge _ b) =
@@ -93,14 +100,17 @@ penetratingEdge (Overlap edge _ b) =
         abn = abs (D# ((bb `diffP2` aa) `dotV2` n))
         bcn = abs (D# ((cc `diffP2` bb) `dotV2` n))
         n = _neighborhoodUnitNormal edge
+{-# INLINE penetratingEdge #-}
 
 penetratedEdge :: Overlap -> SP Neighborhood Neighborhood
 penetratedEdge (Overlap edgeStart _ _) = SP edgeStart (_neighborhoodNext edgeStart)
+{-# INLINE penetratedEdge #-}
 
 contactPoints' :: ContactPoints -> Either P2 (SP P2 P2)
 contactPoints' = mapBoth f g
   where f = _neighborhoodCenter
         g = spMap f
+{-# INLINE contactPoints' #-}
 
 flattenContactPoints :: ContactPoints -> Descending Neighborhood
 flattenContactPoints (Left p) = Descending [p]
@@ -108,6 +118,7 @@ flattenContactPoints (Right (SP p1 p2)) =
   if _neighborhoodIndex p1 > _neighborhoodIndex p2
   then Descending [p1, p2]
   else Descending [p2, p1]
+{-# INLINE flattenContactPoints #-}
 
 clipEdge :: SP Neighborhood Neighborhood -> V2 -> SP Neighborhood Neighborhood -> Maybe ContactPoints
 clipEdge (SP aa bb) n inc_ = do
@@ -122,10 +133,12 @@ clipEdge (SP aa bb) n inc_ = do
         (SP a b) = f (SP aa bb)
         f = spMap (view neighborhoodCenter)
         l = neighborhoodCenter
+{-# INLINE clipEdge #-}
 
 convertContactResult :: Flipping (Either Neighborhood (Maybe Contact))
                      -> Maybe (Flipping (Either Neighborhood Contact))
 convertContactResult = flipInjectF . fmap liftRightMaybe
+{-# INLINE convertContactResult #-}
 
 -- 'Flipping' indicates the direction of the collision. 'Same' means 'a' is penetrated by 'b'.
 -- TODO: return all useful values (e.g. overlap depth)
@@ -139,11 +152,13 @@ contactDebug a b = (convertContactResult $ fmap (mapRight contact_) ovl, ovlab, 
         ovlba' = satToEither ovlba
         ovl :: Flipping (Either Neighborhood Overlap)
         ovl = eitherBranchBoth ((<) `on` _overlapDepth) ovlab' ovlba'
+{-# INLINE contactDebug #-}
 
 contact :: ConvexHull
         -> ConvexHull
         -> Maybe (Flipping (Either Neighborhood Contact))
 contact a b = contactDebug a b ^. _1
+{-# INLINE contact #-}
 
 contact_ :: Overlap -> Maybe Contact
 contact_ ovl@Overlap{..} = fmap f (clipEdge edge n pen)
@@ -151,3 +166,4 @@ contact_ ovl@Overlap{..} = fmap f (clipEdge edge n pen)
         pen = penetratingEdge ovl
         n = overlapNormal ovl
         f c = Contact _overlapEdge c pen
+{-# INLINE contact_ #-}

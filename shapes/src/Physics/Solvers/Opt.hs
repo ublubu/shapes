@@ -29,6 +29,8 @@ prepareFrame :: (Contactable a)
 prepareFrame pairKeys w =
   join $ f <$> pairKeys
   where f pairKey = keyedContacts pairKey (fromJust $ w ^? worldPair pairKey)
+        {-# INLINE f #-}
+{-# INLINE prepareFrame #-}
 
 applySln :: (Contactable a)
          => ContactSolution
@@ -36,6 +38,7 @@ applySln :: (Contactable a)
          -> (a, a)
 applySln ContactSolution{..} =
   applyConstraintResult _contactFriction . applyConstraintResult _contactNonPen
+{-# INLINE applySln #-}
 
 --TODO: reader monad for stuff that's const between frames (beh, dt)
 applyCachedSlns :: forall s a. (Contactable a)
@@ -73,6 +76,7 @@ applyCachedSlns slnProc beh dt kContacts cache world0 = do
 
   (_, world1) <- descZipVector fst fst useCache newCache (0, world0) kContacts cache
   return (cache', world1)
+{-# INLINE applyCachedSlns #-}
 
 improveSln :: (Contactable a)
             => SolutionProcessor a
@@ -87,6 +91,7 @@ improveSln slnProc key cache_i cache ab = do
       (slnCache, slnApply) = slnProc cachedSln sln ab
   MV.write cache cache_i (key, slnCache)
   return $ applySln slnApply ab
+{-# INLINE improveSln #-}
 
 improveWorld' :: (Contactable a)
               => SolutionProcessor a
@@ -98,6 +103,7 @@ improveWorld' :: (Contactable a)
 improveWorld' slnProc key@ObjectFeatureKey{..} cache_i cache =
   worldPair (fromSP _ofkObjKeys) f
   where f = improveSln slnProc key cache_i cache
+{-# INLINE improveWorld' #-}
 
 improveWorld :: (Contactable a)
              => SolutionProcessor a
@@ -109,3 +115,4 @@ improveWorld slnProc kContacts cache world0 =
   snd <$> foldM f (0, world0) kContacts
   where f (cache_i, world) (key, _) =
           (,) (cache_i + 1) <$> improveWorld' slnProc key cache_i cache world
+{-# INLINE improveWorld #-}

@@ -21,17 +21,20 @@ simple' :: SolutionProcessor''
 simple' sln (lagr, c) = (sln', (lagr', c))
   where sln' = sln + lagr'
         lagr' = lagr
+{-# INLINE simple' #-}
 
 positive' :: SolutionProcessor''
 positive' sln (lagr, c) = (sln', (lagr', c))
   where sln' = sln + lagr'
         lagr' = max lagr (-sln)
+{-# INLINE positive' #-}
 
 wrapSlnProc' :: SolutionProcessor''
              -> SolutionProcessor'
 wrapSlnProc' f (lagrCache, _) slnApply =
   ((lagrCache', jApply'), slnApply')
   where (lagrCache', slnApply'@(_, jApply')) = f lagrCache slnApply
+{-# INLINE wrapSlnProc' #-}
 
 contactSlnProc :: (Contactable a) => SolutionProcessor a
 contactSlnProc (ContactSolution snp sfr) (ContactSolution rnp rfr) ab =
@@ -39,6 +42,7 @@ contactSlnProc (ContactSolution snp sfr) (ContactSolution rnp rfr) ab =
   where (snp', rnp') = wrapSlnProc' positive' snp rnp
         (sfr', rfr') = wrapSlnProc' (clampAbs (u * fst snp')) sfr rfr
         u = pairMu ab
+{-# INLINE contactSlnProc #-}
 
 clampAbs :: Double -> Double -> ConstraintResult -> (Double, ConstraintResult)
 clampAbs maxThresh sln (lagr, c) = (sln'', (lagr', c))
@@ -48,3 +52,4 @@ clampAbs maxThresh sln (lagr, c) = (sln'', (lagr', c))
               | otherwise = sln'
         sln' = sln + lagr
         lagr' = sln'' - sln
+{-# INLINE clampAbs #-}

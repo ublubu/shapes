@@ -31,6 +31,7 @@ makeLenses ''Neighborhood
 
 instance NFData Neighborhood where
   rnf (Neighborhood a _ _ b c) = rnf (a, b, c)
+  {-# INLINE rnf #-}
 
 data Extent f =
   Extent { _extentMin :: !f
@@ -41,6 +42,7 @@ makeLenses ''Extent
 
 instance Functor Extent where
   fmap f (Extent x y p) = Extent (f x) (f y) p
+  {-# INLINE fmap #-}
 
 instance Show Neighborhood where
   show Neighborhood{..} =
@@ -64,20 +66,25 @@ makeLenses ''ConvexHull
 _hullNeighborhood :: Int -> ConvexHull -> Neighborhood
 _hullNeighborhood i hull =
   _hullNeighborhoods hull ! i
+{-# INLINE _hullNeighborhood #-}
 
 distanceAlong :: Neighborhood -> V2 -> Double
 Neighborhood{..} `distanceAlong` dir =
   dir `afdot'` _neighborhoodCenter
+{-# INLINE distanceAlong #-}
 
 extentAlong' :: ConvexHull -> V2 -> SP Neighborhood Neighborhood
 extentAlong' ConvexHull{..} dir = toSP . pairMap snd . foldl1 g $ fmap f _hullNeighborhoods
   where f neigh =
           ((dist, neigh), (dist, neigh))
           where dist = neigh `distanceAlong` dir
+        {-# INLINE f #-}
         g (minA@(minDistA, _), maxA@(maxDistA, _)) (minB@(minDistB, _), maxB@(maxDistB, _)) =
           (minAB, maxAB)
           where minAB = if minDistB < minDistA then minB else minA
                 maxAB = if maxDistB > maxDistA then maxB else maxA
+        {-# INLINE g #-}
+{-# INLINE extentAlong' #-}
 
 extentAlong :: ConvexHull -> V2 -> Extent Neighborhood
 extentAlong shape dir =
@@ -85,13 +92,16 @@ extentAlong shape dir =
   where projectedExtent = spMap (f . _neighborhoodCenter) ext
           where f v = dir `afdot'` v
         ext@(SP minv maxv) = extentAlong' shape dir
+{-# INLINE extentAlong #-}
 
 extentIndices :: Extent Neighborhood -> (Int, Int)
 extentIndices ext =
   (_neighborhoodIndex . _extentMin $ ext, _neighborhoodIndex . _extentMax $ ext)
+{-# INLINE extentIndices #-}
 
 extentAlongSelf' :: ConvexHull -> Int -> (Int, Int)
 extentAlongSelf' ConvexHull{..} = (_hullExtents !)
+{-# INLINE extentAlongSelf' #-}
 
 extentAlongSelf :: ConvexHull -> (Int, V2) -> Extent Neighborhood
 extentAlongSelf hull@ConvexHull{..} (index', dir) =
@@ -100,14 +110,17 @@ extentAlongSelf hull@ConvexHull{..} (index', dir) =
          , _extentProjection = SP (minN `distanceAlong` dir) (maxN `distanceAlong` dir)
          }
   where (minN, maxN) = pairMap (_hullNeighborhoods !) $ extentAlongSelf' hull index'
+{-# INLINE extentAlongSelf #-}
 
 neighborhoods :: ConvexHull -> [Neighborhood]
 neighborhoods = elems . _hullNeighborhoods
+{-# INLINE neighborhoods #-}
 
 support :: ConvexHull -> V2 -> Neighborhood
 support ConvexHull{..} dir = snd . foldl1 g $ fmap f _hullNeighborhoods
   where f neigh@Neighborhood{..} = (dir `afdot'` _neighborhoodCenter, neigh)
         g a@(distA, _) b@(distB, _) = if distB > distA then b else a
+{-# INLINE support #-}
 
 -- TODO: make ConvexHull a proper WorldTransformable
 --instance (Epsilon a, Floating a, Ord a) => WorldTransformable (ConvexHull a) a where
@@ -124,9 +137,11 @@ rectangleVertices w h =
         h2 = h /## 2.0##
         nw2 = negateDouble# w2
         nh2 = negateDouble# h2
+{-# INLINE rectangleVertices #-}
 
 rectangleHull :: Double# -> Double# -> ConvexHull
 rectangleHull w h = listToHull $ rectangleVertices w h
+{-# INLINE rectangleHull #-}
 
 listToHull :: [P2] -> ConvexHull
 listToHull vertices =
@@ -144,6 +159,7 @@ listToHull vertices =
                (makeNeighborhoods hull)
                extents
                vertices'
+{-# INLINE listToHull #-}
 
 -- assumes scale-invariant transform in worldspace
 transformHull ::  ConvexHull
@@ -157,6 +173,7 @@ transformHull hull@ConvexHull{..} fInWorldSpace =
                      }
         vertices = fmap fInWorldSpace _hullVertices
         edgeNormals = ixedMap (unitEdgeNormal $ _hullVertexCount - 1) vertices
+{-# INLINE transformHull #-}
 
 -- assumes scale-invariant transform from localspace
 setHullTransform :: ConvexHull
@@ -170,11 +187,13 @@ setHullTransform hull@ConvexHull{..} fromLocalSpace =
                      }
         vertices = fmap fromLocalSpace _hullLocalVertices
         edgeNormals = ixedMap (unitEdgeNormal $ _hullVertexCount - 1) vertices
+{-# INLINE setHullTransform #-}
 
 makeNeighborhoods :: ConvexHull -> Array Int Neighborhood
 makeNeighborhoods hull@ConvexHull{..} =
   listArray (bounds _hullVertices) $
   fmap (makeNeighborhood hull) (indices _hullVertices)
+{-# INLINE makeNeighborhoods #-}
 
 makeNeighborhood :: ConvexHull -> Int -> Neighborhood
 makeNeighborhood ConvexHull{..} i =
@@ -185,23 +204,30 @@ makeNeighborhood ConvexHull{..} i =
                , _neighborhoodIndex = i
                }
   where maxIndex = arrMaxBound _hullVertices
+{-# INLINE makeNeighborhood #-}
 
 ixedMap :: (Ix i) => (Array i e -> i -> x) -> Array i e -> Array i x
 ixedMap f arr = listArray (bounds arr) $ fmap (f arr) (indices arr)
+{-# INLINE ixedMap #-}
 
 edgeNormal :: Int -> Array Int P2 -> Int -> V2
 edgeNormal maxIndex vs i = clockwiseV2 (v' `diffP2` v)
   where v = vs ! i
         v' = vs ! nextIndex maxIndex i
+{-# INLINE edgeNormal #-}
 
 unitEdgeNormal :: Int -> Array Int P2 -> Int -> V2
 unitEdgeNormal maxIndex vs = normalizeV2 . edgeNormal maxIndex vs
+{-# INLINE unitEdgeNormal #-}
 
 arrMaxBound :: Array Int a -> Int
 arrMaxBound = snd . bounds
+{-# INLINE arrMaxBound #-}
 
 nextIndex :: Int -> Int -> Int
 nextIndex max_i i = if i < max_i then i + 1 else 0
+{-# INLINE nextIndex #-}
 
 prevIndex :: Int -> Int -> Int
 prevIndex max_i i = if i > 0 then i - 1 else max_i
+{-# INLINE prevIndex #-}

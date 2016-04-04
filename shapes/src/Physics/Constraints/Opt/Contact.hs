@@ -37,6 +37,8 @@ keyedContacts :: (Contactable a)
 keyedContacts ij ab = fmap f contacts
   where contacts = generateContacts ab
         f (featKeys, contact) = (ObjectFeatureKey (toSP ij) (toSP featKeys), contact)
+        {-# INLINE f #-}
+{-# INLINE keyedContacts #-}
 
 data ContactSolution =
   ContactSolution { _contactNonPen :: ConstraintResult
@@ -62,6 +64,7 @@ solveContact beh dt ab fContact =
   where nonpen = flipExtract $ flipMap (NP.toConstraint beh dt) fContact ab'
         friction = flipExtract $ flipMap (F.toConstraint beh dt) fContact ab'
         ab' = ab & each %~ view physObj
+{-# INLINE solveContact #-}
 
 getContactConstraint :: (Contactable a)
                      => ContactBehavior
@@ -76,6 +79,7 @@ getContactConstraint beh dt ab fContact =
   where nonpen = flipExtract $ flipMap (NP.toConstraint beh dt) fContact ab'
         friction = flipExtract $ flipMap (F.toConstraint beh dt) fContact ab'
         ab' = ab & each %~ view physObj
+{-# INLINE getContactConstraint #-}
 
 updateContactSln :: (Contactable a)
                  => ContactBehavior
@@ -89,10 +93,12 @@ updateContactSln beh dt sln@ContactSolution{..} ab fContact =
   where nonpen = flipExtract $ flipMap (NP.toConstraint beh dt) fContact ab'
         friction = flipExtract $ flipMap (F.toConstraint beh dt) fContact ab'
         ab' = ab & each %~ view physObj
+{-# INLINE updateContactSln #-}
 
 emptyContactSln :: ContactSolution -> ContactSolution
 emptyContactSln ContactSolution{..} =
   ContactSolution (_contactNonPen & _1 .~ 0) (_contactFriction & _1 .~ 0)
+{-# INLINE emptyContactSln #-}
 
 solveContactAgain :: (Contactable a)
                   => ContactSolution
@@ -103,3 +109,4 @@ solveContactAgain ContactSolution{..} ab =
                   , _contactFriction = constraintResult (snd _contactFriction) ab'
                   }
   where ab' = ab & each %~ view physObj
+{-# INLINE solveContactAgain #-}

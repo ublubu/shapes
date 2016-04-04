@@ -55,7 +55,7 @@ defineMatrixMul vi@ValueInfo{..} (left, inner, right) = do
       matT = conT matN
       matT' = conT matN'
       matT'' = conT matN''
-  funSigDef mulN mulT [mulC]
+  inlSigDef mulN mulT [mulC]
 
 defineMatrixMulVector :: ValueInfo -> (Int, Int) -> DecsQ
 defineMatrixMulVector vi@ValueInfo{..} dims@(left, inner) = do
@@ -75,7 +75,7 @@ defineMatrixMulVector vi@ValueInfo{..} dims@(left, inner) = do
       matT = conT matN
       vecT = conT vecN
       vecT' = conT vecN'
-  funSigDef mulN mulT [mulC]
+  inlSigDef mulN mulT [mulC]
 
 defineVectorMulMatrix :: ValueInfo -> (Int, Int) -> DecsQ
 defineVectorMulMatrix vi@ValueInfo{..} dims@(inner, right) = do
@@ -95,7 +95,7 @@ defineVectorMulMatrix vi@ValueInfo{..} dims@(inner, right) = do
       vecT = conT vecN
       matT = conT matN
       vecT' = conT vecN'
-  funSigDef mulN mulT [mulC]
+  inlSigDef mulN mulT [mulC]
 
 defineDiagMulMatrix :: ValueInfo -> (Int, Int) -> DecsQ
 defineDiagMulMatrix ValueInfo{..} dims@(inner, right) = do
@@ -112,7 +112,7 @@ defineDiagMulMatrix ValueInfo{..} dims@(inner, right) = do
       mulT = arrowsT [vecT, matT, matT]
       vecT = conT vecN
       matT = conT matN
-  funSigDef mulN mulT [mulC]
+  inlSigDef mulN mulT [mulC]
 
 defineMatrixMulDiag :: ValueInfo -> (Int, Int) -> DecsQ
 defineMatrixMulDiag ValueInfo{..} dims@(left, inner) = do
@@ -129,7 +129,7 @@ defineMatrixMulDiag ValueInfo{..} dims@(left, inner) = do
       mulT = arrowsT [matT, vecT, matT]
       vecT = conT vecN
       matT = conT matN
-  funSigDef mulN mulT [mulC]
+  inlSigDef mulN mulT [mulC]
 
 defineVectorOuterProduct :: ValueInfo -> (Int, Int) -> DecsQ
 defineVectorOuterProduct ValueInfo{..} dims@(left, right) = do
@@ -149,7 +149,7 @@ defineVectorOuterProduct ValueInfo{..} dims@(left, right) = do
       vecT = conT vecN
       vecT' = conT vecN'
       matT = conT matN
-  funSigDef mulN mulT [mulC]
+  inlSigDef mulN mulT [mulC]
 
 chunks :: Int -> [a] -> [[a]]
 chunks _ [] = []

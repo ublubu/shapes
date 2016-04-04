@@ -37,12 +37,14 @@ contactDepth :: Neighborhood
              -> Neighborhood
              -> Double
 contactDepth edge = contactDepth_ edge . _neighborhoodCenter
+{-# INLINE contactDepth #-}
 
 contactDepth_ :: Neighborhood -> P2 -> Double
 contactDepth_ neighborhood p = f v - f p
   where f = afdot' n
         n = _neighborhoodUnitNormal neighborhood
         v = _neighborhoodCenter neighborhood
+{-# INLINE contactDepth_ #-}
 
 class (Physical p) => Contactable p where
   contactMu :: p -> Double
@@ -53,10 +55,12 @@ defaultContactBehavior =
   ContactBehavior { contactBaumgarte = 0
                   , contactPenetrationSlop = 0
                   }
+{-# INLINE defaultContactBehavior #-}
 
 unwrapContactResult :: Maybe (Flipping (Either Neighborhood Contact))
                     -> Maybe (Flipping Contact)
 unwrapContactResult contactInfo = (flipInjectF . fmap eitherToMaybe) =<< contactInfo
+{-# INLINE unwrapContactResult #-}
 
 flattenContactResult :: Maybe (Flipping Contact)
                      -> Descending ((Int, Int), Flipping Contact')
@@ -73,16 +77,21 @@ flattenContactResult (Just fContact) =
                              , _contactDepth' = contactDepth _contactEdge pen
                              }
                   )
+        {-# INLINE flatten #-}
         f :: Flipping ((Int, Int), Contact') -> ((Int, Int), Flipping Contact')
         f x = (flipExtractPair fst x, snd <$> x)
+        {-# INLINE f #-}
+{-# INLINE flattenContactResult #-}
 
 generateContacts' :: (Contactable p)
                  => (p, p)
                  -> Maybe (Flipping Contact)
 generateContacts' contactPair = unwrapContactResult $ uncurry contact shapes
   where shapes = pairMap contactHull contactPair
+{-# INLINE generateContacts' #-}
 
 generateContacts :: (Contactable p)
                  => (p, p)
                  -> Descending ((Int, Int), Flipping Contact')
 generateContacts = flattenContactResult . generateContacts'
+{-# INLINE generateContacts #-}
