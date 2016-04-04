@@ -62,11 +62,9 @@ applyCachedSlns slnProc beh dt (Descending kContacts) cache world0 = do
       g :: Int -> World a -> ObjectFeatureKey -> Flipping Contact' -> ST s (World a)
       g cache_i' world key@ObjectFeatureKey{..} fContact = do
         let ab = fromJust $ world ^? worldPair (fromSP _ofkObjKeys)
-            sln = solveContact beh dt ab fContact
-            sln0 = emptyContactSln sln
-            (slnCache, slnApply) = slnProc sln0 sln ab
-        MV.write cache' cache_i' (key, slnCache)
-        return $ world & worldPair (fromSP _ofkObjKeys) %~ applySln slnApply
+            sln = getContactConstraint beh dt ab fContact
+        MV.write cache' cache_i' (key, sln)
+        return world
       g' cache_i cache_i' world (key@ObjectFeatureKey{..}, fContact) = do
         world' <- g cache_i' world key fContact
         return (cache_i, cache_i' + 1, world')

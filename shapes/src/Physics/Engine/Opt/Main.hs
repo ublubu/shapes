@@ -70,6 +70,7 @@ updateWorld dt = do
   void . wrapUpdater' $ return . applyExternals exts dt
   void . wrapInitializer $ applyCachedSlns contactSlnProc beh dt kContacts
   void . wrapUpdater $ improveWorld contactSlnProc kContacts
+  void . wrapUpdater $ improveWorld contactSlnProc kContacts
   void . wrapUpdater' $ return . advanceWorld dt
   wrapUpdater' $ return . over worldObjs (fmap updateShape)
 

@@ -62,6 +62,20 @@ solveContact beh dt ab fContact =
         friction = flipExtract $ flipMap (F.toConstraint beh dt) fContact ab'
         ab' = ab & each %~ view physObj
 
+getContactConstraint :: (Contactable a)
+                     => ContactBehavior
+                     -> Double
+                     -> (a, a)
+                     -> Flipping Contact'
+                     -> ContactSolution
+getContactConstraint beh dt ab fContact =
+  ContactSolution { _contactNonPen = (0, nonpen)
+                  , _contactFriction = (0, friction)
+                  }
+  where nonpen = flipExtract $ flipMap (NP.toConstraint beh dt) fContact ab'
+        friction = flipExtract $ flipMap (F.toConstraint beh dt) fContact ab'
+        ab' = ab & each %~ view physObj
+
 updateContactSln :: (Contactable a)
                  => ContactBehavior
                  -> Double
