@@ -25,15 +25,20 @@ instance Show WorldObj where
 
 instance Physical WorldObj where
   physObj = worldPhysObj
+  {-# INLINE physObj #-}
 
 instance Contactable WorldObj where
   contactMu = _worldObjMu
   contactHull = _worldShape
+  {-# INLINE contactMu #-}
+  {-# INLINE contactHull #-}
 
 updateShape :: WorldObj -> WorldObj
 updateShape obj =
   obj & worldShape %~ flip setHullTransform (transform t)
   where t = _physObjTransform . _worldPhysObj $ obj
+{-# INLINE updateShape #-}
 
 makeWorldObj :: PhysicalObj -> Double -> ConvexHull -> WorldObj
 makeWorldObj p u s = updateShape $ WorldObj p u s
+{-# INLINE makeWorldObj #-}
