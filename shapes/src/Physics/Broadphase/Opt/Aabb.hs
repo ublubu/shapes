@@ -52,29 +52,36 @@ instance Show Aabb where
 boundsOverlap :: Bounds -> Bounds -> Bool
 boundsOverlap (Bounds a b) (Bounds c d) =
   not $ isTrue# (c >## b) || isTrue# (d <## a)
+{-# INLINE boundsOverlap #-}
 
 aabbCheck :: Aabb -> Aabb -> Bool
 aabbCheck (Aabb xBounds yBounds) (Aabb xBounds' yBounds') =
   boundsOverlap xBounds xBounds' && boundsOverlap yBounds yBounds'
+{-# INLINE aabbCheck #-}
 
 toAabb :: ConvexHull -> Aabb
 toAabb hull = foldl1 mergeAabb aabbs
   where aabbs = fmap toAabb_ . elems . _hullVertices $ hull
+{-# INLINE toAabb #-}
 
 toAabb_ :: P2 -> Aabb
 toAabb_ (P2 (V2 a b))= Aabb (Bounds a a) (Bounds b b)
+{-# INLINE toAabb_ #-}
 
 mergeAabb :: Aabb -> Aabb -> Aabb
 mergeAabb (Aabb ax ay) (Aabb bx by) =
   Aabb (mergeRange ax bx) (mergeRange ay by)
+{-# INLINE mergeAabb #-}
 
 mergeRange :: Bounds -> Bounds -> Bounds
 mergeRange (Bounds a b) (Bounds c d) = Bounds minx maxx
   where minx = if isTrue# (a <## c) then a else c
         maxx = if isTrue# (b >## d) then b else d
+{-# INLINE mergeRange #-}
 
 toAabbs :: (Contactable a) => World a -> V.Vector (Int, Aabb)
 toAabbs = V.fromList . over (traverse . _2) (toAabb . contactHull) . IM.toList . _worldObjs
+{-# INLINE toAabbs #-}
 
 unorderedPairs :: Int -> [(Int, Int)]
 unorderedPairs n
@@ -83,6 +90,8 @@ unorderedPairs n
   where f 1 0 = [(1, 0)]
         f x 0 = (x, 0) : f (x - 1) (x - 2)
         f x y = (x, y) : f x (y - 1)
+        {-# INLINE f #-}
+{-# INLINE unorderedPairs #-}
 
 culledKeys :: (Contactable a) => World a -> Descending (Int, Int)
 culledKeys w = Descending . catMaybes $ fmap f ijs
@@ -91,8 +100,12 @@ culledKeys w = Descending . catMaybes $ fmap f ijs
         f (i, j) = if aabbCheck a b then Just (i', j') else Nothing
           where (i', a) = aabbs V.! i
                 (j', b) = aabbs V.! j
+        {-# INLINE f #-}
+{-# INLINE culledKeys #-}
 
 culledPairs :: (Contactable a) => World a -> Descending (WorldPair (a, a))
 culledPairs world =
   culledKeys world & descList %~ catMaybes . fmap f
   where f ij = WorldPair ij <$> world ^? worldPair ij
+        {-# INLINE f #-}
+{-# INLINE culledPairs #-}
