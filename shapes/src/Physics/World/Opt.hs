@@ -90,6 +90,7 @@ setPair :: (MV.MVector v a) => (Int, Int) -> (a, a) -> v s a -> ST s ()
 setPair (i, j) (a, b) objs = do
   MV.write objs i a
   MV.write objs j b
+{-# INLINE setPair #-}
 
 viewPair :: (MV.MVector v a) => (Int, Int) -> v s a -> ST s (a, a)
 viewPair (i, j) objs = do
@@ -100,6 +101,7 @@ viewPair (i, j) objs = do
 
 viewPair' :: (U.Unbox a) => (Int, Int) -> U.Vector a -> (a, a)
 viewPair' (i, j) objs = (objs U.! i, objs U.! j)
+{-# INLINE viewPair' #-}
 
 {-
 worldPair :: (Int, Int) -> Traversal' (World a) (a, a)
