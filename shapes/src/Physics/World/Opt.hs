@@ -3,35 +3,105 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Physics.World.Opt where
 
-import GHC.Generics (Generic)
-
-import Control.DeepSeq
 import Control.Lens
-import Data.Foldable (foldl')
-import qualified Data.IntMap.Strict as IM
-import Physics.Constraint.Opt hiding (solveConstraint)
-import Utils.Utils
+import Control.Monad.ST
+import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as U
+import qualified Data.Vector.Generic.Mutable as MV
 
-data World a = World { _worldObjs :: !(IM.IntMap a)
-                     , _worldNextKey :: !Int } deriving (Show, Generic, NFData)
+import Physics.Contact.Opt.ConvexHull
+import Physics.Constraint.Opt hiding (solveConstraint)
+import qualified Physics.Transform.Opt as PT
+import Physics.World.Opt.Object
+
+data World s =
+  World { _wPhysObjs :: !(U.MVector s PhysicalObj)
+        , _wShapes :: !(V.MVector s ConvexHull)
+        , _wMus :: !(U.Vector Double)
+        }
 makeLenses ''World
 
-emptyWorld :: World a
-emptyWorld = World IM.empty 0
-{-# INLINE emptyWorld #-}
+type External' = Double -> PhysicalObj -> PhysicalObj
+type External a = Double -> a -> a
 
-addObj :: World a -> a -> World a
-addObj w o = w & worldObjs %~ IM.insert n o & worldNextKey .~ n + 1
-  where n = w ^. worldNextKey
-{-# INLINE addObj #-}
+fromList :: [WorldObj] -> ST s (World s)
+fromList objs = do
+  physObjs <- U.thaw . U.fromList $ _worldPhysObj <$> objs
+  shapes <- V.thaw . V.fromList $ _worldShape <$> objs
+  let mus = U.fromList $ _worldMu <$> objs
 
-fromList :: [a] -> World a
-fromList = foldl addObj emptyWorld
+  return $ World physObjs shapes mus
 {-# INLINE fromList #-}
 
+updateShapes :: World s -> ST s ()
+updateShapes World{..} =
+  mapM_ f [0..(MV.length _wPhysObjs - 1)]
+  where f i = do
+          obj <- MV.read _wPhysObjs i
+          let t = _physObjTransform obj
+          MV.modify _wShapes (`setHullTransform` PT.transform t) i
+        {-# INLINE f #-}
+{-# INLINE updateShapes #-}
+
+advanceWorld :: Double -> World s -> ST s ()
+advanceWorld dt =
+  overPhysObjs (`advanceObj` dt)
+{-# INLINE advanceWorld #-}
+
+applyExternals :: [External PhysicalObj] -> Double -> World s -> ST s ()
+applyExternals exts dt =
+  overPhysObjs (\obj -> foldl f obj exts)
+  where f obj ext = ext dt obj
+        {-# INLINE f #-}
+{-# INLINE applyExternals #-}
+
+overPhysObjs :: (PhysicalObj -> PhysicalObj) -> World s -> ST s ()
+overPhysObjs f = overEach f . view wPhysObjs
+{-# INLINE overPhysObjs #-}
+
+overPhysObjPair :: (Int, Int)
+                -> ((PhysicalObj, PhysicalObj) -> (PhysicalObj, PhysicalObj))
+                -> World s
+                -> ST s ()
+overPhysObjPair ij f =
+  overPair ij f . view wPhysObjs
+{-# INLINE overPhysObjPair #-}
+
+overEach :: (MV.MVector v a) => (a -> a) -> v s a -> ST s ()
+overEach f objs =
+  mapM_ (MV.modify objs f) [0..(MV.length objs - 1)]
+{-# INLINE overEach #-}
+
+overPair :: (MV.MVector v a) => (Int, Int) -> ((a, a) -> (a, a)) -> v s a -> ST s ()
+overPair (i, j) f objs = do
+  a <- MV.read objs i
+  b <- MV.read objs j
+  let (a', b') = f (a, b)
+  MV.write objs i a'
+  MV.write objs j b'
+{-# INLINE overPair #-}
+
+setPair :: (MV.MVector v a) => (Int, Int) -> (a, a) -> v s a -> ST s ()
+setPair (i, j) (a, b) objs = do
+  MV.write objs i a
+  MV.write objs j b
+
+viewPair :: (MV.MVector v a) => (Int, Int) -> v s a -> ST s (a, a)
+viewPair (i, j) objs = do
+  a <- MV.read objs i
+  b <- MV.read objs j
+  return (a, b)
+{-# INLINE viewPair #-}
+
+viewPair' :: (U.Unbox a) => (Int, Int) -> U.Vector a -> (a, a)
+viewPair' (i, j) objs = (objs U.! i, objs U.! j)
+
+{-
 worldPair :: (Int, Int) -> Traversal' (World a) (a, a)
 worldPair ij = worldObjs . pairiix ij
 {-# INLINE worldPair #-}
@@ -88,3 +158,4 @@ getWorldChanged objChanged w w' = anyOf traverse id (ixZipWith f os os')
         os = w ^. worldObjs
         os' = w' ^. worldObjs
 {-# INLINE getWorldChanged #-}
+-}

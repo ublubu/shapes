@@ -27,7 +27,7 @@ shapeB' p = makeWorldObj p (shapeB p) 0.5 $ makeHull p [ (2, 1)
                                                        , (2, -1)
                                                        ]
 
-world :: (PhysicsEngine e) => Proxy e -> PEWorld e (PEWorldObj e)
+world :: (PhysicsEngine e) => Proxy e -> PEWorld e
 world p = makeWorld p [shapeA' p, shapeB' p]
 
 externals :: (PhysicsEngine e) => Proxy e -> [PEExternal' e]

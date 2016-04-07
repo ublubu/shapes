@@ -26,7 +26,7 @@ pairToV2 :: (a, a) -> V2 a
 pairToV2 (x, y) = V2 x y
 
 instance PhysicsEngine SimpleEngine where
-  type PEWorld SimpleEngine = World
+  type PEWorld SimpleEngine = World (WorldObj Double)
   type PEWorldObj SimpleEngine = WorldObj Double
   type PEExternal' SimpleEngine = External Double (WorldObj Double)
   type PEPhysicalObj SimpleEngine = PhysicalObj Double

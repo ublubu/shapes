@@ -12,7 +12,7 @@ import Physics.Constraints.Opt.Friction
 -- (objects) ->
 -- (new accumulated impulse, incremental sln to apply)
 --
-type SolutionProcessor a = ContactSolution -> ContactSolution -> (a, a) -> (ContactSolution, ContactSolution)
+type SolutionProcessor = ContactSolution -> ContactSolution -> (Double, Double) -> (ContactSolution, ContactSolution)
 type SolutionProcessor' = ConstraintResult -> ConstraintResult -> (ConstraintResult, ConstraintResult)
 type SolutionProcessor'' = Double -> ConstraintResult -> (Double, ConstraintResult)
 
@@ -36,7 +36,7 @@ wrapSlnProc' f (lagrCache, _) slnApply =
   where (lagrCache', slnApply'@(_, jApply')) = f lagrCache slnApply
 {-# INLINE wrapSlnProc' #-}
 
-contactSlnProc :: (Contactable a) => SolutionProcessor a
+contactSlnProc :: SolutionProcessor
 contactSlnProc (ContactSolution snp sfr) (ContactSolution rnp rfr) ab =
   (ContactSolution snp' sfr', ContactSolution rnp' rfr')
   where (snp', rnp') = wrapSlnProc' positive' snp rnp

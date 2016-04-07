@@ -15,10 +15,12 @@ import Physics.Transform.Opt
 
 data WorldObj =
   WorldObj { _worldPhysObj :: !PhysicalObj
-           , _worldObjMu :: !Double
            , _worldShape :: !ConvexHull
+           , _worldMu :: !Double
            } deriving (Generic, NFData)
 makeLenses ''WorldObj
+
+data WorldPair a = WorldPair (Int, Int) a deriving Show
 
 instance Show WorldObj where
   show (WorldObj obj _ _) = "WorldObj { " ++ show obj ++ " }"
@@ -27,12 +29,6 @@ instance Physical WorldObj where
   physObj = worldPhysObj
   {-# INLINE physObj #-}
 
-instance Contactable WorldObj where
-  contactMu = _worldObjMu
-  contactHull = _worldShape
-  {-# INLINE contactMu #-}
-  {-# INLINE contactHull #-}
-
 updateShape :: WorldObj -> WorldObj
 updateShape obj =
   obj & worldShape %~ flip setHullTransform (transform t)
@@ -40,5 +36,5 @@ updateShape obj =
 {-# INLINE updateShape #-}
 
 makeWorldObj :: PhysicalObj -> Double -> ConvexHull -> WorldObj
-makeWorldObj p u s = updateShape $ WorldObj p u s
+makeWorldObj p u s = updateShape $ WorldObj p s u
 {-# INLINE makeWorldObj #-}

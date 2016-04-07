@@ -32,6 +32,11 @@ instance NFData InvMass2 where
   rnf (InvMass2 _ _) = ()
   {-# INLINE rnf #-}
 
+derivingUnbox "InvMass2"
+  [t| InvMass2 -> V2 |]
+  [| \InvMass2{..} -> V2 _imLin _imRot |]
+  [| \(V2 lin rot) -> InvMass2 lin rot |]
+
 data PhysicalObj = PhysicalObj { _physObjVel :: !V2
                                , _physObjRotVel :: !Double
                                , _physObjPos :: !V2
@@ -39,6 +44,11 @@ data PhysicalObj = PhysicalObj { _physObjVel :: !V2
                                , _physObjInvMass :: !InvMass2
                                } deriving (Show, Generic, NFData)
 makeLenses ''PhysicalObj
+
+derivingUnbox "PhysicalObj"
+  [t| PhysicalObj -> (V2, Double, V2, Double, InvMass2) |]
+  [| \(PhysicalObj a b c d e) -> (a, b, c, d, e) |]
+  [| \(a, b, c, d, e) -> PhysicalObj a b c d e |]
 
 class Physical p where
   physObj :: Functor f => (PhysicalObj -> f PhysicalObj) -> p -> f p

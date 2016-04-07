@@ -18,6 +18,9 @@ import GHC.Prim (Double#, (/##), negateDouble#)
 import Control.DeepSeq
 import Control.Lens (makeLenses)
 import Data.Array
+import qualified Data.Vector.Unboxed as V
+import qualified Data.Vector.Mutable as MV
+
 import Physics.Linear.Opt
 import Utils.Utils
 

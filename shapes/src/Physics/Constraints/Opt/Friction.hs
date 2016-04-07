@@ -29,8 +29,7 @@ jacobian Contact'{..} (a, b) = ja `join3v3` jb
         n = _contactEdgeNormal'
 {-# INLINE jacobian #-}
 
-pairMu :: (Contactable p) => (p, p) -> Double
-pairMu ab = (ua + ub) / 2
-  where (ua, ub) = pairMap contactMu ab
+pairMu :: (Double, Double) -> Double
+pairMu (ua, ub) = (ua + ub) / 2
 {-# INLINE pairMu #-}
 

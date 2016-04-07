@@ -6,7 +6,7 @@ import Control.Lens
 import Physics.Engine.Class
 
 data Scene e =
-  Scene { _scWorld :: PEWorld e (PEWorldObj e)
+  Scene { _scWorld :: PEWorld e
         , _scExts :: [PEExternal' e]
         , _scContactBeh :: PEContactBehavior e
         }

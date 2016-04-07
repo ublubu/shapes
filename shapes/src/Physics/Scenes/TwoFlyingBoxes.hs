@@ -18,7 +18,7 @@ boxA' p = makeWorldObj p (boxA p) 0.2 $ makeRectangleHull p 4 4
 boxB' :: (PhysicsEngine e) => Proxy e -> PEWorldObj e
 boxB' p = makeWorldObj p (boxB p) 0.2 $ makeRectangleHull p 2 2
 
-world :: (PhysicsEngine e) => Proxy e -> PEWorld e (PEWorldObj e)
+world :: (PhysicsEngine e) => Proxy e -> PEWorld e
 world p = makeWorld p [boxA' p, boxB' p]
 
 externals :: (PhysicsEngine e) => Proxy e -> [PEExternal' e]

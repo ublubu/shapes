@@ -15,6 +15,7 @@ import Data.Vector.Unboxed.Deriving
 
 import Physics.Constraint.Opt
 import Physics.Contact.Opt
+import Physics.Contact.Opt.ConvexHull
 import qualified Physics.Constraints.Opt.Friction as F
 import qualified Physics.Constraints.Opt.NonPenetration as NP
 import Utils.Descending
@@ -30,9 +31,8 @@ derivingUnbox "ObjectFeatureKey"
   [| \ObjectFeatureKey{..} -> SP _ofkObjKeys _ofkFeatKeys |]
   [| \SP{..} -> ObjectFeatureKey _spFst _spSnd |]
 
-keyedContacts :: (Contactable a)
-              => (Int, Int)
-              -> (a, a)
+keyedContacts :: (Int, Int)
+              -> (ConvexHull, ConvexHull)
               -> Descending (ObjectFeatureKey, Flipping Contact')
 keyedContacts ij ab = fmap f contacts
   where contacts = generateContacts ab
@@ -51,41 +51,36 @@ derivingUnbox "ContactSolution"
   [| \ContactSolution{..} -> (_contactNonPen, _contactFriction) |]
   [| uncurry ContactSolution |]
 
-solveContact :: (Contactable a)
-             => ContactBehavior
+solveContact :: ContactBehavior
              -> Double
-             -> (a, a)
+             -> (PhysicalObj, PhysicalObj)
              -> Flipping Contact'
              -> ContactSolution
 solveContact beh dt ab fContact =
-  ContactSolution { _contactNonPen = constraintResult nonpen ab'
-                  , _contactFriction = constraintResult friction ab'
+  ContactSolution { _contactNonPen = constraintResult nonpen ab
+                  , _contactFriction = constraintResult friction ab
                   }
-  where nonpen = flipExtract $ flipMap (NP.toConstraint beh dt) fContact ab'
-        friction = flipExtract $ flipMap (F.toConstraint beh dt) fContact ab'
-        ab' = ab & each %~ view physObj
+  where nonpen = flipExtract $ flipMap (NP.toConstraint beh dt) fContact ab
+        friction = flipExtract $ flipMap (F.toConstraint beh dt) fContact ab
 {-# INLINE solveContact #-}
 
-getContactConstraint :: (Contactable a)
-                     => ContactBehavior
+getContactConstraint :: ContactBehavior
                      -> Double
-                     -> (a, a)
+                     -> (PhysicalObj, PhysicalObj)
                      -> Flipping Contact'
                      -> ContactSolution
 getContactConstraint beh dt ab fContact =
   ContactSolution { _contactNonPen = (0, nonpen)
                   , _contactFriction = (0, friction)
                   }
-  where nonpen = flipExtract $ flipMap (NP.toConstraint beh dt) fContact ab'
-        friction = flipExtract $ flipMap (F.toConstraint beh dt) fContact ab'
-        ab' = ab & each %~ view physObj
+  where nonpen = flipExtract $ flipMap (NP.toConstraint beh dt) fContact ab
+        friction = flipExtract $ flipMap (F.toConstraint beh dt) fContact ab
 {-# INLINE getContactConstraint #-}
 
-updateContactSln :: (Contactable a)
-                 => ContactBehavior
+updateContactSln :: ContactBehavior
                  -> Double
                  -> ContactSolution
-                 -> (a, a)
+                 -> (PhysicalObj, PhysicalObj)
                  -> Flipping Contact'
                  -> ContactSolution
 updateContactSln beh dt sln@ContactSolution{..} ab fContact =
@@ -100,13 +95,11 @@ emptyContactSln ContactSolution{..} =
   ContactSolution (_contactNonPen & _1 .~ 0) (_contactFriction & _1 .~ 0)
 {-# INLINE emptyContactSln #-}
 
-solveContactAgain :: (Contactable a)
-                  => ContactSolution
-                  -> (a, a)
+solveContactAgain :: ContactSolution
+                  -> (PhysicalObj, PhysicalObj)
                   -> ContactSolution
 solveContactAgain ContactSolution{..} ab =
-  ContactSolution { _contactNonPen = constraintResult (snd _contactNonPen) ab'
-                  , _contactFriction = constraintResult (snd _contactFriction) ab'
+  ContactSolution { _contactNonPen = constraintResult (snd _contactNonPen) ab
+                  , _contactFriction = constraintResult (snd _contactFriction) ab
                   }
-  where ab' = ab & each %~ view physObj
 {-# INLINE solveContactAgain #-}

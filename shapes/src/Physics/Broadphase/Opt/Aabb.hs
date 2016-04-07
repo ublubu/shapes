@@ -12,15 +12,19 @@ import GHC.Prim (Double#, (>##), (<##))
 import GHC.Types (Double(D#), isTrue#)
 
 import Control.Lens (over, _2, (^?), (%~), (&))
+import Control.Monad.ST
 import Data.Array (elems)
 import qualified Data.IntMap.Strict as IM
 import Data.Maybe
-import qualified Data.Vector.Unboxed as V
+import qualified Data.Vector.Unboxed as U
+import qualified Data.Vector.Mutable as MV
 import Data.Vector.Unboxed.Deriving
+
 import Physics.Linear.Opt
 import Physics.Contact.Opt
 import Physics.Contact.Opt.ConvexHull
 import Physics.World.Opt
+import Physics.World.Opt.Object
 
 import Utils.Descending
 import Utils.Utils
@@ -79,8 +83,11 @@ mergeRange (Bounds a b) (Bounds c d) = Bounds minx maxx
         maxx = if isTrue# (b >## d) then b else d
 {-# INLINE mergeRange #-}
 
-toAabbs :: (Contactable a) => World a -> V.Vector (Int, Aabb)
-toAabbs = V.fromList . over (traverse . _2) (toAabb . contactHull) . IM.toList . _worldObjs
+toAabbs :: World s -> ST s (U.Vector Aabb)
+toAabbs World{..} =
+  U.generateM (MV.length _wShapes) f
+  where f i = toAabb <$> MV.read _wShapes i
+        {-# INLINE f #-}
 {-# INLINE toAabbs #-}
 
 unorderedPairs :: Int -> [(Int, Int)]
@@ -93,19 +100,23 @@ unorderedPairs n
         {-# INLINE f #-}
 {-# INLINE unorderedPairs #-}
 
-culledKeys :: (Contactable a) => World a -> Descending (Int, Int)
-culledKeys w = Descending . catMaybes $ fmap f ijs
-  where aabbs = toAabbs w
-        ijs = unorderedPairs $ V.length aabbs
-        f (i, j) = if aabbCheck a b then Just (i', j') else Nothing
-          where (i', a) = aabbs V.! i
-                (j', b) = aabbs V.! j
-        {-# INLINE f #-}
+culledKeys :: World s -> ST s (Descending (Int, Int))
+culledKeys w@World{..} = do
+  aabbs <- toAabbs w
+  let f [] = []
+      f (ij@(i, j) : ijs) =
+        if aabbCheck (aabbs U.! i) (aabbs U.! j)
+        then ij : f ijs else f ijs
+      {-# INLINE f #-}
+  return . Descending $ f pairs
+  where pairs = unorderedPairs $ MV.length _wShapes
 {-# INLINE culledKeys #-}
 
+{-
 culledPairs :: (Contactable a) => World a -> Descending (WorldPair (a, a))
 culledPairs world =
   culledKeys world & descList %~ catMaybes . fmap f
   where f ij = WorldPair ij <$> world ^? worldPair ij
         {-# INLINE f #-}
 {-# INLINE culledPairs #-}
+-}

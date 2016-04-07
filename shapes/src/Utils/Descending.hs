@@ -40,6 +40,9 @@ instance Foldable Descending where
   foldMap f (Descending xs) = foldMap f xs
   {-# INLINE foldMap #-}
 
+instance Traversable Descending where
+  traverse f (Descending xs) = Descending <$> traverse f xs
+
 descZipVector :: forall a b c s k. (Ord k, MV.MVector V.MVector b)
               => (a -> k)
               -> (b -> k)

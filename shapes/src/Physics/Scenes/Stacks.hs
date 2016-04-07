@@ -57,17 +57,17 @@ stacks p size@(w, _) (center, bottom) vel spacing (n_w, n_h) =
   where leftmost = center - (w * fromIntegral (n_w - 1) / 2)
         f left = boxStack p size (left, bottom) vel spacing n_h
 
-world :: (PhysicsEngine e) => Proxy e -> PEWorld e (PEWorldObj e)
+world :: (PhysicsEngine e) => Proxy e -> PEWorld e
 world p = makeWorld p ([boxFloor' p] ++ boxStack p (2, 2) (8, -4.5) (-1, 0) 0 5 ++ boxStack p (2, 2) (5.5, -4.5) (-2, 0) 0 5)
 
-world' :: (PhysicsEngine e) => Proxy e -> PEWorld e (PEWorldObj e)
+world' :: (PhysicsEngine e) => Proxy e -> PEWorld e
 world' p = makeWorld p ([boxFloor' p] ++ boxStack p (2, 2) (0, -4.5) (0, 0) 0 5 ++ [box' p (2, 2) (8, 0) (-6, 0)])
 
-world'' :: (PhysicsEngine e) => Proxy e -> PEWorld e (PEWorldObj e)
+world'' :: (PhysicsEngine e) => Proxy e -> PEWorld e
 world'' p =
   makeWorld p (boxFloor' p : stacks p (1, 1) (0, -4.5) (0, 0) 1 (10, 10))
 
-world''' :: (PhysicsEngine e) => Proxy e -> PEWorld e (PEWorldObj e)
+world''' :: (PhysicsEngine e) => Proxy e -> PEWorld e
 world''' p =
   makeWorld p (boxFloor' p : stacks p (0.75, 0.75) (0, -4.5) (0, 0) 1 (15, 15))
 
