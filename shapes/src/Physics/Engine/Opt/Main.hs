@@ -42,15 +42,15 @@ changeScene scene = do
 updateWorld :: Double -> EngineT s ()
 updateWorld dt = do
   (world, slnCache, beh, exts) <- get
-  keys <- lift $ culledKeys world
-  kContacts <- lift $ prepareFrame keys world
+  let keys = culledKeys world
+  let kContacts = prepareFrame keys world
   lift $ applyExternals exts dt world
   slnCache' <- lift $ applyCachedSlns beh dt kContacts slnCache world
   lift $ improveWorld contactSlnProc kContacts slnCache' world
   lift $ improveWorld contactSlnProc kContacts slnCache' world
   lift $ advanceWorld dt world
-  lift $ updateShapes world
-  _2 .= slnCache'
+  world' <- lift $ updateShapes world
+  put (world', slnCache', beh, exts)
 
 stepWorld :: Int -> EngineT s ()
 stepWorld 0 = return ()

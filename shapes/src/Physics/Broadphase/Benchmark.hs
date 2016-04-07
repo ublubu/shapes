@@ -81,7 +81,7 @@ benchy = [ bench "aabb" $ whnf (uncurry testAabb) testBoxes
 
 benchy' :: [Benchmark]
 benchy' = [ bench "opt aabb" $ whnf (uncurry testOptAabb) testOptBoxes
-          , bench "opt broadphase" $ nfIO (stToIO $ OB.culledKeys =<< optWorld)
+          , bench "opt broadphase" $ nfIO (stToIO $ OB.culledKeys <$> optWorld)
           ]
 
 main :: IO ()

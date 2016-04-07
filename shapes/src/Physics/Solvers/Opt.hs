@@ -22,11 +22,11 @@ import Utils.Utils
 
 prepareFrame :: Descending (Int, Int)
              -> World s
-             -> ST s (Descending (ObjectFeatureKey, Flipping Contact'))
+             -> Descending (ObjectFeatureKey, Flipping Contact')
 prepareFrame pairKeys World{..} =
-  join <$> mapM f pairKeys
-  where f pairKey = keyedContacts pairKey <$> viewPair pairKey _wShapes
-{-# INLINE prepareFrame #-}
+  join $ f <$> pairKeys
+  where f pairKey = keyedContacts pairKey $ viewPair'' pairKey _wShapes
+--{-# INLINE prepareFrame #-}
 
 applySln :: ContactSolution
          -> (PhysicalObj, PhysicalObj)
@@ -69,7 +69,7 @@ applyCachedSlns beh dt kContacts cache World{..} = do
 
   void $ descZipVector fst fst useCache newCache 0 kContacts cache
   return cache'
-{-# INLINE applyCachedSlns #-}
+--{-# INLINE applyCachedSlns #-}
 
 improveSln :: SolutionProcessor
            -> ObjectFeatureKey

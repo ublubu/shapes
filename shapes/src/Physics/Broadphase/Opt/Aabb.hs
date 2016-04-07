@@ -16,6 +16,7 @@ import Control.Monad.ST
 import Data.Array (elems)
 import qualified Data.IntMap.Strict as IM
 import Data.Maybe
+import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Mutable as MV
 import Data.Vector.Unboxed.Deriving
@@ -83,10 +84,10 @@ mergeRange (Bounds a b) (Bounds c d) = Bounds minx maxx
         maxx = if isTrue# (b >## d) then b else d
 {-# INLINE mergeRange #-}
 
-toAabbs :: World s -> ST s (U.Vector Aabb)
+toAabbs :: World s -> U.Vector Aabb
 toAabbs World{..} =
-  U.generateM (MV.length _wShapes) f
-  where f i = toAabb <$> MV.read _wShapes i
+  U.generate (V.length _wShapes) f
+  where f i = toAabb $ _wShapes V.! i
         {-# INLINE f #-}
 {-# INLINE toAabbs #-}
 
@@ -100,16 +101,16 @@ unorderedPairs n
         {-# INLINE f #-}
 {-# INLINE unorderedPairs #-}
 
-culledKeys :: World s -> ST s (Descending (Int, Int))
-culledKeys w@World{..} = do
-  aabbs <- toAabbs w
-  let f [] = []
-      f (ij@(i, j) : ijs) =
-        if aabbCheck (aabbs U.! i) (aabbs U.! j)
-        then ij : f ijs else f ijs
-      {-# INLINE f #-}
-  return . Descending $ f pairs
-  where pairs = unorderedPairs $ MV.length _wShapes
+culledKeys :: World s -> Descending (Int, Int)
+culledKeys w@World{..} =
+  Descending $ f pairs
+  where f [] = []
+        f (ij@(i, j) : ijs) =
+          if aabbCheck (aabbs U.! i) (aabbs U.! j)
+          then ij : f ijs else f ijs
+        {-# INLINE f #-}
+        pairs = unorderedPairs $ V.length _wShapes
+        aabbs = toAabbs w
 {-# INLINE culledKeys #-}
 
 {-

@@ -21,7 +21,7 @@ import Physics.World.Opt.Object
 
 data World s =
   World { _wPhysObjs :: !(U.MVector s PhysicalObj)
-        , _wShapes :: !(V.MVector s ConvexHull)
+        , _wShapes :: !(V.Vector ConvexHull)
         , _wMus :: !(U.Vector Double)
         }
 makeLenses ''World
@@ -32,20 +32,23 @@ type External a = Double -> a -> a
 fromList :: [WorldObj] -> ST s (World s)
 fromList objs = do
   physObjs <- U.thaw . U.fromList $ _worldPhysObj <$> objs
-  shapes <- V.thaw . V.fromList $ _worldShape <$> objs
-  let mus = U.fromList $ _worldMu <$> objs
+  let shapes = V.fromList $ _worldShape <$> objs
+      mus = U.fromList $ _worldMu <$> objs
 
   return $ World physObjs shapes mus
 {-# INLINE fromList #-}
 
-updateShapes :: World s -> ST s ()
-updateShapes World{..} =
+updateShapes :: World s -> ST s (World s)
+updateShapes w@World{..} = do
+  shapes <- V.unsafeThaw _wShapes
+  let f i = do
+        obj <- MV.read _wPhysObjs i
+        let t = _physObjTransform obj
+        MV.modify shapes (`setHullTransform` PT.transform t) i
+      {-# INLINE f #-}
   mapM_ f [0..(MV.length _wPhysObjs - 1)]
-  where f i = do
-          obj <- MV.read _wPhysObjs i
-          let t = _physObjTransform obj
-          MV.modify _wShapes (`setHullTransform` PT.transform t) i
-        {-# INLINE f #-}
+  shapes' <- V.unsafeFreeze shapes
+  return $ w & wShapes .~ shapes'
 {-# INLINE updateShapes #-}
 
 advanceWorld :: Double -> World s -> ST s ()
@@ -102,6 +105,10 @@ viewPair (i, j) objs = do
 viewPair' :: (U.Unbox a) => (Int, Int) -> U.Vector a -> (a, a)
 viewPair' (i, j) objs = (objs U.! i, objs U.! j)
 {-# INLINE viewPair' #-}
+
+viewPair'' :: (Int, Int) -> V.Vector a -> (a, a)
+viewPair'' (i, j) objs = (objs V.! i, objs V.! j)
+{-# INLINE viewPair'' #-}
 
 {-
 worldPair :: (Int, Int) -> Traversal' (World a) (a, a)
