@@ -69,7 +69,7 @@ applyCachedSlns slnProc beh dt kContacts cache world0 = do
       useCache (cache_i', world) (key@ObjectFeatureKey{..}, fContact) (_, sln) = do
         let ab = fromJust $ world ^? worldPair (fromSP _ofkObjKeys)
             sln' = updateContactSln beh dt sln ab fContact
-            world' = world & worldPair (fromSP _ofkObjKeys) %~ applySln sln
+            world' = world & worldPair (fromSP _ofkObjKeys) %~ applySln sln'
         MV.write cache' cache_i' (key, sln')
         return (cache_i' + 1, world')
       {-# INLINE useCache #-}
