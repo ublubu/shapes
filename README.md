@@ -36,10 +36,3 @@ https://youtu.be/DYzf4zBK90o?list=PLmozfF6FosKjmPMnlPoVbWosiExbD0SUF
   4. Evaluate and solve each constraint generator in sequence. (Optional: repeat this step)
   
   **Note**: Solving a constraint affects the velocity of the object(s).
-
-## `Opt` vs `Simple` ##
-
-The `Simple` modules serve as a reference implementation. I'll use it to make sure my optimizations don't break `Opt`.
-
-I only recently started maintaining a reference implementation, so `Simple` actually contains several optimizations.
-I plan to resimplify `Simple` so it can better serve its purpose.

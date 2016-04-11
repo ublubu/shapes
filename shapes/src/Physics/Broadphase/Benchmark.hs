@@ -3,27 +3,19 @@
 module Physics.Broadphase.Benchmark where
 
 import Criterion.Main
-import Data.Proxy
 
 import qualified Physics.Broadphase.Opt.Aabb as OB
-import qualified Physics.Broadphase.Simple.Aabb as B
 import qualified Physics.Contact.Opt.ConvexHull as OC
-import qualified Physics.Contact.Simple.ConvexHull as C
+import Physics.World.Opt
+import Physics.World.Opt.Object
 
-import Physics.Engine.Class
-import Physics.Engine.Opt (Engine)
-import Physics.Engine.Simple (SimpleEngine)
+import Physics.Engine.Class (makeWorld)
+import Physics.Engine.Opt (engineP)
 import Physics.Scenes.Stacks
 
 import Utils.Utils
 
-import Physics.Contact.Benchmark (testBoxes, testOptBoxes)
-
-simpleEngine :: Proxy SimpleEngine
-simpleEngine = Proxy
-
-optEngine :: Proxy Engine
-optEngine = Proxy
+import Physics.Contact.Benchmark (testOptBoxes)
 
 -- TODO: report this somehow? probably doesn't segfault in GHCI or without -O.
 {-
@@ -49,13 +41,6 @@ testWeirdCompare (TestInner x) (TestInner y) =
   isTrue# (notI# ((x >## y) `orI#` (y >## x)))
 -}
 
-testAabb :: C.ConvexHull Double
-         -> C.ConvexHull Double
-         -> SP (SP' (B.Aabb Double)) Bool
-testAabb a b = SP (SP boxA boxB) (B.aabbCheck boxA boxB)
-  where boxA = B.toAabb a
-        boxB = B.toAabb b
-
 testOptAabb :: OC.ConvexHull
             -> OC.ConvexHull
             -> SP (SP' OB.Aabb) Bool
@@ -63,27 +48,16 @@ testOptAabb a b = SP (SP boxA boxB) (OB.aabbCheck boxA boxB)
   where boxA = OB.toAabb a
         boxB = OB.toAabb b
 
-testWorld :: (PhysicsEngine e) => Proxy e -> PEWorld' e
-testWorld p =
-  makeWorld p $ stacks p (0.2, 0.2) (0, -4.5) (0, 0) 0 (30, 30)
-
-simpleWorld :: PEWorld' SimpleEngine
-simpleWorld = testWorld simpleEngine
-
-optWorld :: PEWorld' Engine
-optWorld = testWorld optEngine
+testWorld :: World WorldObj
+testWorld =
+  makeWorld engineP $ stacks engineP (0.2, 0.2) (0, -4.5) (0, 0) 0 (30, 30)
 
 benchy :: [Benchmark]
-benchy = [ bench "aabb" $ whnf (uncurry testAabb) testBoxes
-         , bench "broadphase" $ nf B.culledKeys simpleWorld ]
-
-benchy' :: [Benchmark]
-benchy' = [ bench "opt aabb" $ whnf (uncurry testOptAabb) testOptBoxes
-          , bench "opt broadphase" $ nf OB.culledKeys optWorld
-          ]
+benchy = [ bench "opt aabb" $ whnf (uncurry testOptAabb) testOptBoxes
+         , bench "opt broadphase" $ nf OB.culledKeys testWorld
+         ]
 
 main :: IO ()
 main = do
-  print . uncurry testAabb $ testBoxes
   print . uncurry testOptAabb $ testOptBoxes
-  defaultMain $ benchy ++ benchy'
+  defaultMain benchy

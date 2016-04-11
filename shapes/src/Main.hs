@@ -10,7 +10,6 @@ import qualified Physics.Constraint.Benchmark as BC
 import qualified Physics.Contact.Benchmark as BC'
 import qualified Physics.Broadphase.Benchmark as BB
 
-import qualified Physics.Engine.Simple.Main as SM
 import qualified Physics.Engine.Opt.Main as OM
 
 benchy :: (Num n, NFData world)
@@ -32,8 +31,6 @@ main :: IO ()
 -- 770ms simple 3x
 -- 310ms opt+hashtable 3x
 --  80ms opt+vector 2x
-main = defaultMain [
-  bench "simple updateWorld 10" $ nf (SM.runWorld (Stacks.makeScene (15, 15) 0 SM.engineP)) 10,
-  bench "opt updateWorld 10" $ nf (OM.runWorld (Stacks.makeScene (15, 15) 0 OM.engineP)) 10]
+main = defaultMain [bench "opt updateWorld 10" $ nf (OM.runWorld (Stacks.makeScene (15, 15) 0 OM.engineP)) 10]
 --main = print . rnf $ OM.runWorld (Stacks.makeScene (15, 15) 0 OM.engineP) 200
 --main = BB.main
