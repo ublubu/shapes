@@ -22,6 +22,7 @@ stack exec -- shapes-prof +RTS -hy -p
 hp2ps -e8in -c shapes-prof.hp
 mv shapes-prof.ps $1.heap-types.ps
 
+mkdir prof-results
 mv *.hp prof-results/
 mv *.ps prof-results/
 mv *.prof.html prof-results/
