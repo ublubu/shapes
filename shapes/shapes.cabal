@@ -51,9 +51,12 @@ cabal-version:       >=1.10
 library
   exposed-modules:     Physics.Broadphase.Aabb
                      , Physics.Constraint
+                     , Physics.Constraint.Types
                      , Physics.Constraints.Contact
-                     , Physics.Constraints.Friction
-                     , Physics.Constraints.NonPenetration
+                     , Physics.Constraints.Contact.Friction
+                     , Physics.Constraints.Contact.NonPenetration
+                     , Physics.Constraints.SolutionProcessors
+                     , Physics.Constraints.Types
                      , Physics.Contact
                      , Physics.Contact.ConvexHull
                      , Physics.Contact.SAT
@@ -68,7 +71,6 @@ library
                      , Physics.Scenes.Stacks
                      , Physics.Scenes.TwoFlyingBoxes
                      , Physics.Solvers.Contact
-                     , Physics.Solvers.SolutionProcessors
                      , Physics.Transform
                      , Physics.World
                      , Physics.World.External

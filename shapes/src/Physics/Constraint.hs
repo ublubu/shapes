@@ -10,7 +10,9 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Physics.Constraint where
+module Physics.Constraint ( module Physics.Constraint
+                          , module Physics.Constraint.Types
+                          ) where
 
 import GHC.Generics (Generic)
 import GHC.Prim (Double#, (==##), (/##))
@@ -20,6 +22,7 @@ import Control.DeepSeq
 import Control.Lens hiding (transform)
 import Data.Vector.Unboxed.Deriving
 
+import Physics.Constraint.Types
 import Physics.Linear
 import Physics.Transform
 import Utils.Utils
@@ -64,14 +67,19 @@ toInvMass2 (D# ml, D# mr) = InvMass2 (invert ml) (invert mr)
         {-# INLINE invert #-}
 {-# INLINE toInvMass2 #-}
 
--- TODO: between incremental solutions, jacobian is expected to remain constant?
---       otherwise, how to clamp?
+-- j is Jacobian, b is extra term
 data Constraint = Constraint { _constraintJ :: !V6
                              , _constraintB :: !Double
                              } deriving Show
 type Constraint' p = (p, p) -> Constraint
-type ConstraintResult = (Double, Constraint)
 type PhysObjChanged = PhysicalObj -> PhysicalObj -> Bool
+
+makeLenses ''Lagrangian
+
+derivingUnbox "Lagrangian"
+  [t| Lagrangian -> Double |]
+  [| \(Lagrangian l) -> l |]
+  [| Lagrangian |]
 
 derivingUnbox "Constraint"
   [t| Constraint -> (V6, Double) |]
@@ -125,8 +133,9 @@ velocity2 a b = (va `append2` wa) `join3v3` (vb `append2` wb)
         wb = _physObjRotVel b
 {-# INLINE velocity2 #-}
 
-lagrangian2 :: (Physical p) => (p, p) -> Constraint -> Double
-lagrangian2 os (Constraint j b) = (-((D# (j `dotV6` v)) + b)) / mc
+lagrangian2 :: (Physical p) => (p, p) -> Constraint -> Lagrangian
+lagrangian2 os (Constraint j b) =
+  Lagrangian $ (-((D# (j `dotV6` v)) + b)) / mc
   where v = velocity2 o1 o2
         mc = effMassM2 j o1 o2
         (o1, o2) = _physPair os
@@ -137,8 +146,8 @@ effMassM2 j a b = D# ((j `vmulDiag6` im) `dotV6` j)
   where im = curry _constrainedInvMassM2 a b
 {-# INLINE effMassM2 #-}
 
-constraintImpulse2 :: V6 -> Double -> V6
-constraintImpulse2 = smulV6'
+constraintImpulse2 :: V6 -> Lagrangian -> V6
+constraintImpulse2 j (Lagrangian l) = l `smulV6` j
 {-# INLINE constraintImpulse2 #-}
 
 -- pc = impulse from constraint forces
@@ -146,15 +155,10 @@ updateVelocity2_ :: V6 -> Diag6 -> V6 -> V6
 updateVelocity2_ v im pc = v `plusV6` (im `vmulDiag6'` pc)
 {-# INLINE updateVelocity2_ #-}
 
-applyLagrangian2 :: Diag6 -> V6 -> Double -> (PhysicalObj, PhysicalObj) -> (PhysicalObj, PhysicalObj)
+applyLagrangian2 :: Diag6 -> V6 -> Lagrangian -> (PhysicalObj, PhysicalObj) -> (PhysicalObj, PhysicalObj)
 applyLagrangian2 im j lagr = constrainedVel6 %~ f
   where f v6 = updateVelocity2_ v6 im (constraintImpulse2 j lagr)
 {-# INLINE applyLagrangian2 #-}
-
-applyLagrangian2' :: Double -> Constraint -> (PhysicalObj, PhysicalObj) -> (PhysicalObj, PhysicalObj)
-applyLagrangian2' lagr (Constraint j _) cp = applyLagrangian2 im j lagr cp
-  where im = _constrainedInvMassM2 cp
-{-# INLINE applyLagrangian2' #-}
 
 solveConstraint :: (Physical a) => Constraint -> (a, a) -> (a, a)
 solveConstraint c@(Constraint j _) cp = cp & physPair %~ applyLagrangian2 im j lagr
@@ -163,15 +167,15 @@ solveConstraint c@(Constraint j _) cp = cp & physPair %~ applyLagrangian2 im j l
         cp' = _physPair cp
 {-# INLINE solveConstraint #-}
 
-constraintResult :: (Physical a) => Constraint -> (a, a) -> ConstraintResult
-constraintResult c ab = (lagrangian2 ab c, c)
-{-# INLINE constraintResult #-}
-
-applyConstraintResult :: (Physical a) => ConstraintResult -> (a, a) -> (a, a)
-applyConstraintResult (lagr, Constraint j _) ab = overWith physObj f ab
+applyLagrangian :: (Physical a)
+                   => Lagrangian
+                   -> Constraint
+                   -> (a, a)
+                   -> (a, a)
+applyLagrangian lagr (Constraint j _) ab = overWith physObj f ab
   where im = physPairMap _constrainedInvMassM2 ab
         f = applyLagrangian2 im j lagr
-{-# INLINE applyConstraintResult #-}
+{-# INLINE applyLagrangian #-}
 
 advanceObj :: PhysicalObj -> Double -> PhysicalObj
 advanceObj obj dt = obj & physObjPos %~ f & physObjRotPos %~ g

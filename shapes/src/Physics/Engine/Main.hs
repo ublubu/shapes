@@ -13,19 +13,20 @@ import qualified Data.Vector.Unboxed as V
 import qualified Data.Vector.Generic.Mutable as MV
 
 import Physics.Broadphase.Aabb
-import Physics.World.Object
-import Physics.Contact (ContactBehavior)
+import Physics.Constraint
 import Physics.Constraints.Contact
-import Physics.Solvers.Contact
-import Physics.Solvers.SolutionProcessors (contactSlnProc)
+import Physics.Constraints.Types
+import Physics.Contact (ContactBehavior)
 import Physics.World
+import Physics.World.Object
+import Physics.Solvers.Contact
 
 import Physics.Engine
 import Physics.Scenes.Scene
 
 type World' = World WorldObj
 
-type EngineCache s = V.MVector s (ObjectFeatureKey, ContactSolution)
+type EngineCache s = V.MVector s (ObjectFeatureKey, ContactResult Lagrangian)
 type EngineState s = (World', EngineCache s, ContactBehavior, [External WorldObj])
 type EngineT s = StateT (EngineState s) (ST s)
 
@@ -40,12 +41,13 @@ changeScene scene = do
   put eState
 
 -- TODO: can I do this with _1?
-wrapUpdater :: (EngineCache s -> World' -> ST s World') -> EngineT s World'
-wrapUpdater f = do
+wrapUpdater :: V.Vector (ContactResult Constraint)
+            -> (EngineCache s -> V.Vector (ContactResult Constraint) -> World' -> ST s World')
+            -> EngineT s ()
+wrapUpdater constraints f = do
   (world, cache, x, y) <- get
-  world' <- lift $ f cache world
+  world' <- lift $ f cache constraints world
   put (world', cache, x, y)
-  return world'
 
 wrapUpdater' :: (World' -> ST s World') -> EngineT s World'
 wrapUpdater' f = do
@@ -54,13 +56,13 @@ wrapUpdater' f = do
   put (world', cache, x, y)
   return world'
 
-wrapInitializer :: (EngineCache s -> World' -> ST s (EngineCache s, World'))
-                -> EngineT s World'
+wrapInitializer :: (EngineCache s -> World' -> ST s (EngineCache s, V.Vector (ContactResult Constraint), World'))
+                -> EngineT s (V.Vector (ContactResult Constraint))
 wrapInitializer f = do
   (world, cache, x, y) <- get
-  (cache', world') <- lift $ f cache world
+  (cache', constraints, world') <- lift $ f cache world
   put (world', cache', x, y)
-  return world'
+  return constraints
 
 updateWorld :: Double -> EngineT s World'
 updateWorld dt = do
@@ -68,9 +70,9 @@ updateWorld dt = do
   let keys = culledKeys world
       kContacts = prepareFrame keys world
   void . wrapUpdater' $ return . applyExternals exts dt
-  void . wrapInitializer $ applyCachedSlns contactSlnProc beh dt kContacts
-  void . wrapUpdater $ improveWorld contactSlnProc kContacts
-  void . wrapUpdater $ improveWorld contactSlnProc kContacts
+  constraints <- wrapInitializer $ applyCachedSlns beh dt kContacts
+  wrapUpdater constraints $ improveWorld solutionProcessor kContacts
+  wrapUpdater constraints $ improveWorld solutionProcessor kContacts
   void . wrapUpdater' $ return . advanceWorld dt
   wrapUpdater' $ return . over worldObjs (fmap updateShape)
 

@@ -14,9 +14,10 @@ import Control.DeepSeq
 import Data.Vector.Unboxed.Deriving
 
 import Physics.Constraint
+import Physics.Constraints.Types
 import Physics.Contact
-import qualified Physics.Constraints.Friction as F
-import qualified Physics.Constraints.NonPenetration as NP
+import qualified Physics.Constraints.Contact.Friction as F
+import qualified Physics.Constraints.Contact.NonPenetration as NP
 import Utils.Descending
 import Utils.Utils
 
@@ -40,73 +41,24 @@ keyedContacts ij ab = fmap f contacts
         {-# INLINE f #-}
 {-# INLINE keyedContacts #-}
 
-data ContactSolution =
-  ContactSolution { _contactNonPen :: ConstraintResult
-                  , _contactFriction :: ConstraintResult
-                  } deriving (Show)
-makeLenses ''ContactSolution
+constraintGen :: (Contactable a)
+              => ContactBehavior
+              -> Double
+              -> Flipping Contact'
+              -> (a, a)
+              -> ContactResult Constraint
+constraintGen beh dt fContact ab =
+  ContactResult { _crNonPen = NP.constraintGen beh dt fContact ab
+                , _crFriction = F.constraintGen fContact ab }
+{-# INLINE constraintGen #-}
 
-derivingUnbox "ContactSolution"
-  [t| ContactSolution -> (ConstraintResult, ConstraintResult) |]
-  [| \ContactSolution{..} -> (_contactNonPen, _contactFriction) |]
-  [| uncurry ContactSolution |]
-
-solveContact :: (Contactable a)
-             => ContactBehavior
-             -> Double
-             -> (a, a)
-             -> Flipping Contact'
-             -> ContactSolution
-solveContact beh dt ab fContact =
-  ContactSolution { _contactNonPen = constraintResult nonpen ab'
-                  , _contactFriction = constraintResult friction ab'
-                  }
-  where nonpen = flipExtract $ flipMap (NP.toConstraint beh dt) fContact ab'
-        friction = flipExtract $ flipMap (F.toConstraint beh dt) fContact ab'
-        ab' = ab & each %~ view physObj
-{-# INLINE solveContact #-}
-
-getContactConstraint :: (Contactable a)
-                     => ContactBehavior
-                     -> Double
-                     -> (a, a)
-                     -> Flipping Contact'
-                     -> ContactSolution
-getContactConstraint beh dt ab fContact =
-  ContactSolution { _contactNonPen = (0, nonpen)
-                  , _contactFriction = (0, friction)
-                  }
-  where nonpen = flipExtract $ flipMap (NP.toConstraint beh dt) fContact ab'
-        friction = flipExtract $ flipMap (F.toConstraint beh dt) fContact ab'
-        ab' = ab & each %~ view physObj
-{-# INLINE getContactConstraint #-}
-
-updateContactSln :: (Contactable a)
-                 => ContactBehavior
-                 -> Double
-                 -> ContactSolution
-                 -> (a, a)
-                 -> Flipping Contact'
-                 -> ContactSolution
-updateContactSln beh dt sln@ContactSolution{..} ab fContact =
-  sln & contactNonPen._2 .~ nonpen & contactFriction._2 .~ friction
-  where nonpen = flipExtract $ flipMap (NP.toConstraint beh dt) fContact ab'
-        friction = flipExtract $ flipMap (F.toConstraint beh dt) fContact ab'
-        ab' = ab & each %~ view physObj
-{-# INLINE updateContactSln #-}
-
-emptyContactSln :: ContactSolution -> ContactSolution
-emptyContactSln ContactSolution{..} =
-  ContactSolution (_contactNonPen & _1 .~ 0) (_contactFriction & _1 .~ 0)
-{-# INLINE emptyContactSln #-}
-
-solveContactAgain :: (Contactable a)
-                  => ContactSolution
-                  -> (a, a)
-                  -> ContactSolution
-solveContactAgain ContactSolution{..} ab =
-  ContactSolution { _contactNonPen = constraintResult (snd _contactNonPen) ab'
-                  , _contactFriction = constraintResult (snd _contactFriction) ab'
-                  }
-  where ab' = ab & each %~ view physObj
-{-# INLINE solveContactAgain #-}
+solutionProcessor :: (Contactable a)
+                  => (a, a)
+                  -> ContactResult Lagrangian
+                  -> ContactResult Lagrangian
+                  -> Processed (ContactResult Lagrangian)
+solutionProcessor ab (ContactResult npCached fCached) (ContactResult npNew fNew) =
+  ContactResult <$> npProcessed <*> fProcessed
+  where npProcessed = NP.solutionProcessor npCached npNew
+        fProcessed = F.solutionProcessor ab (_processedToCache npProcessed) fCached fNew
+{-# INLINE solutionProcessor #-}

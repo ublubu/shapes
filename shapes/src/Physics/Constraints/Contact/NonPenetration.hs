@@ -1,10 +1,27 @@
 {-# LANGUAGE RecordWildCards #-}
 
-module Physics.Constraints.NonPenetration where
+module Physics.Constraints.Contact.NonPenetration where
+
+import Control.Lens
 
 import Physics.Constraint
-import Physics.Linear
+import Physics.Constraints.Types
+import Physics.Constraints.SolutionProcessors
 import Physics.Contact
+import Physics.Linear
+
+import Utils.Utils
+
+constraintGen :: (Contactable a)
+              => ContactBehavior
+              -> Double
+              -> Flipping Contact'
+              -> (a, a)
+              -> Constraint
+constraintGen beh dt fContact ab =
+  flipExtract $ flipMap (toConstraint beh dt) fContact ab'
+  where ab' = ab & each %~ view physObj
+{-# INLINE constraintGen #-}
 
 toConstraint :: ContactBehavior
              -> Double
@@ -38,3 +55,9 @@ baumgarte beh dt c = if d > slop then (b / dt) * (slop - d) else 0
         slop = contactPenetrationSlop beh
         d = _contactDepth' c
 {-# INLINE baumgarte #-}
+
+solutionProcessor :: Lagrangian
+                  -> Lagrangian
+                  -> Processed Lagrangian
+solutionProcessor = positive
+{-# INLINE solutionProcessor #-}
