@@ -6,10 +6,10 @@ import GHC.Types (Double(D#))
 
 import Criterion.Main
 
-import qualified Physics.Contact.Opt.ConvexHull as OC
-import qualified Physics.Contact.Opt.SAT as OS
-import qualified Physics.Linear.Opt as OL
-import qualified Physics.Transform.Opt as OT
+import qualified Physics.Contact.ConvexHull as OC
+import qualified Physics.Contact.SAT as OS
+import qualified Physics.Linear as OL
+import qualified Physics.Transform as OT
 
 import Utils.Utils
 

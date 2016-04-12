@@ -9,11 +9,11 @@ import Control.Monad.State.Strict
 import qualified Data.IntMap.Strict as IM
 import qualified Data.Vector.Unboxed as V
 
-import qualified Physics.Broadphase.Opt.Aabb as B
-import Physics.Contact.Opt
-import Physics.Engine.Opt
-import qualified Physics.Engine.Opt.Main as OM
-import Physics.World.Opt
+import qualified Physics.Broadphase.Aabb as B
+import Physics.Contact
+import Physics.Engine
+import qualified Physics.Engine.Main as OM
+import Physics.World
 
 import Physics.Draw.Canonical
 import qualified Physics.Draw.Opt as D

@@ -4,15 +4,15 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Physics.Contact.Opt where
+module Physics.Contact where
 
 import Control.Lens
 import Data.Vector.Unboxed.Deriving
 
-import Physics.Constraint.Opt
-import Physics.Linear.Opt
-import Physics.Contact.Opt.ConvexHull
-import Physics.Contact.Opt.SAT
+import Physics.Constraint
+import Physics.Linear
+import Physics.Contact.ConvexHull
+import Physics.Contact.SAT
 import Utils.Descending
 import Utils.Utils
 

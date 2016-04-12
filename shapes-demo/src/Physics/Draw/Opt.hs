@@ -19,14 +19,14 @@ import qualified Linear.Matrix as L
 import qualified SDL.Video.Renderer as R
 import Physics.Draw
 
-import Physics.Contact.Opt.ConvexHull
-import Physics.World.Opt.Object (WorldObj(..))
-import qualified Physics.Broadphase.Opt.Aabb as B
-import qualified Physics.Contact.Opt.SAT as O
-import qualified Physics.Contact.Opt as O
-import Physics.World.Opt (World(..), worldObjs)
-import Physics.Linear.Opt
-import Physics.Linear.Opt.Convert
+import Physics.Contact.ConvexHull
+import Physics.World.Object (WorldObj(..))
+import qualified Physics.Broadphase.Aabb as B
+import qualified Physics.Contact.SAT as O
+import qualified Physics.Contact as O
+import Physics.World (World(..), worldObjs)
+import Physics.Linear
+import Physics.Linear.Convert
 import Utils.Utils
 
 instance ToCanonical V2 where

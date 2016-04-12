@@ -7,7 +7,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module Physics.Linear.Opt where
+module Physics.Linear where
 
 import GHC.Generics (Generic)
 import GHC.Prim

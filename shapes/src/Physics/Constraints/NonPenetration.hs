@@ -1,10 +1,10 @@
 {-# LANGUAGE RecordWildCards #-}
 
-module Physics.Constraints.Opt.NonPenetration where
+module Physics.Constraints.NonPenetration where
 
-import Physics.Constraint.Opt
-import Physics.Linear.Opt
-import Physics.Contact.Opt
+import Physics.Constraint
+import Physics.Linear
+import Physics.Contact
 
 toConstraint :: ContactBehavior
              -> Double

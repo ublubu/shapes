@@ -5,7 +5,7 @@
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Physics.Solvers.Opt where
+module Physics.Solvers.Contact where
 
 import Control.Lens
 import Control.Monad
@@ -14,11 +14,11 @@ import Data.Maybe
 import qualified Data.Vector.Unboxed as V
 import qualified Data.Vector.Generic.Mutable as MV
 
-import Physics.Constraint.Opt
-import Physics.Constraints.Opt.Contact
-import Physics.Contact.Opt
-import Physics.Solvers.Opt.SolutionProcessors
-import Physics.World.Opt
+import Physics.Constraint
+import Physics.Constraints.Contact
+import Physics.Contact
+import Physics.Solvers.SolutionProcessors
+import Physics.World
 import Utils.Descending
 import Utils.Utils
 

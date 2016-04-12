@@ -1,13 +1,13 @@
 {-# LANGUAGE MagicHash #-}
 
-module Physics.World.Opt.External where
+module Physics.World.External where
 
 import GHC.Types (Double(D#))
 
 import Control.Lens
-import Physics.Constraint.Opt
-import Physics.Linear.Opt
-import Physics.World.Opt
+import Physics.Constraint
+import Physics.Linear
+import Physics.World
 
 constantForce :: (Physical a) => V2 -> External a
 constantForce f dt o = o & physObj.physObjVel %~ f'

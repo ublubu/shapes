@@ -1,13 +1,13 @@
 {-# LANGUAGE MagicHash #-}
 
-module Physics.Linear.Opt.Convert where
+module Physics.Linear.Convert where
 
 import GHC.Types (Double(D#))
 
 import qualified Linear.Affine as L
 import qualified Linear.V2 as L
 
-import Physics.Linear.Opt
+import Physics.Linear
 
 toLV2 :: V2 -> L.V2 Double
 toLV2 = (\[x, y] -> L.V2 x y) . toListV2

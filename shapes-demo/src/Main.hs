@@ -5,7 +5,7 @@ module Main where
 import GameInit
 import Linear.V2
 
-import qualified Physics.Engine.Opt.Main as Opt
+import qualified Physics.Engine.Main as Opt
 import Physics.Demo.OptWorld()
 import Physics.Demo.OptContact()
 import qualified Physics.Demo.Contact as Contact

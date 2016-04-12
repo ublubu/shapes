@@ -10,7 +10,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
 
-module Physics.Contact.Opt.ConvexHull where
+module Physics.Contact.ConvexHull where
 
 import GHC.Generics (Generic)
 import GHC.Prim (Double#, (/##), negateDouble#)
@@ -18,7 +18,7 @@ import GHC.Prim (Double#, (/##), negateDouble#)
 import Control.DeepSeq
 import Control.Lens (makeLenses)
 import Data.Array
-import Physics.Linear.Opt
+import Physics.Linear
 import Utils.Utils
 
 data Neighborhood = Neighborhood { _neighborhoodCenter :: !P2

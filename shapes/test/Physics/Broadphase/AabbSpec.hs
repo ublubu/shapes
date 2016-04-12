@@ -1,9 +1,9 @@
-module Physics.Broadphase.Opt.AabbSpec where
+module Physics.Broadphase.AabbSpec where
 
 import Test.Hspec
 import Test.QuickCheck
 
-import Physics.Broadphase.Opt.Aabb
+import Physics.Broadphase.Aabb
 
 spec :: Spec
 spec = do

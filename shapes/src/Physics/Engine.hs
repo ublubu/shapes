@@ -2,20 +2,20 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE MagicHash #-}
 
-module Physics.Engine.Opt where
+module Physics.Engine where
 
 import GHC.Types (Double(D#))
 import Data.Proxy
 
 import Physics.Engine.Class
-import Physics.World.Opt (World, External, fromList)
-import Physics.World.Opt.Object (WorldObj)
-import qualified Physics.World.Opt.Object as PO
-import Physics.Constraint.Opt (PhysicalObj(..), toInvMass2)
-import Physics.Contact.Opt (ContactBehavior(..))
-import Physics.Contact.Opt.ConvexHull (ConvexHull, rectangleHull, listToHull)
-import Physics.World.Opt.External (constantAccel)
-import Physics.Linear.Opt (V2(..), P2(..))
+import Physics.World (World, External, fromList)
+import Physics.World.Object (WorldObj)
+import qualified Physics.World.Object as PO
+import Physics.Constraint (PhysicalObj(..), toInvMass2)
+import Physics.Contact (ContactBehavior(..))
+import Physics.Contact.ConvexHull (ConvexHull, rectangleHull, listToHull)
+import Physics.World.External (constantAccel)
+import Physics.Linear (V2(..), P2(..))
 
 data Engine
 

@@ -9,15 +9,15 @@
 {-# LANGUAGE MagicHash #-}
 
 -- Separating Axis Test
-module Physics.Contact.Opt.SAT where
+module Physics.Contact.SAT where
 
 import GHC.Types (Double(D#))
 
 import Control.Lens ((^.), view, makeLenses, _1, makePrisms)
 import Data.Either.Combinators
 import Data.Function (on)
-import Physics.Contact.Opt.ConvexHull
-import Physics.Linear.Opt
+import Physics.Contact.ConvexHull
+import Physics.Linear
 import Utils.Descending
 import Utils.Utils
 

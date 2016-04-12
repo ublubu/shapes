@@ -5,7 +5,7 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Physics.Constraints.Opt.Contact where
+module Physics.Constraints.Contact where
 
 import GHC.Generics (Generic)
 
@@ -13,10 +13,10 @@ import Control.Lens
 import Control.DeepSeq
 import Data.Vector.Unboxed.Deriving
 
-import Physics.Constraint.Opt
-import Physics.Contact.Opt
-import qualified Physics.Constraints.Opt.Friction as F
-import qualified Physics.Constraints.Opt.NonPenetration as NP
+import Physics.Constraint
+import Physics.Contact
+import qualified Physics.Constraints.Friction as F
+import qualified Physics.Constraints.NonPenetration as NP
 import Utils.Descending
 import Utils.Utils
 

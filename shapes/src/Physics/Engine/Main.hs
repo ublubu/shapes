@@ -2,9 +2,9 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Physics.Engine.Opt.Main ( module Physics.Engine.Opt.Main
-                               , module Physics.Engine.Opt
-                               ) where
+module Physics.Engine.Main ( module Physics.Engine.Main
+                           , module Physics.Engine
+                           ) where
 
 import Control.Lens
 import Control.Monad.State.Strict
@@ -12,15 +12,15 @@ import Control.Monad.ST
 import qualified Data.Vector.Unboxed as V
 import qualified Data.Vector.Generic.Mutable as MV
 
-import Physics.Broadphase.Opt.Aabb
-import Physics.World.Opt.Object
-import Physics.Contact.Opt (ContactBehavior)
-import Physics.Constraints.Opt.Contact
-import Physics.Solvers.Opt
-import Physics.Solvers.Opt.SolutionProcessors (contactSlnProc)
-import Physics.World.Opt
+import Physics.Broadphase.Aabb
+import Physics.World.Object
+import Physics.Contact (ContactBehavior)
+import Physics.Constraints.Contact
+import Physics.Solvers.Contact
+import Physics.Solvers.SolutionProcessors (contactSlnProc)
+import Physics.World
 
-import Physics.Engine.Opt
+import Physics.Engine
 import Physics.Scenes.Scene
 
 type World' = World WorldObj

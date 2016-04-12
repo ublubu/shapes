@@ -6,7 +6,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module Physics.Broadphase.Opt.Aabb where
+module Physics.Broadphase.Aabb where
 
 import GHC.Prim (Double#, (>##), (<##))
 import GHC.Types (Double(D#), isTrue#)
@@ -17,10 +17,10 @@ import qualified Data.IntMap.Strict as IM
 import Data.Maybe
 import qualified Data.Vector.Unboxed as V
 import Data.Vector.Unboxed.Deriving
-import Physics.Linear.Opt
-import Physics.Contact.Opt
-import Physics.Contact.Opt.ConvexHull
-import Physics.World.Opt
+import Physics.Linear
+import Physics.Contact
+import Physics.Contact.ConvexHull
+import Physics.World
 
 import Utils.Descending
 import Utils.Utils

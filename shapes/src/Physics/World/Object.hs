@@ -2,16 +2,16 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
 
-module Physics.World.Opt.Object where
+module Physics.World.Object where
 
 import GHC.Generics (Generic)
 
 import Control.DeepSeq
 import Control.Lens ((&), (%~), makeLenses)
-import Physics.Constraint.Opt
-import Physics.Contact.Opt
-import Physics.Contact.Opt.ConvexHull
-import Physics.Transform.Opt
+import Physics.Constraint
+import Physics.Contact
+import Physics.Contact.ConvexHull
+import Physics.Transform
 
 data WorldObj =
   WorldObj { _worldPhysObj :: !PhysicalObj

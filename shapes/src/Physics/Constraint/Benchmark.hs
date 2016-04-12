@@ -4,8 +4,8 @@ module Physics.Constraint.Benchmark where
 
 import Criterion.Main
 
-import Physics.Constraint.Opt
-import Physics.Linear.Opt
+import Physics.Constraint
+import Physics.Linear
 import Utils.Utils
 
 testConstraint :: Constraint

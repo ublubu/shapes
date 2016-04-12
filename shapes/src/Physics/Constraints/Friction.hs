@@ -1,10 +1,10 @@
 {-# LANGUAGE RecordWildCards #-}
 
-module Physics.Constraints.Opt.Friction where
+module Physics.Constraints.Friction where
 
-import Physics.Constraint.Opt
-import Physics.Linear.Opt
-import Physics.Contact.Opt
+import Physics.Constraint
+import Physics.Linear
+import Physics.Contact
 import Utils.Utils
 
 toConstraint :: ContactBehavior

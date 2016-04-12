@@ -4,7 +4,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
 
-module Physics.World.Opt where
+module Physics.World where
 
 import GHC.Generics (Generic)
 
@@ -12,7 +12,7 @@ import Control.DeepSeq
 import Control.Lens
 import Data.Foldable (foldl')
 import qualified Data.IntMap.Strict as IM
-import Physics.Constraint.Opt hiding (solveConstraint)
+import Physics.Constraint hiding (solveConstraint)
 import Utils.Utils
 
 data World a = World { _worldObjs :: !(IM.IntMap a)

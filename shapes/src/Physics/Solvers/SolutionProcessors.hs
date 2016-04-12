@@ -1,9 +1,9 @@
-module Physics.Solvers.Opt.SolutionProcessors where
+module Physics.Solvers.SolutionProcessors where
 
-import Physics.Constraint.Opt
-import Physics.Constraints.Opt.Contact
-import Physics.Contact.Opt
-import Physics.Constraints.Opt.Friction
+import Physics.Constraint
+import Physics.Constraints.Contact
+import Physics.Contact
+import Physics.Constraints.Friction
 
 -- apply rules to total constraint impulse
 --

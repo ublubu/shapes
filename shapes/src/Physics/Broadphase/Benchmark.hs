@@ -4,13 +4,13 @@ module Physics.Broadphase.Benchmark where
 
 import Criterion.Main
 
-import qualified Physics.Broadphase.Opt.Aabb as OB
-import qualified Physics.Contact.Opt.ConvexHull as OC
-import Physics.World.Opt
-import Physics.World.Opt.Object
+import qualified Physics.Broadphase.Aabb as OB
+import qualified Physics.Contact.ConvexHull as OC
+import Physics.World
+import Physics.World.Object
 
 import Physics.Engine.Class (makeWorld)
-import Physics.Engine.Opt (engineP)
+import Physics.Engine (engineP)
 import Physics.Scenes.Stacks
 
 import Utils.Utils

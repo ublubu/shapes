@@ -10,7 +10,7 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Physics.Constraint.Opt where
+module Physics.Constraint where
 
 import GHC.Generics (Generic)
 import GHC.Prim (Double#, (==##), (/##))
@@ -20,8 +20,8 @@ import Control.DeepSeq
 import Control.Lens hiding (transform)
 import Data.Vector.Unboxed.Deriving
 
-import Physics.Linear.Opt
-import Physics.Transform.Opt
+import Physics.Linear
+import Physics.Transform
 import Utils.Utils
 
 data InvMass2 = InvMass2 { _imLin :: Double#

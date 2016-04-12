@@ -3,12 +3,12 @@
 {-# Language FlexibleInstances #-}
 {-# Language FlexibleContexts #-}
 
-module Physics.Transform.Opt where
+module Physics.Transform where
 
 import GHC.Prim (Double#, (/##), negateDouble#)
 
 import Utils.Utils
-import Physics.Linear.Opt
+import Physics.Linear
 
 type WorldTransform = SP M3x3 M3x3
 

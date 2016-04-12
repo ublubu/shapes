@@ -9,7 +9,7 @@ import Data.Either.Combinators
 import Linear.Affine (Point(..))
 import Linear.V2
 import Linear.Matrix
-import Physics.Linear.Simple
+import Physics.Draw.Linear
 import Utils.Utils
 
 type V2' = V2 Double

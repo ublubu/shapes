@@ -2,8 +2,8 @@ module Main where
 
 import Test.Hspec
 
-import qualified Physics.Broadphase.Opt.AabbSpec
+import qualified Physics.Broadphase.AabbSpec
 
 main :: IO ()
 main = hspec $
-  describe "TemplateSpec" Physics.Broadphase.Opt.AabbSpec.spec
+  describe "TemplateSpec" Physics.Broadphase.AabbSpec.spec

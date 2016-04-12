@@ -49,31 +49,30 @@ extra-source-files:  README.md
 cabal-version:       >=1.10
 
 library
-  exposed-modules:     Physics.Broadphase.Opt.Aabb
-                     , Physics.Constraint.Opt
-                     , Physics.Constraints.Opt.Contact
-                     , Physics.Constraints.Opt.Friction
-                     , Physics.Constraints.Opt.NonPenetration
-                     , Physics.Contact.Opt
-                     , Physics.Contact.Opt.ConvexHull
-                     , Physics.Contact.Opt.SAT
+  exposed-modules:     Physics.Broadphase.Aabb
+                     , Physics.Constraint
+                     , Physics.Constraints.Contact
+                     , Physics.Constraints.Friction
+                     , Physics.Constraints.NonPenetration
+                     , Physics.Contact
+                     , Physics.Contact.ConvexHull
+                     , Physics.Contact.SAT
+                     , Physics.Engine
                      , Physics.Engine.Class
-                     , Physics.Engine.Opt
-                     , Physics.Engine.Opt.Main
-                     , Physics.Linear.Opt
-                     , Physics.Linear.Opt.Convert
+                     , Physics.Engine.Main
+                     , Physics.Linear
+                     , Physics.Linear.Convert
                      , Physics.Scenes.FourBoxesTwoStatic
                      , Physics.Scenes.Rolling
                      , Physics.Scenes.Scene
                      , Physics.Scenes.Stacks
                      , Physics.Scenes.TwoFlyingBoxes
-                     , Physics.Solvers.Opt
-                     , Physics.Solvers.Opt.SolutionProcessors
-                     , Physics.Transform.Opt
-                     , Physics.World.Opt
-                     , Physics.World.Opt.External
-                     , Physics.World.Opt.Object
-                     , Physics.Solver
+                     , Physics.Solvers.Contact
+                     , Physics.Solvers.SolutionProcessors
+                     , Physics.Transform
+                     , Physics.World
+                     , Physics.World.External
+                     , Physics.World.Object
                      , Utils.Descending
                      , Utils.Utils
 

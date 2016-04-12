@@ -10,7 +10,7 @@ import qualified Physics.Constraint.Benchmark as BC
 import qualified Physics.Contact.Benchmark as BC'
 import qualified Physics.Broadphase.Benchmark as BB
 
-import qualified Physics.Engine.Opt.Main as OM
+import qualified Physics.Engine.Main as OM
 
 benchy :: (Num n, NFData world)
        => String
