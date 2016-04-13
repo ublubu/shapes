@@ -5,6 +5,7 @@ import Control.Monad
 import Data.Proxy
 import Physics.Engine.Class
 import Physics.Scenes.Scene
+import Physics.World.Class
 
 box :: (PhysicsEngine e)
     => Proxy e
@@ -71,7 +72,7 @@ world''' :: (PhysicsEngine e) => Proxy e -> PEWorld e (PEWorldObj e)
 world''' p =
   makeWorld p (boxFloor' p : stacks p (0.75, 0.75) (0, -4.5) (0, 0) 1 (15, 15))
 
-externals :: (PhysicsEngine e) => Proxy e -> [PEExternal' e]
+externals :: (PhysicsEngine e) => Proxy e -> [External]
 externals p = [makeConstantAccel p (0, -2)]
 
 contactBehavior :: (PhysicsEngine e) => Proxy e -> PEContactBehavior e

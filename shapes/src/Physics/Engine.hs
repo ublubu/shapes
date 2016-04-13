@@ -8,7 +8,7 @@ import GHC.Types (Double(D#))
 import Data.Proxy
 
 import Physics.Engine.Class
-import Physics.World (World, External, fromList)
+import Physics.World (World, fromList)
 import Physics.World.Object (WorldObj)
 import qualified Physics.World.Object as PO
 import Physics.Constraint (PhysicalObj(..), toInvMass2)
@@ -28,7 +28,6 @@ pairToV2 (D# x, D# y) = V2 x y
 instance PhysicsEngine Engine where
   type PEWorld Engine = World
   type PEWorldObj Engine = WorldObj
-  type PEExternal' Engine = External WorldObj
   type PEPhysicalObj Engine = PhysicalObj
   type PEContactBehavior Engine = ContactBehavior
   type PENumber Engine = Double

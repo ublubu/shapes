@@ -11,19 +11,16 @@ module Physics.Broadphase.Aabb where
 import GHC.Prim (Double#, (>##), (<##))
 import GHC.Types (Double(D#), isTrue#)
 
-import Control.Lens (over, _2, (^?), (%~), (&))
+import Control.Lens ((^.), itoListOf)
 import Data.Array (elems)
-import qualified Data.IntMap.Strict as IM
 import Data.Maybe
 import qualified Data.Vector.Unboxed as V
 import Data.Vector.Unboxed.Deriving
 import Physics.Linear
-import Physics.Contact
 import Physics.Contact.ConvexHull
-import Physics.World
+import Physics.World.Class
 
 import Utils.Descending
-import Utils.Utils
 
 -- TODO: explore rewrite rules or other alternatives to manually using primops
 
@@ -79,8 +76,9 @@ mergeRange (Bounds a b) (Bounds c d) = Bounds minx maxx
         maxx = if isTrue# (b >## d) then b else d
 {-# INLINE mergeRange #-}
 
-toAabbs :: (Contactable a) => World a -> V.Vector (Int, Aabb)
-toAabbs = V.fromList . over (traverse . _2) (toAabb . contactHull) . IM.toList . _worldObjs
+toAabbs :: (V.Unbox k, PhysicsWorld k w o) => w -> V.Vector (k, Aabb)
+toAabbs = V.fromList . fmap f . itoListOf wObjs
+  where f (k, obj) = (k, toAabb $ obj ^. woShape)
 {-# INLINE toAabbs #-}
 
 unorderedPairs :: Int -> [(Int, Int)]
@@ -93,7 +91,7 @@ unorderedPairs n
         {-# INLINE f #-}
 {-# INLINE unorderedPairs #-}
 
-culledKeys :: (Contactable a) => World a -> Descending (Int, Int)
+culledKeys :: (V.Unbox k, PhysicsWorld k w o) => w -> Descending (k, k)
 culledKeys w = Descending . catMaybes $ fmap f ijs
   where aabbs = toAabbs w
         ijs = unorderedPairs $ V.length aabbs
@@ -102,10 +100,3 @@ culledKeys w = Descending . catMaybes $ fmap f ijs
                 (j', b) = aabbs V.! j
         {-# INLINE f #-}
 {-# INLINE culledKeys #-}
-
-culledPairs :: (Contactable a) => World a -> Descending (WorldPair (a, a))
-culledPairs world =
-  culledKeys world & descList %~ catMaybes . fmap f
-  where f ij = WorldPair ij <$> world ^? worldPair ij
-        {-# INLINE f #-}
-{-# INLINE culledPairs #-}

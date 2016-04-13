@@ -3,6 +3,7 @@ module Physics.Scenes.FourBoxesTwoStatic where
 import Data.Proxy
 import Physics.Engine.Class
 import Physics.Scenes.Scene
+import Physics.World.Class
 
 boxA :: (PhysicsEngine e) => Proxy e -> PEPhysicalObj e
 boxA p = makePhysicalObj p (1, 0) 0 (-5, 0) 0 (2, 1)
@@ -31,7 +32,7 @@ boxD' p = makeWorldObj p (boxD p) 0.2 $ makeRectangleHull p 0.4 3
 world :: (PhysicsEngine e) => Proxy e -> PEWorld e (PEWorldObj e)
 world p = makeWorld p [boxA' p, boxB' p, boxC' p, boxD' p]
 
-externals :: (PhysicsEngine e) => Proxy e -> [PEExternal' e]
+externals :: (PhysicsEngine e) => Proxy e -> [External]
 externals p = [makeConstantAccel p (0, -2)]
 
 contactBehavior :: (PhysicsEngine e) => Proxy e -> PEContactBehavior e

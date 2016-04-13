@@ -4,11 +4,11 @@
 module Physics.Engine.Class where
 
 import Data.Proxy
+import Physics.World.Class
 
 class (Fractional (PENumber e)) => PhysicsEngine e where
   type PEWorld e :: * -> *
   type PEWorldObj e :: *
-  type PEExternal' e :: *
   type PEPhysicalObj e :: *
   type PEContactBehavior e :: *
   type PENumber e :: *
@@ -29,7 +29,7 @@ class (Fractional (PENumber e)) => PhysicsEngine e where
                -> PEWorldObj e
   makeWorld :: Proxy e -> [PEWorldObj e] -> PEWorld' e
   makeContactBehavior :: Proxy e -> PENumber e -> PENumber e -> PEContactBehavior e
-  makeConstantAccel :: Proxy e -> (PENumber e, PENumber e) -> PEExternal' e
+  makeConstantAccel :: Proxy e -> (PENumber e, PENumber e) -> External
   makeHull :: Proxy e -> [(PENumber e, PENumber e)] -> PEConvexHull e
   makeRectangleHull :: Proxy e -> PENumber e -> PENumber e -> PEConvexHull e
 

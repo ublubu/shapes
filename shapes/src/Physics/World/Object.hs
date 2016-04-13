@@ -1,17 +1,17 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Physics.World.Object where
 
 import GHC.Generics (Generic)
 
 import Control.DeepSeq
-import Control.Lens ((&), (%~), makeLenses)
+import Control.Lens (makeLenses)
 import Physics.Constraint
-import Physics.Contact
 import Physics.Contact.ConvexHull
-import Physics.Transform
+import Physics.World.Class
 
 data WorldObj =
   WorldObj { _worldPhysObj :: !PhysicalObj
@@ -24,21 +24,19 @@ instance Show WorldObj where
   show (WorldObj obj _ _) = "WorldObj { " ++ show obj ++ " }"
 
 instance Physical WorldObj where
-  physObj = worldPhysObj
-  {-# INLINE physObj #-}
+  woPhys = worldPhysObj
 
 instance Contactable WorldObj where
-  contactMu = _worldObjMu
-  contactHull = _worldShape
-  {-# INLINE contactMu #-}
-  {-# INLINE contactHull #-}
-
-updateShape :: WorldObj -> WorldObj
-updateShape obj =
-  obj & worldShape %~ flip setHullTransform (transform t)
-  where t = _physObjTransform . _worldPhysObj $ obj
-{-# INLINE updateShape #-}
+  woMu = worldObjMu
+  woShape = worldShape
+  woMuShape f obj@WorldObj{..} =
+    g <$> f (_worldObjMu, _worldShape)
+    where g (mu, shape) =  obj { _worldObjMu = mu
+                               , _worldShape = shape
+                               }
+          {-# INLINE g #-}
+  {-# INLINE woMuShape #-}
 
 makeWorldObj :: PhysicalObj -> Double -> ConvexHull -> WorldObj
-makeWorldObj p u s = updateShape $ WorldObj p u s
+makeWorldObj phys mu shape = woUpdateShape $ WorldObj phys mu shape
 {-# INLINE makeWorldObj #-}

@@ -3,6 +3,7 @@ module Physics.Scenes.Rolling where
 import Data.Proxy
 import Physics.Engine.Class
 import Physics.Scenes.Scene
+import Physics.World.Class
 
 shapeA :: (PhysicsEngine e) => Proxy e -> PEPhysicalObj e
 shapeA p = makePhysicalObj p (0, 0) 0 (0, -6) 0 (0, 0)
@@ -30,7 +31,7 @@ shapeB' p = makeWorldObj p (shapeB p) 0.5 $ makeHull p [ (2, 1)
 world :: (PhysicsEngine e) => Proxy e -> PEWorld e (PEWorldObj e)
 world p = makeWorld p [shapeA' p, shapeB' p]
 
-externals :: (PhysicsEngine e) => Proxy e -> [PEExternal' e]
+externals :: (PhysicsEngine e) => Proxy e -> [External]
 externals p = [makeConstantAccel p (0, -4)]
 
 contactBehavior :: (PhysicsEngine e) => Proxy e -> PEContactBehavior e

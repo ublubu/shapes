@@ -73,6 +73,7 @@ library
                      , Physics.Solvers.Contact
                      , Physics.Transform
                      , Physics.World
+                     , Physics.World.Class
                      , Physics.World.External
                      , Physics.World.Object
                      , Utils.Descending

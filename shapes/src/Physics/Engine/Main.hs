@@ -18,6 +18,7 @@ import Physics.Constraints.Contact
 import Physics.Constraints.Types
 import Physics.Contact (ContactBehavior)
 import Physics.World
+import Physics.World.Class
 import Physics.World.Object
 import Physics.Solvers.Contact
 
@@ -26,8 +27,8 @@ import Physics.Scenes.Scene
 
 type World' = World WorldObj
 
-type EngineCache s = V.MVector s (ObjectFeatureKey, ContactResult Lagrangian)
-type EngineState s = (World', EngineCache s, ContactBehavior, [External WorldObj])
+type EngineCache s = V.MVector s (ObjectFeatureKey Int, ContactResult Lagrangian)
+type EngineState s = (World', EngineCache s, ContactBehavior, [External])
 type EngineT s = StateT (EngineState s) (ST s)
 
 initEngine :: Scene Engine -> ST s (EngineState s)
@@ -69,12 +70,12 @@ updateWorld dt = do
   (world, _, beh, exts) <- get
   let keys = culledKeys world
       kContacts = prepareFrame keys world
-  void . wrapUpdater' $ return . applyExternals exts dt
+  void . wrapUpdater' $ return . wApplyExternals exts dt
   constraints <- wrapInitializer $ applyCachedSlns beh dt kContacts
   wrapUpdater constraints $ improveWorld solutionProcessor kContacts
   wrapUpdater constraints $ improveWorld solutionProcessor kContacts
-  void . wrapUpdater' $ return . advanceWorld dt
-  wrapUpdater' $ return . over worldObjs (fmap updateShape)
+  void . wrapUpdater' $ return . wAdvance dt
+  wrapUpdater' $ return . over worldObjs (fmap woUpdateShape)
 
 stepWorld :: Int -> EngineT s World'
 stepWorld 0 = view _1 <$> get

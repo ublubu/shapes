@@ -5,6 +5,7 @@ module Physics.Scenes.TwoFlyingBoxes where
 import Data.Proxy
 import Physics.Engine.Class
 import Physics.Scenes.Scene
+import Physics.World.Class
 
 boxA :: (PhysicsEngine e) => Proxy e -> PEPhysicalObj e
 boxA p = makePhysicalObj p (1, 0) 0 (-5, 0) 0 (2, 1)
@@ -21,7 +22,7 @@ boxB' p = makeWorldObj p (boxB p) 0.2 $ makeRectangleHull p 2 2
 world :: (PhysicsEngine e) => Proxy e -> PEWorld e (PEWorldObj e)
 world p = makeWorld p [boxA' p, boxB' p]
 
-externals :: (PhysicsEngine e) => Proxy e -> [PEExternal' e]
+externals :: (PhysicsEngine e) => Proxy e -> [External]
 externals _ = []
 
 contactBehavior :: (PhysicsEngine e) => Proxy e -> PEContactBehavior e

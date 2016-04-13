@@ -12,13 +12,11 @@ import Physics.Linear
 
 import Utils.Utils
 
-constraintGen :: (Contactable a)
-              => Flipping Contact'
-              -> (a, a)
+constraintGen :: Flipping Contact'
+              -> (PhysicalObj, PhysicalObj)
               -> Constraint
 constraintGen fContact ab =
-  flipExtract $ flipMap toConstraint fContact ab'
-  where ab' = ab & each %~ view physObj
+  flipExtract $ flipMap toConstraint fContact ab
 {-# INLINE constraintGen #-}
 
 toConstraint :: Contact'
@@ -41,13 +39,11 @@ jacobian Contact'{..} (a, b) = ja `join3v3` jb
         n = _contactEdgeNormal'
 {-# INLINE jacobian #-}
 
-pairMu :: (Contactable p) => (p, p) -> Double
-pairMu ab = (ua + ub) / 2
-  where (ua, ub) = pairMap contactMu ab
+pairMu :: (Double, Double) -> Double
+pairMu (ua, ub) = (ua + ub) / 2
 {-# INLINE pairMu #-}
 
-solutionProcessor :: (Contactable a)
-                  => (a, a)
+solutionProcessor :: (Double, Double)
                   -> Lagrangian
                   -> Lagrangian
                   -> Lagrangian

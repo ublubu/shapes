@@ -43,13 +43,6 @@ data PhysicalObj = PhysicalObj { _physObjVel :: !V2
                                } deriving (Show, Generic, NFData)
 makeLenses ''PhysicalObj
 
-class Physical p where
-  physObj :: Functor f => (PhysicalObj -> f PhysicalObj) -> p -> f p
-
-instance Physical PhysicalObj where
-  physObj = id
-  {-# INLINE physObj #-}
-
 _physObjVel3 :: PhysicalObj -> V3
 _physObjVel3 po = _physObjVel po `append2` _physObjRotVel po
 {-# INLINE _physObjVel3 #-}
@@ -133,12 +126,11 @@ velocity2 a b = (va `append2` wa) `join3v3` (vb `append2` wb)
         wb = _physObjRotVel b
 {-# INLINE velocity2 #-}
 
-lagrangian2 :: (Physical p) => (p, p) -> Constraint -> Lagrangian
-lagrangian2 os (Constraint j b) =
+lagrangian2 :: (PhysicalObj, PhysicalObj) -> Constraint -> Lagrangian
+lagrangian2 (o1, o2) (Constraint j b) =
   Lagrangian $ (-((D# (j `dotV6` v)) + b)) / mc
   where v = velocity2 o1 o2
         mc = effMassM2 j o1 o2
-        (o1, o2) = _physPair os
 {-# INLINE lagrangian2 #-}
 
 effMassM2 :: V6 -> PhysicalObj -> PhysicalObj -> Double
@@ -155,26 +147,28 @@ updateVelocity2_ :: V6 -> Diag6 -> V6 -> V6
 updateVelocity2_ v im pc = v `plusV6` (im `vmulDiag6'` pc)
 {-# INLINE updateVelocity2_ #-}
 
-applyLagrangian2 :: Diag6 -> V6 -> Lagrangian -> (PhysicalObj, PhysicalObj) -> (PhysicalObj, PhysicalObj)
+applyLagrangian2 :: Diag6
+                 -> V6
+                 -> Lagrangian
+                 -> (PhysicalObj, PhysicalObj)
+                 -> (PhysicalObj, PhysicalObj)
 applyLagrangian2 im j lagr = constrainedVel6 %~ f
   where f v6 = updateVelocity2_ v6 im (constraintImpulse2 j lagr)
 {-# INLINE applyLagrangian2 #-}
 
-solveConstraint :: (Physical a) => Constraint -> (a, a) -> (a, a)
-solveConstraint c@(Constraint j _) cp = cp & physPair %~ applyLagrangian2 im j lagr
-  where im = _constrainedInvMassM2 cp'
-        lagr = lagrangian2 cp' c
-        cp' = _physPair cp
+solveConstraint :: Constraint
+                -> (PhysicalObj, PhysicalObj)
+                -> (PhysicalObj, PhysicalObj)
+solveConstraint c ab =
+  applyLagrangian (lagrangian2 ab c) c ab
 {-# INLINE solveConstraint #-}
 
-applyLagrangian :: (Physical a)
-                   => Lagrangian
-                   -> Constraint
-                   -> (a, a)
-                   -> (a, a)
-applyLagrangian lagr (Constraint j _) ab = overWith physObj f ab
-  where im = physPairMap _constrainedInvMassM2 ab
-        f = applyLagrangian2 im j lagr
+applyLagrangian :: Lagrangian
+                -> Constraint
+                -> (PhysicalObj, PhysicalObj)
+                -> (PhysicalObj, PhysicalObj)
+applyLagrangian lagr (Constraint j _) ab =
+  applyLagrangian2 (_constrainedInvMassM2 ab) j lagr ab
 {-# INLINE applyLagrangian #-}
 
 advanceObj :: PhysicalObj -> Double -> PhysicalObj
@@ -182,16 +176,3 @@ advanceObj obj dt = obj & physObjPos %~ f & physObjRotPos %~ g
   where f pos = (dt `smulV2` (obj ^. physObjVel)) `plusV2` pos
         g ori = (dt * (obj ^. physObjRotVel)) + ori
 {-# INLINE advanceObj #-}
-
-_physPair :: (Physical a) => (a, a) -> (PhysicalObj, PhysicalObj)
-_physPair = pairMap (view physObj)
-{-# INLINE _physPair #-}
-
-physPair :: (Functor f, Physical p) => ((PhysicalObj, PhysicalObj) -> f (PhysicalObj, PhysicalObj)) -> (p, p) -> f (p, p)
-physPair f os = fmap g (f $ _physPair os)
-  where g xy = pairMap (set physObj) xy `pairAp` os
-{-# INLINE physPair #-}
-
-physPairMap :: (Physical a) => ((PhysicalObj, PhysicalObj) -> b) -> (a, a) -> b
-physPairMap f pair = f (_physPair pair)
-{-# INLINE physPairMap #-}

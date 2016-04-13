@@ -13,6 +13,7 @@ import Physics.Contact.ConvexHull
 import qualified Physics.Contact.SAT as S
 import Physics.Engine.Class
 import Physics.Engine
+import Physics.World.Class
 import qualified Physics.World.Object as S
 
 import Physics.Draw.Canonical
@@ -35,5 +36,5 @@ instance ContactDemo Engine where
   penetratingEdge _ = fromSP . spMap (toLP2 . _neighborhoodCenter) . S.penetratingEdge
   penetratedEdge _ = fromSP . spMap (toLP2 . _neighborhoodCenter) . S.penetratedEdge
   generateContacts _ a b =
-    _descList $ toCanonical . flipExtractUnsafe . snd <$> S.generateContacts (a, b)
+    _descList $ toCanonical . flipExtractUnsafe . snd <$> S.generateContacts (a ^. woShape, b ^. woShape)
   objHull _ = S._worldShape

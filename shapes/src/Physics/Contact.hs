@@ -46,10 +46,6 @@ contactDepth_ neighborhood p = f v - f p
         v = _neighborhoodCenter neighborhood
 {-# INLINE contactDepth_ #-}
 
-class (Physical p) => Contactable p where
-  contactMu :: p -> Double
-  contactHull :: p -> ConvexHull
-
 defaultContactBehavior :: ContactBehavior
 defaultContactBehavior =
   ContactBehavior { contactBaumgarte = 0
@@ -83,15 +79,12 @@ flattenContactResult (Just fContact) =
         {-# INLINE f #-}
 {-# INLINE flattenContactResult #-}
 
-generateContacts' :: (Contactable p)
-                 => (p, p)
-                 -> Maybe (Flipping Contact)
-generateContacts' contactPair = unwrapContactResult $ uncurry contact shapes
-  where shapes = pairMap contactHull contactPair
+generateContacts' :: (ConvexHull, ConvexHull)
+                  -> Maybe (Flipping Contact)
+generateContacts' shapes = unwrapContactResult $ uncurry contact shapes
 {-# INLINE generateContacts' #-}
 
-generateContacts :: (Contactable p)
-                 => (p, p)
+generateContacts :: (ConvexHull, ConvexHull)
                  -> Descending ((Int, Int), Flipping Contact')
 generateContacts = flattenContactResult . generateContacts'
 {-# INLINE generateContacts #-}

@@ -8,12 +8,14 @@ import Control.Monad.ST
 import Control.Monad.State.Strict
 import qualified Data.IntMap.Strict as IM
 import qualified Data.Vector.Unboxed as V
+import Data.Maybe
 
 import qualified Physics.Broadphase.Aabb as B
 import Physics.Contact
+import Physics.Contact.ConvexHull
 import Physics.Engine
 import qualified Physics.Engine.Main as OM
-import Physics.World
+import Physics.World.Class
 
 import Physics.Draw.Canonical
 import qualified Physics.Draw.Opt as D
@@ -35,10 +37,13 @@ instance Demo Engine where
   demoWorld _ = view _1 <$> get
   worldContacts p = do
     world <- demoWorld p
-    let cs = fmap generateContacts <$> B.culledPairs world
-        f (WorldPair _ fcs) =
-          _descList $ toCanonical . flipExtractUnsafe . snd <$> fcs
-    return . join . _descList $ f <$> cs
+    let cs :: Descending Contact'
+        cs = fmap (flipExtractUnsafe . snd) . join $ generateContacts <$> culledPairs
+        pairKeys = B.culledKeys world
+        culledPairs = fmap f pairKeys
+        f :: (Int, Int) -> (ConvexHull, ConvexHull)
+        f ij = fromJust $ iixView (\k -> wObj k . woShape) ij world
+    return . _descList $ toCanonical <$> cs
   worldAabbs p = do
     world <- demoWorld p
     return $ toCanonical . snd <$> V.toList (B.toAabbs world)

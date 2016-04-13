@@ -4,6 +4,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE RankNTypes #-}
 
 module Physics.Constraints.Contact where
 
@@ -12,53 +13,52 @@ import GHC.Generics (Generic)
 import Control.Lens
 import Control.DeepSeq
 import Data.Vector.Unboxed.Deriving
+import qualified Data.Vector.Unboxed as V
 
 import Physics.Constraint
 import Physics.Constraints.Types
 import Physics.Contact
+import Physics.Contact.ConvexHull
 import qualified Physics.Constraints.Contact.Friction as F
 import qualified Physics.Constraints.Contact.NonPenetration as NP
 import Utils.Descending
 import Utils.Utils
 
-data ObjectFeatureKey =
-  ObjectFeatureKey { _ofkObjKeys :: !(SP Int Int)
-                   , _ofkFeatKeys :: !(SP Int Int)
+data ObjectFeatureKey k =
+  ObjectFeatureKey { _ofkObjKeys :: (k, k)
+                   , _ofkFeatKeys :: (Int, Int)
                    } deriving (Generic, Show, NFData, Eq, Ord)
 makeLenses ''ObjectFeatureKey
 derivingUnbox "ObjectFeatureKey"
-  [t| ObjectFeatureKey -> SP (SP Int Int) (SP Int Int) |]
-  [| \ObjectFeatureKey{..} -> SP _ofkObjKeys _ofkFeatKeys |]
-  [| \SP{..} -> ObjectFeatureKey _spFst _spSnd |]
+  [t| forall k. (V.Unbox k) => ObjectFeatureKey k -> ((k, k), (Int, Int)) |]
+  [| \ObjectFeatureKey{..} -> (_ofkObjKeys, _ofkFeatKeys) |]
+  [| uncurry ObjectFeatureKey |]
 
-keyedContacts :: (Contactable a)
-              => (Int, Int)
-              -> (a, a)
-              -> Descending (ObjectFeatureKey, Flipping Contact')
+keyedContacts :: (k, k)
+              -> (ConvexHull, ConvexHull)
+              -> Descending (ObjectFeatureKey k, Flipping Contact')
 keyedContacts ij ab = fmap f contacts
   where contacts = generateContacts ab
-        f (featKeys, contact) = (ObjectFeatureKey (toSP ij) (toSP featKeys), contact)
+        f (featKeys, contact) = (ObjectFeatureKey ij featKeys, contact)
         {-# INLINE f #-}
 {-# INLINE keyedContacts #-}
 
-constraintGen :: (Contactable a)
-              => ContactBehavior
+constraintGen :: ContactBehavior
               -> Double
               -> Flipping Contact'
-              -> (a, a)
+              -> (PhysicalObj, PhysicalObj)
               -> ContactResult Constraint
 constraintGen beh dt fContact ab =
   ContactResult { _crNonPen = NP.constraintGen beh dt fContact ab
                 , _crFriction = F.constraintGen fContact ab }
 {-# INLINE constraintGen #-}
 
-solutionProcessor :: (Contactable a)
-                  => (a, a)
+solutionProcessor :: (Double, Double)
                   -> ContactResult Lagrangian
                   -> ContactResult Lagrangian
                   -> Processed (ContactResult Lagrangian)
-solutionProcessor ab (ContactResult npCached fCached) (ContactResult npNew fNew) =
+solutionProcessor mu_ab (ContactResult npCached fCached) (ContactResult npNew fNew) =
   ContactResult <$> npProcessed <*> fProcessed
   where npProcessed = NP.solutionProcessor npCached npNew
-        fProcessed = F.solutionProcessor ab (_processedToCache npProcessed) fCached fNew
+        fProcessed = F.solutionProcessor mu_ab (_processedToCache npProcessed) fCached fNew
 {-# INLINE solutionProcessor #-}

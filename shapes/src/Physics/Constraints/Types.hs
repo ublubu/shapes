@@ -23,7 +23,7 @@ data Processed a =
             , _processedToApply :: !a
             }
 
-type SolutionProcessor a b = (a, a) -> b -> b -> Processed b
+type SolutionProcessor a b = a -> b -> b -> Processed b
 
 data ContactResult a =
   ContactResult { _crNonPen :: a

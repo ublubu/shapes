@@ -2,8 +2,6 @@
 
 module Physics.Constraints.Contact.NonPenetration where
 
-import Control.Lens
-
 import Physics.Constraint
 import Physics.Constraints.Types
 import Physics.Constraints.SolutionProcessors
@@ -12,15 +10,13 @@ import Physics.Linear
 
 import Utils.Utils
 
-constraintGen :: (Contactable a)
-              => ContactBehavior
+constraintGen :: ContactBehavior
               -> Double
               -> Flipping Contact'
-              -> (a, a)
+              -> (PhysicalObj, PhysicalObj)
               -> Constraint
 constraintGen beh dt fContact ab =
-  flipExtract $ flipMap (toConstraint beh dt) fContact ab'
-  where ab' = ab & each %~ view physObj
+  flipExtract $ flipMap (toConstraint beh dt) fContact ab
 {-# INLINE constraintGen #-}
 
 toConstraint :: ContactBehavior
