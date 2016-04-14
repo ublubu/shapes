@@ -117,10 +117,6 @@ executable shapes-prof
 
   ghc-options:         -O2
                        -threaded
-                       -fexcess-precision
-                       -optc-O3
-                       -optc-ffast-math
-                       -funfolding-use-threshold=16
   
   -- Modules included in this executable, other than Main.
   -- other-modules:       
