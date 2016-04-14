@@ -72,11 +72,12 @@ applyCachedSlns beh dt kContacts oldLagrangians world0 = do
                -> (ObjectFeatureKey k, Flipping Contact')
                -> (ObjectFeatureKey k, ContactResult Lagrangian)
                -> ST s (Int, w)
-      useCache (cache_i', world) (ObjectFeatureKey{..}, fContact) (_, lagr) = do
+      useCache (cache_i', world) (ObjectFeatureKey{..}, fContact) kLagr@(_, lagr) = do
         let ab = fromJust $ iixView (\k -> wObj k . woPhys) _ofkObjKeys world
             constraint = constraintGen beh dt fContact ab
             world' = iixOver (\k -> wObj k . woPhys) (applySln lagr constraint)
               _ofkObjKeys world
+        MV.write lagrangians cache_i' kLagr
         MV.write constraints cache_i' constraint
         return (cache_i' + 1, world')
       {-# INLINE useCache #-}
