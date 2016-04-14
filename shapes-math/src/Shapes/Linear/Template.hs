@@ -4,6 +4,8 @@
 
 module Shapes.Linear.Template where
 
+import GHC.Types (isTrue#)
+
 import Test.QuickCheck.Arbitrary
 
 import Control.Monad
@@ -44,6 +46,7 @@ makeVectorType vi@ValueInfo{..} dim = do
                  , defineToList
                  , deriveShow
                  , deriveArbitrary
+                 , deriveEq
                  ]
   impls <- concat <$> mapM (\f -> f vectorN vi dim) definers
   let decs = [ DataD [] vectorN [] [NormalC vectorN (replicate dim constrArg)] []
@@ -58,6 +61,17 @@ deriveShow vectorN ValueInfo{..} dim = do
       constructorShown = nameBase vectorN
       showClause = clause [pat] (normalB [| constructorShown ++ $(f vars) |]) []
   return <$> instanceD (cxt []) (appT (conT ''Show) (conT vectorN)) [funD 'show [showClause]]
+
+eqE :: ValueInfo -> [ExpQ] -> [ExpQ] -> ExpQ
+eqE ValueInfo{..} row col = foldl1 (infixApp' $ varE '(&&)) products
+  where products = appE (varE 'isTrue#) . uncurry (infixApp' $ varE _valueEq) <$> zip row col
+
+deriveEq :: Name -> ValueInfo -> Int -> DecsQ
+deriveEq vectorN vi@ValueInfo{..} dim = do
+  (pat, vars) <- conPE vectorN "a" dim
+  (pat', vars') <- conPE vectorN "b" dim
+  let eqClause = clause [pat, pat'] (normalB $ eqE vi vars vars') []
+  return <$> instanceD (cxt []) (appT (conT ''Eq) (conT vectorN)) [funD '(==) [eqClause]]
 
 dimE :: Int -> ExpQ
 dimE = litE . integerL . fromIntegral

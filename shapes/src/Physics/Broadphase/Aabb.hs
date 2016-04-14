@@ -5,12 +5,16 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
 
 module Physics.Broadphase.Aabb where
 
 import GHC.Prim (Double#, (>##), (<##))
 import GHC.Types (Double(D#), isTrue#)
+import GHC.Generics (Generic)
 
+import Control.DeepSeq
 import Control.Lens ((^.), itoListOf)
 import Data.Array (elems)
 import Data.Maybe
@@ -26,16 +30,19 @@ import Utils.Descending
 
 data Bounds = Bounds { _bmin :: Double#
                      , _bmax :: Double#
-                     }
+                     } deriving (Show, Eq)
 
 derivingUnbox "Bounds"
   [t| Bounds -> (Double, Double) |]
   [| \Bounds{..} -> (D# _bmin, D# _bmax) |]
   [| \(D# bmin', D# bmax') -> Bounds bmin' bmax' |]
 
+instance NFData Bounds where
+  rnf (Bounds _ _) = ()
+
 data Aabb = Aabb { _aabbx :: {-# UNPACK #-} !Bounds
                  , _aabby :: {-# UNPACK #-} !Bounds
-                 }
+                 } deriving (Eq, Generic, NFData)
 
 derivingUnbox "Aabb"
   [t| Aabb -> (Bounds, Bounds) |]
@@ -45,6 +52,10 @@ derivingUnbox "Aabb"
 instance Show Aabb where
   show (Aabb (Bounds x0 x1) (Bounds y0 y1)) =
     "Aabb " ++ show (D# x0, D# x1) ++ " " ++ show (D# y0, D# y1)
+
+makeAabb :: Double -> Double -> Double -> Double -> Aabb
+makeAabb (D# a) (D# b) (D# c) (D# d) =
+  Aabb (Bounds a b) (Bounds c d)
 
 boundsOverlap :: Bounds -> Bounds -> Bool
 boundsOverlap (Bounds a b) (Bounds c d) =
@@ -76,6 +87,7 @@ mergeRange (Bounds a b) (Bounds c d) = Bounds minx maxx
         maxx = if isTrue# (b >## d) then b else d
 {-# INLINE mergeRange #-}
 
+-- assumes wObjs is in ascending key order
 toAabbs :: (V.Unbox k, PhysicsWorld k w o) => w -> V.Vector (k, Aabb)
 toAabbs = V.fromList . fmap f . itoListOf wObjs
   where f (k, obj) = (k, toAabb $ obj ^. woShape)

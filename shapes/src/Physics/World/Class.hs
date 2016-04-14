@@ -26,7 +26,7 @@ class (Ord k, Contactable o) => PhysicsWorld k w o | w -> k o where
   wKeys :: w -> [k]
   wObj :: k -> Traversal' w o
   wPair :: (k, k) -> Traversal' w (o, o)
-  wObjs :: IndexedTraversal' k w o
+  wObjs :: IndexedTraversal' k w o -- in ascending k order
 
 wAdvance :: (PhysicsWorld k w o) => Double -> w -> w
 wAdvance dt w = w & wObjs.woPhys %~ (`advanceObj` dt)

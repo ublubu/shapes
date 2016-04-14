@@ -76,6 +76,8 @@ library
                      , Physics.World.Class
                      , Physics.World.External
                      , Physics.World.Object
+                     , Physics.Quadtree
+                     , Physics.Quadtree.Aabb
                      , Utils.Descending
                      , Utils.Utils
 
@@ -156,8 +158,11 @@ test-suite shapes-spec
   main-is:             Spec.hs
 
   build-depends:       base
+                     , containers
+                     , deepseq
                      , ghc-prim
                      , hspec
+                     , lens
                      , linear
                      , QuickCheck
                      , shapes

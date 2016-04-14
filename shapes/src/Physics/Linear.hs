@@ -134,6 +134,10 @@ clockwiseV2 :: V2 -> V2
 clockwiseV2 (V2 x y) = V2 y (negateDouble# x)
 {-# INLINE clockwiseV2 #-}
 
+counterclockwiseV2 :: V2 -> V2
+counterclockwiseV2 (V2 x y) = V2 (negateDouble# y) x
+{-# INLINE counterclockwiseV2 #-}
+
 normalizeV2 :: V2 -> V2
 normalizeV2 (V2 x y) = V2 (x /## n) (y /## n)
   where n = sqrtDouble# ((x *## x) +## (y *## y))
@@ -153,6 +157,12 @@ invM2x2 (M2x2 a b c d) =
 negateV2 :: V2 -> V2
 negateV2 = liftV2 negateDouble#
 {-# INLINE negateV2 #-}
+
+negxV2 :: V2 -> V2
+negxV2 (V2 x y) = V2 (negateDouble# x) y
+
+negyV2 :: V2 -> V2
+negyV2 (V2 x y) = V2 x (negateDouble# y)
 
 identity2x2 :: M2x2
 identity2x2 = M2x2 1.0## 0.0## 0.0## 1.0##
@@ -174,6 +184,9 @@ afmul t (V2 a b) = V2 x y
 afmul' :: M3x3 -> P2 -> P2
 afmul' t (P2 v) = P2 $ t `afmul` v
 {-# INLINE afmul' #-}
+
+makeV2 :: Double -> Double -> V2
+makeV2 (D# a) (D# b) = V2 a b
 
 {-
 WORKING WITH LINES
