@@ -6,7 +6,7 @@ https://youtu.be/DYzf4zBK90o?list=PLmozfF6FosKjmPMnlPoVbWosiExbD0SUF
 
 ## About ##
 
-`shapes` started out as my second Haskell project. I'm still working on it. It needs to be faster.
+`shapes` started out as my second Haskell project. I'm still working on it.
 
 ## Libraries ##
   
@@ -22,7 +22,7 @@ https://youtu.be/DYzf4zBK90o?list=PLmozfF6FosKjmPMnlPoVbWosiExbD0SUF
   * **Broadphase**: finding potential interactions (that would give rise to constraints)
 
 ### How the Solver works ###
-  start at `Physics.Engine.Opt.Main`
+  start at `Physics.Engine.Main`
 
   1. Broadphase: Compare axis-aligned bounding boxes (`Aabb`) to find pairs of objects that may be interacting. Feed these pairs into the solver.
   2. Generate constraint generators. 
