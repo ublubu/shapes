@@ -86,7 +86,7 @@ maybeBranchBoth useLeft (Just x) (Just y) =
 {-# INLINE maybeBranchBoth #-}
 
 takeIfAll :: (a -> Bool) -> [a] -> Maybe [a]
-takeIfAll p [] = Just []
+takeIfAll _ [] = Just []
 takeIfAll p (x:xs)
   | p x = fmap (x:) (takeIfAll p xs)
   | otherwise = Nothing
@@ -111,7 +111,7 @@ instance (Show a, Eq a) => Show (Loop a) where
 
 loopify :: [a] -> Loop a
 loopify [] = error "can't have an empty loop"
-loopify v = let (first, last) = f last v first
+loopify v = let (first, lst) = f lst v first
             in first
   where f :: Loop a -> [a] -> Loop a -> (Loop a, Loop a)
         f prev [] next = (next, prev)

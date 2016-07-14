@@ -55,7 +55,7 @@ instance ToCanonical O.Contact' where
   toCanonical O.Contact'{..} =
     Contact
     (Left . toCanonical $ _contactPenetrator')
-    (toCanonical $ _contactEdgeNormal')
+    (toCanonical _contactEdgeNormal')
 
 instance ToCanonical O.Overlap where
   type Canonical O.Overlap = Overlap

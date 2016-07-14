@@ -18,7 +18,6 @@ import Physics.Constraint
 import Physics.Constraints.Contact
 import Physics.Constraints.Types
 import Physics.Contact
-import Physics.Contact.ConvexHull
 import Physics.World.Class
 import Utils.Descending
 import Utils.Utils

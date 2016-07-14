@@ -46,8 +46,7 @@ makeVectorType vi@ValueInfo{..} dim = do
                  , deriveArbitrary
                  ]
   impls <- concat <$> mapM (\f -> f vectorN vi dim) definers
-  let decs = [ DataD [] vectorN [] [NormalC vectorN (replicate dim constrArg)] []
-             ] ++ impls
+  let decs = DataD [] vectorN [] [NormalC vectorN (replicate dim constrArg)] [] : impls
   return decs
 
 deriveShow :: Name -> ValueInfo -> Int -> DecsQ

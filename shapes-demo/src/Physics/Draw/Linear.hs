@@ -66,7 +66,7 @@ rotate22 ori = rotate22_ c s
         s = sin ori
 
 afmat33 :: (Num a) => M22 a -> M33 a
-afmat33 (V2 x y) = (V3 (append2 x 0) (append2 y 0) (V3 0 0 1))
+afmat33 (V2 x y) = V3 (append2 x 0) (append2 y 0) (V3 0 0 1)
 
 aftranslate33 :: (Num a) => V2 a -> M33 a
 aftranslate33 (V2 x y) = V3 (V3 1 0 x) (V3 0 1 y) (V3 0 0 1)
@@ -155,7 +155,7 @@ perpLine2 a b = Line2 { linePoint = a
 -- solving some `mx = b` up in here
 intersect2 :: (Floating a, Epsilon a) => Line2 a -> Line2 a -> P2 a
 intersect2 (Line2 p n) (Line2 p' n') =
-  P ((inv22 m) !* b)
+  P (inv22 m !* b)
   where b = V2 (p `afdot` n) (p' `afdot` n')
         m = V2 n n'
 

@@ -9,6 +9,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Physics.Constraint ( module Physics.Constraint
                           , module Physics.Constraint.Types
@@ -77,7 +78,7 @@ derivingUnbox "Lagrangian"
 derivingUnbox "Constraint"
   [t| Constraint -> (V6, Double) |]
   [| \Constraint{..} -> (_constraintJ, _constraintB) |]
-  [| \(j, b) -> Constraint j b |]
+  [| uncurry Constraint |]
 
 instance Flippable Constraint where
   flipp (Constraint j b) = Constraint (flip3v3 j) b
@@ -128,7 +129,7 @@ velocity2 a b = (va `append2` wa) `join3v3` (vb `append2` wb)
 
 lagrangian2 :: (PhysicalObj, PhysicalObj) -> Constraint -> Lagrangian
 lagrangian2 (o1, o2) (Constraint j b) =
-  Lagrangian $ (-((D# (j `dotV6` v)) + b)) / mc
+  Lagrangian $ (-(D# (j `dotV6` v) + b)) / mc
   where v = velocity2 o1 o2
         mc = effMassM2 j o1 o2
 {-# INLINE lagrangian2 #-}

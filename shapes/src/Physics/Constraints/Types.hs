@@ -33,7 +33,7 @@ data ContactResult a =
 derivingUnbox "ContactResult"
   [t| forall a. (Unbox a) => ContactResult a -> (a, a) |]
   [| \ContactResult{..} -> (_crNonPen, _crFriction) |]
-  [| \(a, b) -> ContactResult a b |]
+  [| uncurry ContactResult |]
 
 makeLenses ''ContactResult
 

@@ -118,13 +118,13 @@ handleEvent s0 _ = s0
 
 handleKeypress :: DemoState -> K.Scancode -> K.KeyModifier -> DemoState
 handleKeypress state KC.ScancodeH _ =
-  state & testPosB %~ (+ (V2 (-0.1) 0))
+  state & testPosB %~ (+ V2 (-0.1) 0)
 handleKeypress state KC.ScancodeJ _ =
-  state & testPosB %~ (+ (V2 0 (-0.1)))
+  state & testPosB %~ (+ V2 0 (-0.1))
 handleKeypress state KC.ScancodeK _ =
-  state & testPosB %~ (+ (V2 0 0.1))
+  state & testPosB %~ (+ V2 0 0.1)
 handleKeypress state KC.ScancodeL _ =
-  state & testPosB %~ (+ (V2 0.1 0))
+  state & testPosB %~ (+ V2 0.1 0)
 handleKeypress state KC.ScancodeR _ =
   state & testAngleB %~ (+ 0.1)
 handleKeypress state KC.ScancodeU _ =

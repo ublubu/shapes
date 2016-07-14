@@ -6,7 +6,7 @@ import Test.QuickCheck
 import Physics.Broadphase.Aabb
 
 spec :: Spec
-spec = do
+spec =
   it "|unorderedPairs n| = n * n-1 / 2" $ property $
     \(ItemCount n) -> length (unorderedPairs n) == (n * (n-1) `quot` 2)
 
