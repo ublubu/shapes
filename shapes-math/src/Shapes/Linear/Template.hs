@@ -1,6 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE CPP #-}
 
 module Shapes.Linear.Template where
 
@@ -35,8 +36,13 @@ makeVectorN dim = mkName $ "V" ++ show dim
 
 makeVectorType :: ValueInfo -> Int -> DecsQ
 makeVectorType vi@ValueInfo{..} dim = do
+#if MIN_VERSION_template_haskell(2,11,0)
+  notStrict_ <- bang noSourceUnpackedness noSourceStrictness
+#else
+  notStrict_ <- notStrict
+#endif
   let vectorN = makeVectorN dim
-      constrArg = (NotStrict, ConT _valueN)
+      constrArg = (notStrict_, ConT _valueN)
       definers = [ defineLift
                  , defineLift2
                  , defineDot
@@ -46,7 +52,11 @@ makeVectorType vi@ValueInfo{..} dim = do
                  , deriveArbitrary
                  ]
   impls <- concat <$> mapM (\f -> f vectorN vi dim) definers
+#if MIN_VERSION_template_haskell(2,11,0)
+  let decs = DataD [] vectorN [] Nothing [NormalC vectorN (replicate dim constrArg)] [] : impls
+#else
   let decs = DataD [] vectorN [] [NormalC vectorN (replicate dim constrArg)] [] : impls
+#endif
   return decs
 
 deriveShow :: Name -> ValueInfo -> Int -> DecsQ
