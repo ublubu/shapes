@@ -1,5 +1,6 @@
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE CPP #-}
 
 module Shapes.Linear.MatrixTemplate where
 
@@ -15,7 +16,11 @@ makeMatrixNL (rows, cols) =
 makeMatrixType :: ValueInfo -> (Int, Int) -> DecsQ
 makeMatrixType vi@ValueInfo{..} dims = do
   let (matrixN, len) = makeMatrixNL dims
+#if MIN_VERSION_template_haskell(2,11,0)
+      constrArg = bangType (bang noSourceUnpackedness noSourceStrictness) (conT _valueN)
+#else
       constrArg = strictType notStrict (conT _valueN)
+#endif
       definers = [ defineLift
                  , defineLift2
                  , defineFromList
@@ -31,7 +36,11 @@ makeMatrixType vi@ValueInfo{..} dims = do
                   ]
   impls <- concat <$> mapM (\f -> f matrixN vi len) definers
   impls' <- concat <$> mapM (\f -> f vi dims) definers'
+#if MIN_VERSION_template_haskell(2,11,0)
+  matrixD <- dataD (cxt []) matrixN [] Nothing [normalC matrixN (replicate len constrArg)] (mapM conT [])
+#else
   matrixD <- dataD (cxt []) matrixN [] [normalC matrixN (replicate len constrArg)] []
+#endif
   return $ matrixD : impls ++ impls'
 
 defineMatrixMul :: ValueInfo -> (Int, Int, Int) -> DecsQ

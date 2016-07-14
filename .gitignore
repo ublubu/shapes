@@ -1,5 +1,6 @@
-
 *.out
 *.tags
 *.sosrc
 .stack-work
+dist
+result
