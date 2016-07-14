@@ -1,4 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE RecordWildCards #-}
 

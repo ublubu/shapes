@@ -32,7 +32,7 @@ jacobian :: Contact'
          -> (PhysicalObj, PhysicalObj)
          -> V6
 jacobian Contact'{..} (a, b) = ja `join3v3` jb
-  where ja = (negateV2 n) `append2` ((xa `minusV2` p') `crossV2` n)
+  where ja = negateV2 n `append2` ((xa `minusV2` p') `crossV2` n)
         jb = n `append2` ((p' `minusV2` xb) `crossV2` n)
         xa = _physObjPos a
         xb = _physObjPos b

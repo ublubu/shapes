@@ -9,7 +9,6 @@ module Physics.Contact where
 import Control.Lens
 import Data.Vector.Unboxed.Deriving
 
-import Physics.Constraint
 import Physics.Linear
 import Physics.Contact.ConvexHull
 import Physics.Contact.SAT

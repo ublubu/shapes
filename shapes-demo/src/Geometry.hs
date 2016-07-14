@@ -38,7 +38,7 @@ dot :: Num a => Pair a -> Pair a -> a
 dot (Pair ax ay) (Pair bx by) = (ax * bx) + (ay * by)
 
 zero :: Num a => Pair a
-zero = (Pair 0 0)
+zero = Pair 0 0
 
 pairToTuple :: Pair a -> (a, a)
 pairToTuple (Pair a b) = (a, b)

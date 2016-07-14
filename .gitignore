@@ -1,0 +1,5 @@
+
+*.out
+*.tags
+*.sosrc
+.stack-work
