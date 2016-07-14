@@ -1,6 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE CPP #-}
 
 module Shapes.Linear.Template where
 
@@ -36,7 +37,11 @@ makeVectorN dim = mkName $ "V" ++ show dim
 makeVectorType :: ValueInfo -> Int -> DecsQ
 makeVectorType vi@ValueInfo{..} dim = do
   let vectorN = makeVectorN dim
+-- #if MIN_VERSION_base(4,9,0)
+--       constrArg = (notStrict, ConT _valueN)
+-- #else
       constrArg = (NotStrict, ConT _valueN)
+-- #endif
       definers = [ defineLift
                  , defineLift2
                  , defineDot
