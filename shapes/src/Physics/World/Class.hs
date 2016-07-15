@@ -38,6 +38,8 @@ woUpdateShape obj =
   where t = _physObjTransform . view woPhys $ obj
 {-# INLINE woUpdateShape #-}
 
+-- | An 'External' is any function that modifies a 'PhysicalObject'
+-- given a time delta.
 type External = Double -> PhysicalObj -> PhysicalObj
 
 wApplyExternals :: (PhysicsWorld k w o) => [External] -> Double -> w -> w

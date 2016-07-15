@@ -77,14 +77,17 @@ updateWorld dt = do
   void . wrapUpdater' $ return . wAdvance dt
   wrapUpdater' $ return . over worldObjs (fmap woUpdateShape)
 
-stepWorld :: Int -> EngineT s World'
-stepWorld 0 = view _1 <$> get
-stepWorld x = updateWorld 0.01 >> stepWorld (x - 1)
+stepWorld :: Double -> Int -> EngineT s World'
+stepWorld _  0 = view _1 <$> get
+stepWorld dt x = updateWorld dt >> stepWorld dt (x - 1)
 
 runEngineT :: Scene Engine -> (forall s. EngineT s a) -> a
 runEngineT scene action = runST $ do
   state' <- initEngine scene
   evalStateT action state'
 
+runWorldOver :: Double -> Scene Engine -> Int -> World'
+runWorldOver dt scene steps = runEngineT scene $ stepWorld 0.1 steps
+
 runWorld :: Scene Engine -> Int -> World'
-runWorld scene steps = runEngineT scene $ stepWorld steps
+runWorld = runWorldOver 0.1
