@@ -145,7 +145,7 @@ data WaL w l = WaL { _wlW :: !(WorldT w)
                    } deriving (Show)
 type WaL' t = WaL t t
 
-instance (WorldTransformable w, WorldTransformable l) => WorldTransformable (WaL w l) where
+instance (WorldTransformable w) => WorldTransformable (WaL w l) where
   transform t (WaL w l) =
     WaL (transform t w) (transform t l)
   untransform t (WaL w l) =

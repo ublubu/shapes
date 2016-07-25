@@ -68,13 +68,6 @@ data Constraint = Constraint { _constraintJ :: !V6
 type Constraint' p = (p, p) -> Constraint
 type PhysObjChanged = PhysicalObj -> PhysicalObj -> Bool
 
-makeLenses ''Lagrangian
-
-derivingUnbox "Lagrangian"
-  [t| Lagrangian -> Double |]
-  [| \(Lagrangian l) -> l |]
-  [| Lagrangian |]
-
 derivingUnbox "Constraint"
   [t| Constraint -> (V6, Double) |]
   [| \Constraint{..} -> (_constraintJ, _constraintB) |]
