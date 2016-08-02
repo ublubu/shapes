@@ -18,7 +18,9 @@ import qualified Data.Vector.Unboxed as V
 import Data.Vector.Unboxed.Deriving
 import Physics.Linear
 import Physics.Contact.ConvexHull
+import qualified Physics.Constraint as C
 import Physics.World.Class
+import Physics.World.Object
 
 import Utils.Descending
 
@@ -81,6 +83,11 @@ toAabbs = V.fromList . fmap f . itoListOf wObjs
   where f (k, obj) = (k, toAabb $ obj ^. woShape)
 {-# INLINE toAabbs #-}
 
+toTaggedAabbs :: (V.Unbox k, V.Unbox tag, PhysicsWorld k w o) => (o -> tag) -> w -> V.Vector (k, Aabb, tag)
+toTaggedAabbs toTag = V.fromList . fmap f . itoListOf wObjs
+  where f (k, obj) = (k, toAabb $ obj ^. woShape, toTag obj)
+{-# INLINE toTaggedAabbs #-}
+
 unorderedPairs :: Int -> [(Int, Int)]
 unorderedPairs n
   | n < 2 = []
@@ -91,12 +98,15 @@ unorderedPairs n
         {-# INLINE f #-}
 {-# INLINE unorderedPairs #-}
 
-culledKeys :: (V.Unbox k, PhysicsWorld k w o) => w -> Descending (k, k)
+culledKeys :: (V.Unbox k, PhysicsWorld k w o, WorldObj ~ o) => w -> Descending (k, k)
 culledKeys w = Descending . catMaybes $ fmap f ijs
-  where aabbs = toAabbs w
-        ijs = unorderedPairs $ V.length aabbs
-        f (i, j) = if aabbCheck a b then Just (i', j') else Nothing
-          where (i', a) = aabbs V.! i
-                (j', b) = aabbs V.! j
+  where taggedAabbs = toTaggedAabbs isStatic w
+        ijs = unorderedPairs $ V.length taggedAabbs
+        -- NOTE: don't aabbCheck static objects, otherwise the sim explodes
+        f (i, j) = if not (isStaticA && isStaticB) && aabbCheck a b then Just (i', j') else Nothing
+          where (i', a, isStaticA) = taggedAabbs V.! i
+                (j', b, isStaticB) = taggedAabbs V.! j
         {-# INLINE f #-}
+        isStatic WorldObj{..} = C.isStatic $ C._physObjInvMass _worldPhysObj
+        {-# INLINE isStatic #-}
 {-# INLINE culledKeys #-}
