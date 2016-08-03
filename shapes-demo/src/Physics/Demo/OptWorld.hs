@@ -53,6 +53,6 @@ instance Demo Engine where
   debugEngineState _ = return "<insert debug trace here>"
   updateWorld _ = void . convertEngineT $ OM.updateWorld
 
-convertEngineT :: OM.EngineT RealWorld a -> DemoM Engine a
+convertEngineT :: OM.EngineST RealWorld a -> DemoM Engine a
 convertEngineT action =
   ReaderT (\config -> StateT (\state -> stToIO $ runStateT (runReaderT action config) state))
