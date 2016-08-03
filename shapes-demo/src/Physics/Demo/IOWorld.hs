@@ -11,7 +11,7 @@ import Control.Monad
 import Control.Monad.IO.Class
 import Control.Lens ((^.), (.~), (%~), (&), makeLenses)
 import Data.Proxy
-import GHC.Word
+
 
 import Linear.V2
 import Linear.Matrix (M33)
@@ -41,7 +41,7 @@ class (PhysicsEngine e, MonadIO (DemoM e)) => Demo e where
   worldContacts :: Proxy e -> DemoM e [Contact]
   worldAabbs :: Proxy e -> DemoM e [Aabb]
   debugEngineState :: Proxy e -> DemoM e String
-  updateWorld :: Proxy e -> Double -> DemoM e ()
+  updateWorld :: Proxy e -> DemoM e ()
 
 data DemoState =
   DemoState { _demoFinished :: Bool
@@ -97,10 +97,9 @@ demoStep p r s0@DemoState{..} = do
     debug <- debugEngineState p
     liftIO $ print debug
   s1 <- foldM (handleEvent p) s0 events
-  updateWorld p dt
+  updateWorld p
   liftIO $ R.present r
   return s1
-  where dt = fromIntegral (timeStep :: Int) / 1000
 
 handleEvent :: (Demo e) => Proxy e -> DemoState -> E.Event -> DemoM e DemoState
 handleEvent _ s0 (E.Event _ E.QuitEvent) =
