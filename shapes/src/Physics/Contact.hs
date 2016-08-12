@@ -66,7 +66,7 @@ unwrapContactResult contactInfo = (flipInjectF . fmap eitherToMaybe) =<< contact
 {-# INLINE unwrapContactResult #-}
 
 -- TODO: better names for Contact vs Contact'
--- | Flatten a 'Contact' into 'Contact\''s.
+-- | Flatten a 'Contact' into 'Contact''s.
 flattenContactResult :: Maybe (Flipping Contact)
                      -> Descending ((Int, Int), Flipping Contact')
                      -- ^ in decreasing key order, where x is MSV and y is LSV in (x, y)
@@ -95,7 +95,7 @@ generateContacts' :: (ConvexHull, ConvexHull)
 generateContacts' shapes = unwrapContactResult $ uncurry contact shapes
 {-# INLINE generateContacts' #-}
 
--- Find the 'Contact\''s between a pair of shapes if they overlap.
+-- Find the 'Contact''s between a pair of shapes if they overlap.
 generateContacts :: (ConvexHull, ConvexHull)
                  -> Descending ((Int, Int), Flipping Contact')
                  -- ^ in decreasing key order, where x is MSV and y is LSV in (x, y)
