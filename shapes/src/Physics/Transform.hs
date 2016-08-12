@@ -10,41 +10,77 @@ import GHC.Prim (Double#, (/##), negateDouble#)
 import Utils.Utils
 import Physics.Linear
 
+{- |
+A pair of transformation matrices to and from world space, respectively.
+See 'transform' and 'untransform'.
+
+The transformation matrices are multiplied with (2D affine) column vectors.
+-}
 type WorldTransform = SP M3x3 M3x3
 
-toTransform :: V2 -> Double# -> WorldTransform
+{- |
+Create a 'WorldTransform' with a given translation and rotation.
+
+Applying the resulting 'WorldTransform' in the forward direction
+moves the origin to the first argument (:: 'V2'), and rotates
+by the second argument (:: 'Double#').
+
+Applying the result in the reverse direction will revert the transformation.
+-}
+toTransform :: V2 -- ^ Translation
+            -> Double# -- ^ Rotation
+            -> WorldTransform
 toTransform pos ori = joinTransforms (translateTransform pos) (rotateTransform ori)
 {-# INLINE toTransform #-}
 
-scaleTransform :: V2 -> WorldTransform
+{- |
+Create a 'WorldTransform' with a given scale.
+-}
+scaleTransform :: V2 -- ^ Scale
+               -> WorldTransform
 scaleTransform s@(V2 x y) = SP (afscale33 s) (afscale33 s')
   where s' = V2 (1.0## /## x) (1.0## /## y)
 {-# INLINE scaleTransform #-}
 
-rotateTransform :: Double# -> WorldTransform
+{- |
+Create a 'WorldTransform' with a given rotation.
+-}
+rotateTransform :: Double# -- ^ Rotation
+                -> WorldTransform
 rotateTransform ori = SP rot rot'
   where rot = afrotate33 ori
         rot' = afrotate33 (negateDouble# ori)
 {-# INLINE rotateTransform #-}
 
-translateTransform :: V2 -> WorldTransform
+-- | Create a 'WorldTransform' with a given translation.
+translateTransform :: V2 -- ^ Translation
+                   -> WorldTransform
 translateTransform pos = SP transl transl'
   where transl = aftranslate33 pos
         transl' = aftranslate33 (negateV2 pos)
 {-# INLINE translateTransform #-}
 
+-- | Identity 'WorldTransform' does not alter the space.
 idTransform :: WorldTransform
 idTransform = SP identity3x3 identity3x3
 {-# INLINE idTransform #-}
 
-joinTransforms :: WorldTransform -> WorldTransform -> WorldTransform
+-- | Sequence two 'WorldTransform's to produce a third.
+joinTransforms :: WorldTransform -- ^ The outer transform - applied last
+               -> WorldTransform -- ^ The inner transform - applied first
+               -> WorldTransform -- ^ The composite transform
 joinTransforms (SP outer outer') (SP inner inner') = SP (outer `mul3x3x3` inner) (inner' `mul3x3x3` outer')
 {-# INLINE joinTransforms #-}
 
-joinTransforms' :: [WorldTransform] -> WorldTransform
+-- | Sequence a list of 'WorldTransform's.
+joinTransforms' :: [WorldTransform]
+                -- ^ Transforms in order from outermost to innermost
+                -> WorldTransform -- ^ The composite transform
 joinTransforms' = foldl1 joinTransforms
 {-# INLINE joinTransforms' #-}
 
+-- | Reverse the direction of a 'WorldTransform'.
+-- Simply swaps the two transformation matrices.
 invertTransform :: WorldTransform -> WorldTransform
 invertTransform (SP f g) = SP g f
 {-# INLINE invertTransform #-}
@@ -81,7 +117,9 @@ instance Functor WorldT where
 
 -- wExtract and wInject don't change the transform - they only move between types
 class WorldTransformable t where
+  -- | Apply 'WorldTransform' in the forward direction (local space to world space).
   transform :: WorldTransform -> t -> t
+  -- | Apply 'WorldTransform' in the reverse direction (world space to local space).
   untransform :: WorldTransform -> t -> t
 
   wExtract :: LocalT t -> WorldT t
