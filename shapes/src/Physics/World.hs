@@ -18,21 +18,32 @@ import qualified Data.IntMap.Strict as IM
 import Physics.World.Class
 import Utils.Utils
 
+-- | A simple 'PhysicsWorld' implementation using 'IM.IntMap'
 data World a =
-  World { _worldObjs :: !(IM.IntMap a)
-        , _worldNextKey :: !Int } deriving (Show, Generic, NFData)
+  World { _worldObjs :: !(IM.IntMap a) -- ^ Inhabitants by unique 'Int' key
+        , _worldNextKey :: !Int -- ^ Key to use for the next new inhabitant
+        } deriving (Show, Generic, NFData)
 makeLenses ''World
 
+-- | A 'World' without any inhabitants.
 emptyWorld :: World a
 emptyWorld = World IM.empty 0
 {-# INLINE emptyWorld #-}
 
+-- | Add a new inhabitant to the 'World'
 addObj :: World a -> a -> World a
-addObj w o = w & worldObjs %~ IM.insert n o & worldNextKey .~ n + 1
-  where n = w ^. worldNextKey
+addObj w = snd . addObj' w
 {-# INLINE addObj #-}
 
-fromList :: [a] -> World a
+-- | Add a new inhabitant to the 'World'. Also, get inhabitant's 'Int' key.
+addObj' :: World a -> a -> (Int, World a)
+addObj' w o = (n, w & worldObjs %~ IM.insert n o & worldNextKey .~ n + 1)
+  where n = w ^. worldNextKey
+{-# INLINE addObj' #-}
+
+-- | Create a 'World' from a list of inhabitants
+fromList :: [a] -- ^ Population for the new 'World'
+         -> World a
 fromList = foldl addObj emptyWorld
 {-# INLINE fromList #-}
 
