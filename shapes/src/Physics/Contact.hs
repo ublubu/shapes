@@ -4,6 +4,10 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
+{- |
+Finding and describing the contact between two colliding objects.
+Also, a type for configuring contact constraint solver behavior.
+-}
 module Physics.Contact where
 
 import Control.Lens
@@ -16,6 +20,7 @@ import Utils.Descending
 import Utils.Utils
 
 -- | Configuring contact constraint behavior
+-- | TODO: does this belong in a different module?
 data ContactBehavior =
   ContactBehavior { contactBaumgarte :: !Double
                   -- ^ Bias factor: 0 <= B <= 1, used to feed positional error back into a constraint

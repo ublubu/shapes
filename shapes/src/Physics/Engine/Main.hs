@@ -2,6 +2,10 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
+{- |
+This is an example of how to use this library to create and simulate a world.
+It's more documentation than an API I actually expect people to use.
+-}
 module Physics.Engine.Main ( module Physics.Engine.Main
                            , module Physics.Engine
                            ) where

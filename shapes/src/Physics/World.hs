@@ -7,6 +7,10 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE RecordWildCards #-}
 
+{- |
+Simple data structure that can act as a physical world to simulate.
+I will likely implement more interesting world data structures in the future.
+-}
 module Physics.World where
 
 import GHC.Generics (Generic)

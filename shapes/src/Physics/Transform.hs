@@ -3,6 +3,10 @@
 {-# Language FlexibleInstances #-}
 {-# Language FlexibleContexts #-}
 
+{- |
+Types for keeping track of local spaces (transformed relative to global space).
+Also, tools for creating and composing 2D transformations.
+-}
 module Physics.Transform where
 
 import GHC.Prim (Double#, (/##), negateDouble#)

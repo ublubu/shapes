@@ -8,7 +8,14 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE MagicHash #-}
 
--- Separating Axis Test
+{- |
+Separating Axis Test (SAT).
+A separating axis is a direction along which the projections of two shapes do not overlap.
+Alternately, a separating axis is a line between two shapes that do not intersect.
+
+If no separating axis is found, use the axis of smallest overlap to determine
+which features of the objects are involved in the collision (e.g. calculate contact points and normals).
+-}
 module Physics.Contact.SAT where
 
 import GHC.Types (Double(D#))

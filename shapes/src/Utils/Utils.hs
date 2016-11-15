@@ -8,6 +8,9 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE RecordWildCards #-}
 
+{- |
+A bunch of unrelated utility functions and types.
+-}
 module Utils.Utils where
 
 import GHC.Generics (Generic)

@@ -1,5 +1,8 @@
 {-# LANGUAGE RecordWildCards #-}
 
+{- |
+Generate and solve non-penetration constraints for colliding objects.
+-}
 module Physics.Constraints.Contact.NonPenetration where
 
 import Physics.Constraint

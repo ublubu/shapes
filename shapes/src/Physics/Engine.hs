@@ -2,6 +2,9 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE MagicHash #-}
 
+{- |
+Another piece of the sample implementation of a physics engine that uses this library.
+-}
 module Physics.Engine where
 
 import GHC.Types (Double(D#))

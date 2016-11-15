@@ -11,6 +11,10 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
+{- |
+Types for describing the motion of physical objects.
+Functions for solving constraints.
+-}
 module Physics.Constraint ( module Physics.Constraint
                           , module Physics.Constraint.Types
                           ) where

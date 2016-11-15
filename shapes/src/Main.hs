@@ -1,3 +1,6 @@
+{- |
+Main. I just use this for benchmarking and profiling different scenes and solver configurations.
+-}
 module Main where
 
 import Control.DeepSeq

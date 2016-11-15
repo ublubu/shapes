@@ -10,6 +10,11 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
 
+{- |
+Convex polygons and their vertices and edges.
+Functions and types for treating convex polygons as support functions
+(axis -> extent along an axis).
+-}
 module Physics.Contact.ConvexHull where
 
 import GHC.Generics (Generic)

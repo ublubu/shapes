@@ -1,5 +1,9 @@
 {-# LANGUAGE TemplateHaskell #-}
 
+{- |
+Demo scenes for sample implementation.
+TODO: Figure out a good place to put demo/sample stuff without slowing down my development workflow.
+-}
 module Physics.Scenes.Scene where
 
 import Control.Lens

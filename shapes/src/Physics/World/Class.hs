@@ -3,6 +3,9 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RankNTypes #-}
 
+{- |
+Classes for data structures that can behave like a \"world\" of physical objects.
+-}
 module Physics.World.Class where
 
 import Control.Lens hiding (transform)

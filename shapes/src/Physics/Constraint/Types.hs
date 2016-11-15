@@ -3,6 +3,10 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 
+{- |
+Just pretend this module is part of Physics.Constraint.
+Last time I checked, GeneralizedNewtypeDeriving didn't work on Lagrangian in Physics.Constraint.
+-}
 module Physics.Constraint.Types where
 
 import Control.DeepSeq

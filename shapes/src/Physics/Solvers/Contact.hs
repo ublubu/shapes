@@ -5,6 +5,12 @@
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
+{- |
+This is the backbone of the physics engine.
+The functions here find contacts between objects and generate and solve constraints for these contacts.
+It exploits temporal coherence of the scene by caching constraint solutions between frames.
+This way, it can accumulate stability over time instead of requiring many solver iterations each frame.
+-}
 module Physics.Solvers.Contact where
 
 import Control.Lens

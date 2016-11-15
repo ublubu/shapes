@@ -4,6 +4,9 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE RankNTypes #-}
 
+{- |
+Types used in generating and solving contact constraints.
+-}
 module Physics.Constraints.Types where
 
 import Control.Lens

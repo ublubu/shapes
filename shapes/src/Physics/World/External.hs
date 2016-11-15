@@ -1,5 +1,9 @@
 {-# LANGUAGE MagicHash #-}
 
+{- |
+The physics engine can also apply impulses that aren't related to constraints.
+Gravity is an example.
+-}
 module Physics.World.External where
 
 import GHC.Types (Double(D#))

@@ -6,6 +6,10 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleContexts #-}
 
+{- |
+"Aabb" is "Axis-aligned bounding box".
+The "broadphase" of collision detection is a conservative estimate of which bodies may be in contact.
+-}
 module Physics.Broadphase.Aabb where
 
 import GHC.Prim (Double#, (>##), (<##))

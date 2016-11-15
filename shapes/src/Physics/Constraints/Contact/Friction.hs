@@ -1,5 +1,8 @@
 {-# LANGUAGE RecordWildCards #-}
 
+{- |
+Generate and solve friction constraints for colliding objects.
+-}
 module Physics.Constraints.Contact.Friction where
 
 import Control.Lens
