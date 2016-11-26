@@ -59,6 +59,18 @@ pairFold :: Monoid m => (m, m) -> m
 pairFold (a, b) = mappend a b
 {-# INLINE pairFold #-}
 
+scurry :: (SP x y -> z) -> x -> y -> z
+scurry f a b = f $ SP a b
+{-# INLINE scurry #-}
+
+suncurry :: (x -> y -> z) -> SP x y -> z
+suncurry f (SP x y) = f x y
+{-# INLINE suncurry #-}
+
+spFold :: Monoid m => SP m m -> m
+spFold (SP a b) = mappend a b
+{-# INLINE spFold #-}
+
 maybeChange :: a -> (a -> Maybe a) -> a
 maybeChange x f = fromMaybe x (f x)
 {-# INLINE maybeChange #-}
