@@ -70,3 +70,9 @@ insert key box (Node _ (SRight (Spine _ (SP fstNode sndNode))))
 nodeHeight :: Node -> Int
 nodeHeight (Node _ (SLeft (Leaf _))) = 0
 nodeHeight (Node _ (SRight (Spine height _))) = height
+
+treeFromList :: [(Int, Aabb)] -> Maybe Node
+treeFromList [] = Nothing
+treeFromList pairs = foldl f Nothing pairs
+  where f Nothing (key, box) = Just $ leafNode box key
+        f (Just node) (key, box) = Just $ insert key box node
