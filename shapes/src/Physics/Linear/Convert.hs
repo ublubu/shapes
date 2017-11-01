@@ -1,5 +1,8 @@
 {-# LANGUAGE MagicHash #-}
 
+{- |
+Convert between nice types from linear and unboxed types from shapes-math.
+-}
 module Physics.Linear.Convert where
 
 import GHC.Types (Double(D#))

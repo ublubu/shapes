@@ -3,7 +3,7 @@ module GameLoop where
 import qualified SDL.Time
 import Control.Concurrent
 import Control.Monad.State
-import Control.Monad.IO.Class
+
 import GHC.Word
 
 testStep :: Integer -> Word32 -> IO Integer

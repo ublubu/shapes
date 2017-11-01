@@ -17,6 +17,9 @@ boxC p = makePhysicalObj p (0, 0) 0 (0, -6) 0 (0, 0)
 boxD :: (PhysicsEngine e) => Proxy e -> PEPhysicalObj e
 boxD p = makePhysicalObj p (0, 0) 0 (-5, -4) 0 (1, 0)
 
+staticBoxD :: (PhysicsEngine e) => Proxy e -> PEPhysicalObj e
+staticBoxD p = makePhysicalObj p (0, 0) 0 (-5, -4) 0 (0, 0)
+
 boxA' :: (PhysicsEngine e) => Proxy e -> PEWorldObj e
 boxA' p = makeWorldObj p (boxA p) 0.2 $ makeRectangleHull p 4 4
 
@@ -29,8 +32,14 @@ boxC' p = makeWorldObj p (boxC p) 0.2 $ makeRectangleHull p 18 1
 boxD' :: (PhysicsEngine e) => Proxy e -> PEWorldObj e
 boxD' p = makeWorldObj p (boxD p) 0.2 $ makeRectangleHull p 0.4 3
 
+staticBoxD' :: (PhysicsEngine e) => Proxy e -> PEWorldObj e
+staticBoxD' p = makeWorldObj p (staticBoxD p) 0.2 $ makeRectangleHull p 0.4 3
+
 world :: (PhysicsEngine e) => Proxy e -> PEWorld e (PEWorldObj e)
 world p = makeWorld p [boxA' p, boxB' p, boxC' p, boxD' p]
+
+world' :: (PhysicsEngine e) => Proxy e -> PEWorld e (PEWorldObj e)
+world' p = makeWorld p [boxA' p, boxB' p, boxC' p, staticBoxD' p]
 
 externals :: (PhysicsEngine e) => Proxy e -> [External]
 externals p = [makeConstantAccel p (0, -2)]
@@ -40,3 +49,6 @@ contactBehavior p = makeContactBehavior p 0.01 0.02
 
 scene :: (PhysicsEngine e) => Proxy e -> Scene e
 scene p = Scene (world p) (externals p) (contactBehavior p)
+
+scene' :: (PhysicsEngine e) => Proxy e -> Scene e
+scene' p = Scene (world' p) (externals p) (contactBehavior p)

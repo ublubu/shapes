@@ -10,7 +10,7 @@ name:                shapes
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             0.1.0.0
+version:             0.0.1.0
 
 -- A short (one-line) description of the package.
 synopsis:            physics engine and other tools for 2D shapes
@@ -92,19 +92,19 @@ library
                      , TypeSynonymInstances
 
   -- Other library packages from which modules are imported.
-  build-depends:       array
-                     , base
-                     , containers
-                     , deepseq
-                     , either
-                     , ghc-prim
-                     , lens
-                     , linear
-                     , mtl
-                     , shapes-math
-                     , transformers
-                     , vector
-                     , vector-th-unbox
+  build-depends:       array           >= 0.5
+                     , base            >= 4.9 && <5.0
+                     , containers      >= 0.5
+                     , deepseq         >= 1.4
+                     , either          >= 4.4
+                     , ghc-prim        >= 0.5
+                     , lens            >= 4.14
+                     , linear          >= 1.20
+                     , mtl             >= 2.2
+                     , shapes-math     >= 0.0.1
+                     , transformers    >= 0.5
+                     , vector          >= 0.11
+                     , vector-th-unbox >= 0.2
 
   -- Directories containing source files.
   hs-source-dirs:      src

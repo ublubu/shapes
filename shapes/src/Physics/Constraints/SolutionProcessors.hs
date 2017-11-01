@@ -1,3 +1,9 @@
+{- |
+SolutionProcessors take incremental and accumulated constraint solutions
+and use rules to determine what incremental impulse (constraint solution) to apply to an object.
+
+For example, a solution processor might enforce that the total accumulated impulse is nonnegative.
+-}
 module Physics.Constraints.SolutionProcessors where
 
 import Physics.Constraint

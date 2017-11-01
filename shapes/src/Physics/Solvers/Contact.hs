@@ -5,6 +5,12 @@
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
+{- |
+This is the backbone of the physics engine.
+The functions here find contacts between objects and generate and solve constraints for these contacts.
+It exploits temporal coherence of the scene by caching constraint solutions between frames.
+This way, it can accumulate stability over time instead of requiring many solver iterations each frame.
+-}
 module Physics.Solvers.Contact where
 
 import Control.Lens
@@ -41,7 +47,10 @@ applySln crL crConstraint ab =
   foldl (flip ($)) ab $ applyLagrangian <$> crL <*> crConstraint
 {-# INLINE applySln #-}
 
---TODO: reader monad for stuff that's const between frames (beh, dt)
+-- Calculate all new constraints from the contacts.
+-- Apply cached lagrangians using new constraints.
+-- Build new lagrangians cache with either zero or previously cached value.
+-- TODO: reader monad for stuff that's const between frames (beh, dt)
 applyCachedSlns :: forall s k w o. (V.Unbox k, PhysicsWorld k w o)
                 => ContactBehavior
                 -> Double

@@ -7,6 +7,9 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
+{- |
+Arithmetic utility functions for vectors and matrices.
+-}
 module Physics.Linear where
 
 import GHC.Generics (Generic)

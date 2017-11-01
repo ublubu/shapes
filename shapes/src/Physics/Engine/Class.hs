@@ -1,6 +1,11 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 
+{- |
+This module is a holdover from when I had two (slow and less slow) implementations of the physics engine.
+I used this class so I could run the same demos on both engines to compare them.
+There's a good chance I remove this in the future.
+-}
 module Physics.Engine.Class where
 
 import Data.Proxy

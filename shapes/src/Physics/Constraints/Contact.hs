@@ -6,6 +6,9 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE RankNTypes #-}
 
+{- |
+Generate and solve all contact constraints for pairs of colliding objects.
+-}
 module Physics.Constraints.Contact where
 
 import GHC.Generics (Generic)

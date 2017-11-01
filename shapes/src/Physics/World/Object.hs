@@ -3,6 +3,9 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE RecordWildCards #-}
 
+{- |
+A physical object that can inhabit a physical world.
+-}
 module Physics.World.Object where
 
 import GHC.Generics (Generic)

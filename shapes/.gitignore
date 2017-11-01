@@ -21,3 +21,5 @@ cabal.sandbox.config
 *.ps
 .stack-work
 prof-results
+src/highlight.js
+src/style.css

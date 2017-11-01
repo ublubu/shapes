@@ -7,6 +7,10 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
+{- |
+Keep track of lists that are in some kind of descending order.
+Doesn't do anything fancy to actually enforce this, though.
+-}
 module Utils.Descending where
 
 import GHC.Generics (Generic)

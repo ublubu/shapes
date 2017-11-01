@@ -18,3 +18,5 @@ cabal.sandbox.config
 *.hp
 *.prof.html
 .stack-work
+src/highlight.js
+src/style.css

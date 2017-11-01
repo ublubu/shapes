@@ -4,3 +4,6 @@
 .stack-work
 dist
 result
+src/highlight.js
+src/style.css
+*#*

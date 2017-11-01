@@ -1,12 +1,13 @@
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Physics.Demo.OptWorld where
 
 import Control.Lens
 import Control.Monad
+import Control.Monad.Reader
 import Control.Monad.ST
 import Control.Monad.State.Strict
-import qualified Data.IntMap.Strict as IM
 import qualified Data.Vector.Unboxed as V
 import Data.Maybe
 
@@ -16,6 +17,7 @@ import Physics.Contact.ConvexHull
 import Physics.Engine
 import qualified Physics.Engine.Main as OM
 import Physics.World.Class
+import Physics.Scenes.Scene
 
 import Physics.Draw.Canonical
 import qualified Physics.Draw.Opt as D
@@ -25,10 +27,11 @@ import Utils.Descending
 import Utils.Utils
 
 instance Demo Engine where
-  type DemoM Engine = StateT (OM.EngineState RealWorld) IO
-  runDemo _ scene action = do
+  type DemoM Engine = ReaderT OM.EngineConfig (StateT (OM.EngineState RealWorld) IO)
+  runDemo _ scene@Scene{..} action = do
     eState <- liftIO . stToIO $ OM.initEngine scene
-    evalStateT action eState
+    evalStateT (runReaderT action eConfig) eState
+    where eConfig = OM.EngineConfig 0.01 _scContactBeh
   resetEngine _ scene =
     convertEngineT $ OM.changeScene scene
   drawWorld p r vt = do
@@ -48,8 +51,8 @@ instance Demo Engine where
     world <- demoWorld p
     return $ toCanonical . snd <$> V.toList (B.toAabbs world)
   debugEngineState _ = return "<insert debug trace here>"
-  updateWorld _ = void . convertEngineT . OM.updateWorld
+  updateWorld _ = void . convertEngineT $ OM.updateWorld
 
-convertEngineT :: OM.EngineT RealWorld a -> DemoM Engine a
+convertEngineT :: OM.EngineST RealWorld a -> DemoM Engine a
 convertEngineT action =
-  StateT $ stToIO . runStateT action
+  ReaderT (\config -> StateT (\state -> stToIO $ runStateT (runReaderT action config) state))
