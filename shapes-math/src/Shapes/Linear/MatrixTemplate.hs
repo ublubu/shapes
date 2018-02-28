@@ -36,7 +36,9 @@ makeMatrixType vi@ValueInfo{..} dims = do
                   ]
   impls <- concat <$> mapM (\f -> f matrixN vi len) definers
   impls' <- concat <$> mapM (\f -> f vi dims) definers'
-#if MIN_VERSION_template_haskell(2,11,0)
+#if MIN_VERSION_template_haskell(2,12,0)
+  matrixD <- dataD (cxt []) matrixN [] Nothing [normalC matrixN (replicate len constrArg)] []
+#elif MIN_VERSION_template_haskell(2,11,0)
   matrixD <- dataD (cxt []) matrixN [] Nothing [normalC matrixN (replicate len constrArg)] (mapM conT [])
 #else
   matrixD <- dataD (cxt []) matrixN [] [normalC matrixN (replicate len constrArg)] []
