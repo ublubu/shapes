@@ -20,6 +20,7 @@ cabal.sandbox.config
 *shapes-prof-*.*
 *.ps
 .stack-work
+shapes.cabal
 prof-results
 src/highlight.js
 src/style.css

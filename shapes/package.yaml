@@ -1,0 +1,68 @@
+name:                shapes
+version:             0.1.0.0
+github:              "ublubu/shapes"
+license:             BSD3
+author:              "Kynan Rilee"
+maintainer:          "kynan.rilee@gmail.com"
+copyright:           "2018 Kynan Rilee"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+synopsis:            physics engine and other tools for 2D shapes
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on Github at <https://github.com/ublubu/shapes#readme>
+
+dependencies:
+- array
+- base
+- containers
+- deepseq
+- either
+- ghc-prim
+- lens
+- linear
+- mtl
+- shapes-math
+- transformers
+- vector
+- vector-th-unbox
+
+library:
+  source-dirs: src
+
+executables:
+  shapes-bench:
+    main:                Main.hs
+    source-dirs:         bench
+    ghc-options:
+    - -O2
+    - -optc-O3
+    - -optc-ffast-math
+    - -funfolding-use-threshold=16
+    - -fexcess-precision
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - criterion
+    - shapes
+
+tests:
+  shapes-spec:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - hspec
+    - QuickCheck
+    - shapes
