@@ -1,0 +1,60 @@
+name:                shapes-math
+version:             0.1.0.0
+github:              "ublubu/shapes"
+license:             BSD3
+author:              "Kynan Rilee"
+maintainer:          "kynan.rilee@gmail.com"
+copyright:           "2018 Kynan Rilee"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+synopsis:            faster vector/matrix math using unboxed numbers and Template Haskell
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on Github at <https://github.com/ublubu/shapes#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- ghc-prim
+- QuickCheck
+- template-haskell
+
+library:
+  source-dirs: src
+
+executables:
+  math-bench:
+    main:                Main.hs
+    source-dirs:         bench
+    ghc-options:
+    - -O2
+    - -optc-O3
+    - -optc-ffast-math
+    - -funfolding-use-threshold=16
+    - -fexcess-precision
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - criterion
+    - linear
+    - shapes-math
+
+tests:
+  math-spec:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - hspec
+    - linear
+    - shapes-math

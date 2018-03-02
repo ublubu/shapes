@@ -1,0 +1,51 @@
+name:                shapes-demo
+version:             0.1.0.0
+github:              "ublubu/shapes"
+license:             BSD3
+author:              "Kynan Rilee"
+maintainer:          "kynan.rilee@gmail.com"
+copyright:           "2018 Kynan Rilee"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+synopsis:            demos for the 'shapes' package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on Github at <https://github.com/ublubu/shapes#readme>
+
+dependencies:
+- array
+- base
+- containers
+- either
+- ghc-prim
+- lens
+- linear
+- monad-extras
+- mtl
+- sdl2
+- shapes
+- StateVar
+- text
+- transformers
+- vector
+
+executables:
+  shapes-demo:
+    main:                Main.hs
+    source-dirs:         src
+    ghc-options:
+    - -O2
+    - -optc-O3
+    - -optc-ffast-math
+    - -funfolding-use-threshold=16
+    - -fexcess-precision
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
