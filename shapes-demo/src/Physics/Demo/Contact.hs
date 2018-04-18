@@ -29,13 +29,13 @@ import Utils.Utils
 
 class (ToCanonical (CDOverlap e), ToCanonical (PEConvexHull e), PhysicsEngine e, Canonical (CDOverlap e) ~ Overlap, Canonical (PEConvexHull e) ~ Polygon) => ContactDemo e where
   type CDOverlap e
-  makeBox :: Proxy e -> V2' -> Double -> (Double, Double) -> PEWorldObj e
+  makeBox :: Proxy e -> V2' -> Double -> (Double, Double) -> PEWorldObj e ()
   checkOverlap :: Proxy e -> PEConvexHull e -> PEConvexHull e -> Maybe (CDOverlap e)
   checkContact :: Proxy e -> PEConvexHull e -> PEConvexHull e -> (Maybe (Flipping Contact), Maybe (CDOverlap e), Maybe (CDOverlap e))
   penetratingEdge :: Proxy e -> CDOverlap e -> (P2 Double, P2 Double)
   penetratedEdge :: Proxy e -> CDOverlap e -> (P2 Double, P2 Double)
-  generateContacts :: Proxy e -> PEWorldObj e -> PEWorldObj e -> [Contact]
-  objHull :: Proxy e -> PEWorldObj e -> PEConvexHull e
+  generateContacts :: Proxy e -> PEWorldObj e () -> PEWorldObj e () -> [Contact]
+  objHull :: Proxy e -> PEWorldObj e () -> PEConvexHull e
 
 data DemoState =
   DemoState { _testFinished :: Bool
@@ -44,10 +44,10 @@ data DemoState =
             }
 makeLenses ''DemoState
 
-boxA :: (ContactDemo e) => Proxy e -> DemoState -> PEWorldObj e
+boxA :: (ContactDemo e) => Proxy e -> DemoState -> PEWorldObj e ()
 boxA p _ = makeBox p (V2 0 0) 0 (4, 4)
 
-boxB :: (ContactDemo e) => Proxy e -> DemoState -> PEWorldObj e
+boxB :: (ContactDemo e) => Proxy e -> DemoState -> PEWorldObj e ()
 boxB p (DemoState _ posB angleB) = makeBox p posB angleB (2, 2)
 
 vt :: M33 Double
@@ -81,7 +81,7 @@ contactTest p r sa sb = do
         drawC = either f f
           where f = drawContact r . transform vt
 
-contactTest' :: (ContactDemo e) => Proxy e -> R.Renderer -> PEWorldObj e -> PEWorldObj e -> IO ()
+contactTest' :: (ContactDemo e) => Proxy e -> R.Renderer -> PEWorldObj e () -> PEWorldObj e () -> IO ()
 contactTest' p r a b = do
   setColor r cyan
   mapM_ f contacts

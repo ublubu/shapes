@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeFamilies #-}
 module Physics.Demo.Scenes where
 
 import Data.Proxy
@@ -11,9 +12,17 @@ import qualified Physics.Scenes.FourBoxesTwoStatic as S1
 import qualified Physics.Scenes.Rolling as S2
 import qualified Physics.Scenes.Stacks as S3
 
-scenes :: (PhysicsEngine e) => Proxy e -> [Scene e]
-scenes p =
-  [S3.makeScene (30, 30) 1, S1.scene, S1.scene', S2.scene, S3.scene, S3.scene', S3.scene'', S3.scene''', S0.scene] <*> pure p
+scenes :: (PhysicsEngine e, PEExternalObj e ~ ()) => Proxy e -> [Scene e]
+scenes p = [ S3.makeScene (30, 30) 1 p ()
+           , S1.scene p () () () ()
+           , S1.scene' p () () () ()
+           , S2.scene p () ()
+           , S3.scene p ()
+           , S3.scene' p ()
+           , S3.scene'' p ()
+           , S3.scene''' p ()
+           , S0.scene p () ()
+           ]
 
 nextScene :: Int -> [a] -> (Int, a)
 nextScene i ss = (i', ss !! i')

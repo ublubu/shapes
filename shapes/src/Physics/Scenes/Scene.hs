@@ -11,7 +11,7 @@ import Physics.Engine.Class
 import Physics.World.Class
 
 data Scene e =
-  Scene { _scWorld :: PEWorld e (PEWorldObj e)
+  Scene { _scWorld :: PEWorld' e
         , _scExts :: [External]
         , _scContactBeh :: PEContactBehavior e
         }

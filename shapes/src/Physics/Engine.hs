@@ -20,21 +20,22 @@ import Physics.Contact.ConvexHull (ConvexHull, rectangleHull, listToHull)
 import Physics.World.External (constantAccel)
 import Physics.Linear (V2(..), P2(..))
 
-data Engine
+data Engine a
 
-engineP :: Proxy Engine
+engineP :: Proxy (Engine a)
 engineP = Proxy
 
 pairToV2 :: (Double, Double) -> V2
 pairToV2 (D# x, D# y) = V2 x y
 
-instance PhysicsEngine Engine where
-  type PEWorld Engine = World
-  type PEWorldObj Engine = WorldObj
-  type PEPhysicalObj Engine = PhysicalObj
-  type PEContactBehavior Engine = ContactBehavior
-  type PENumber Engine = Double
-  type PEConvexHull Engine = ConvexHull
+instance PhysicsEngine (Engine a) where
+  type PEWorld (Engine a)           = World
+  type PEWorldObj (Engine a)        = WorldObj
+  type PEPhysicalObj (Engine a)     = PhysicalObj
+  type PEExternalObj (Engine a)     = a
+  type PEContactBehavior (Engine a) = ContactBehavior
+  type PENumber (Engine a)          = Double
+  type PEConvexHull (Engine a)      = ConvexHull
 
   makePhysicalObj _ vel rotvel pos rotpos =
     PhysicalObj (pairToV2 vel) rotvel (pairToV2 pos) rotpos . toInvMass2

@@ -3,8 +3,9 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE RecordWildCards #-}
 
-{- |
-A physical object that can inhabit a physical world.
+{- | A physical object that can inhabit a physical world.
+Contains a field to hold a reference to something outside
+the physical world.
 -}
 module Physics.World.Object where
 
@@ -16,20 +17,21 @@ import Physics.Constraint
 import Physics.Contact.ConvexHull
 import Physics.World.Class
 
-data WorldObj =
-  WorldObj { _worldPhysObj :: !PhysicalObj
-           , _worldObjMu :: !Double
-           , _worldShape :: !ConvexHull
+data WorldObj a =
+  WorldObj { _worldPhysObj  :: !PhysicalObj
+           , _worldObjMu    :: !Double
+           , _worldShape    :: !ConvexHull
+           , _worldUserData :: !a
            } deriving (Generic, NFData)
 makeLenses ''WorldObj
 
-instance Show WorldObj where
-  show (WorldObj obj _ _) = "WorldObj { " ++ show obj ++ " }"
+instance Show (WorldObj a) where
+  show (WorldObj obj _ _ _) = "WorldObj { " ++ show obj ++ " ... }"
 
-instance Physical WorldObj where
+instance Physical (WorldObj a) where
   woPhys = worldPhysObj
 
-instance Contactable WorldObj where
+instance Contactable (WorldObj a) where
   woMu = worldObjMu
   woShape = worldShape
   woMuShape f obj@WorldObj{..} =
@@ -40,6 +42,6 @@ instance Contactable WorldObj where
           {-# INLINE g #-}
   {-# INLINE woMuShape #-}
 
-makeWorldObj :: PhysicalObj -> Double -> ConvexHull -> WorldObj
-makeWorldObj phys mu shape = woUpdateShape $ WorldObj phys mu shape
+makeWorldObj :: PhysicalObj -> Double -> ConvexHull -> a -> WorldObj a
+makeWorldObj phys mu shape = woUpdateShape . WorldObj phys mu shape
 {-# INLINE makeWorldObj #-}
