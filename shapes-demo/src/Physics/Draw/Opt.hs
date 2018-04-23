@@ -80,5 +80,5 @@ drawObj :: R.Renderer -> L.M33 Double -> ConvexHull -> IO ()
 drawObj r viewtrans hull =
   drawConvexHull r (transform viewtrans . toCanonical $ hull)
 
-drawWorld :: R.Renderer -> L.M33 Double -> World WorldObj -> IO ()
+drawWorld :: R.Renderer -> L.M33 Double -> World (WorldObj ()) -> IO ()
 drawWorld r vt w = sequenceOf_ traverse (fmap (drawObj r vt . _worldShape) (w ^. worldObjs))

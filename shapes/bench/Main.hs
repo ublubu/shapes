@@ -34,6 +34,6 @@ main :: IO ()
 -- 770ms simple 3x
 -- 310ms opt+hashtable 3x
 --  80ms opt+vector 2x
-main = defaultMain [bench "opt updateWorld 10" $ nf (OM.runWorld 0.01 (Stacks.makeScene (15, 15) 0 OM.engineP)) 10]
+main = defaultMain [bench "opt updateWorld 10" $ nf (OM.runWorld 0.01 (Stacks.makeScene (15, 15) 0 OM.engineP ())) 10]
 --main = print . rnf $ OM.runWorld 0.01 (Stacks.makeScene (15, 15) 0 OM.engineP) 200
 --main = BB.main

@@ -48,9 +48,9 @@ testOptAabb a b = SP (SP boxA boxB) (OB.aabbCheck boxA boxB)
   where boxA = OB.toAabb a
         boxB = OB.toAabb b
 
-testWorld :: World WorldObj
+testWorld :: World (WorldObj ())
 testWorld =
-  makeWorld engineP $ stacks engineP (0.2, 0.2) (0, -4.5) (0, 0) 0 (30, 30)
+  makeWorld engineP $ stacks engineP (0.2, 0.2) (0, -4.5) (0, 0) 0 (30, 30) ()
 
 benchy :: [Benchmark]
 benchy = [ bench "opt aabb" $ whnf (uncurry testOptAabb) testOptBoxes

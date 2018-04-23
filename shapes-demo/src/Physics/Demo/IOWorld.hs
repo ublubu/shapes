@@ -32,7 +32,7 @@ import Utils.Utils
 import Physics.Scenes.Scene
 import Physics.Demo.Scenes
 
-class (PhysicsEngine e, MonadIO (DemoM e)) => Demo e where
+class (PhysicsEngine e, PEExternalObj e ~ (), MonadIO (DemoM e)) => Demo e where
   type DemoM e :: * -> *
   runDemo :: Proxy e -> Scene e -> DemoM e a -> IO a
   resetEngine :: Proxy e -> Scene e -> DemoM e ()

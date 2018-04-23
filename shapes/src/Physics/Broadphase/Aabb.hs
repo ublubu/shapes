@@ -136,7 +136,7 @@ unorderedPairs n
 -- | Find pairs of objects with overlapping AABBs.
 -- Note: Pairs of static objects are excluded.
 -- These pairs are in descending order according to 'unorderedPairs', where \"ascending\" is the world's traversal order.
-culledKeys :: (V.Unbox k, PhysicsWorld k w o, WorldObj ~ o) => w -> Descending (k, k)
+culledKeys :: (V.Unbox k, PhysicsWorld k w o, WorldObj a ~ o) => w -> Descending (k, k)
 culledKeys w = Descending . catMaybes $ fmap f ijs
   where taggedAabbs = toTaggedAabbs isStatic w
         ijs = unorderedPairs $ V.length taggedAabbs

@@ -1,33 +1,34 @@
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE RecordWildCards   #-}
+{-# LANGUAGE TypeFamilies      #-}
 
 module Physics.Demo.OptWorld where
 
-import Control.Lens
-import Control.Monad
-import Control.Monad.Reader
-import Control.Monad.ST
-import Control.Monad.State.Strict
-import qualified Data.Vector.Unboxed as V
-import Data.Maybe
+import           Control.Lens
+import           Control.Monad
+import           Control.Monad.Reader
+import           Control.Monad.ST
+import           Control.Monad.State.Strict
+import           Data.Maybe
+import qualified Data.Vector.Unboxed        as V
 
-import qualified Physics.Broadphase.Aabb as B
-import Physics.Contact
-import Physics.Contact.ConvexHull
-import Physics.Engine
-import qualified Physics.Engine.Main as OM
-import Physics.World.Class
-import Physics.Scenes.Scene
+import qualified Physics.Broadphase.Aabb    as B
+import           Physics.Contact
+import           Physics.Contact.ConvexHull
+import           Physics.Engine
+import qualified Physics.Engine.Main        as OM
+import           Physics.Scenes.Scene
+import           Physics.World.Class
 
-import Physics.Draw.Canonical
-import qualified Physics.Draw.Opt as D
-import Physics.Demo.IOWorld (Demo(..))
+import           Physics.Demo.IOWorld       (Demo (..))
+import           Physics.Draw.Canonical
+import qualified Physics.Draw.Opt           as D
 
-import Utils.Descending
-import Utils.Utils
+import           Utils.Descending
+import           Utils.Utils
 
-instance Demo Engine where
-  type DemoM Engine = ReaderT OM.EngineConfig (StateT (OM.EngineState RealWorld) IO)
+instance Demo (Engine ()) where
+  type DemoM (Engine ()) = ReaderT OM.EngineConfig (StateT (OM.EngineState () RealWorld) IO)
   runDemo _ scene@Scene{..} action = do
     eState <- liftIO . stToIO $ OM.initEngine scene
     evalStateT (runReaderT action eConfig) eState
@@ -53,6 +54,6 @@ instance Demo Engine where
   debugEngineState _ = return "<insert debug trace here>"
   updateWorld _ = void . convertEngineT $ OM.updateWorld
 
-convertEngineT :: OM.EngineST RealWorld a -> DemoM Engine a
+convertEngineT :: OM.EngineST () RealWorld a -> DemoM (Engine ()) a
 convertEngineT action =
   ReaderT (\config -> StateT (\state -> stToIO $ runStateT (runReaderT action config) state))
