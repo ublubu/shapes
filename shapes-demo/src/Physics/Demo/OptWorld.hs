@@ -13,6 +13,7 @@ import           Data.Maybe
 import qualified Data.Vector.Unboxed        as V
 
 import qualified Physics.Broadphase.Aabb    as B
+import qualified Physics.Broadphase.Grid    as G
 import           Physics.Contact
 import           Physics.Contact.ConvexHull
 import           Physics.Engine
@@ -43,7 +44,7 @@ instance Demo (Engine ()) where
     world <- demoWorld p
     let cs :: Descending Contact'
         cs = fmap (flipExtractUnsafe . snd) . join $ generateContacts <$> culledPairs
-        pairKeys = B.culledKeys world
+        pairKeys = G.culledKeys (G.toGrid OM.gridAxes world)
         culledPairs = fmap f pairKeys
         f :: (Int, Int) -> (ConvexHull, ConvexHull)
         f ij = fromJust $ iixView (\k -> wObj k . woShape) ij world

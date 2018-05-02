@@ -1,14 +1,14 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE BangPatterns           #-}
+{-# LANGUAGE DataKinds              #-}
+{-# LANGUAGE DeriveAnyClass         #-}
+{-# LANGUAGE DeriveGeneric          #-}
+{-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE MagicHash #-}
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE MagicHash              #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE RecordWildCards        #-}
+{-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE TypeFamilies           #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {- |
@@ -19,18 +19,18 @@ module Physics.Constraint ( module Physics.Constraint
                           , module Physics.Constraint.Types
                           ) where
 
-import GHC.Generics (Generic)
-import GHC.Prim (Double#, (==##), (/##))
-import GHC.Types (Double(D#), isTrue#)
+import           GHC.Generics                 (Generic)
+import           GHC.Prim                     (Double#, (/##), (==##))
+import           GHC.Types                    (Double (D#), isTrue#)
 
-import Control.DeepSeq
-import Control.Lens hiding (transform)
-import Data.Vector.Unboxed.Deriving
+import           Control.DeepSeq
+import           Control.Lens                 hiding (transform)
+import           Data.Vector.Unboxed.Deriving
 
-import Physics.Constraint.Types
-import Physics.Linear
-import Physics.Transform
-import Utils.Utils
+import           Physics.Constraint.Types
+import           Physics.Linear
+import           Physics.Transform
+import           Utils.Utils
 
 -- | Multiplicative inverse of linear and rotational mass
 data InvMass2 = InvMass2 { _imLin :: Double#
@@ -41,15 +41,25 @@ instance NFData InvMass2 where
   rnf (InvMass2 _ _) = ()
   {-# INLINE rnf #-}
 
+derivingUnbox "InvMass2"
+  [t| InvMass2 -> (Double, Double) |]
+  [| \InvMass2{..} -> (D# _imLin, D# _imRot) |]
+  [| \(D# linMass, D# rotMass) -> InvMass2 linMass rotMass |]
+
 -- | The state of motion for a physical body.
 -- Rotation is measured in the Z direction (right-handed coordinates).
-data PhysicalObj = PhysicalObj { _physObjVel :: !V2
-                               , _physObjRotVel :: !Double
-                               , _physObjPos :: !V2
-                               , _physObjRotPos :: !Double
+data PhysicalObj = PhysicalObj { _physObjVel     :: !V2
+                               , _physObjRotVel  :: !Double
+                               , _physObjPos     :: !V2
+                               , _physObjRotPos  :: !Double
                                , _physObjInvMass :: !InvMass2
                                } deriving (Show, Generic, NFData)
 makeLenses ''PhysicalObj
+
+derivingUnbox "PhysicalObj"
+  [t| PhysicalObj -> (V2, Double, V2, Double, InvMass2) |]
+  [| \PhysicalObj{..} -> (_physObjVel, _physObjRotVel, _physObjPos, _physObjRotPos, _physObjInvMass) |]
+  [| \(vel, rotvel, pos, rotPos, invMass) -> PhysicalObj vel rotvel pos rotPos invMass |]
 
 _physObjVel3 :: PhysicalObj -> V3
 _physObjVel3 po = _physObjVel po `append2` _physObjRotVel po

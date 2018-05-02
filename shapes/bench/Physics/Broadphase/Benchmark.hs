@@ -5,6 +5,7 @@ module Physics.Broadphase.Benchmark where
 import Criterion.Main
 
 import qualified Physics.Broadphase.Aabb as OB
+import qualified Physics.Broadphase.Grid as G
 import qualified Physics.Contact.ConvexHull as OC
 import Physics.World
 import Physics.World.Object
@@ -53,11 +54,12 @@ testWorld =
   makeWorld engineP $ stacks engineP (0.2, 0.2) (0, -4.5) (0, 0) 0 (30, 30) ()
 
 benchy :: [Benchmark]
-benchy = [ bench "opt aabb" $ whnf (uncurry testOptAabb) testOptBoxes
-         , bench "opt broadphase" $ nf OB.culledKeys testWorld
+--benchy = [ bench "opt aabb" $ whnf (uncurry testOptAabb) testOptBoxes
+benchy = [ bench "brute-force broadphase" $ nf OB.culledKeys testWorld
+         , bench "grid broadphase" $ nf G.culledKeys (G.toGrid axes testWorld)
          ]
+  where axes = (G.GridAxis 20 1 (-10), G.GridAxis 20 1 (-10))
 
 main :: IO ()
 main = do
-  print . uncurry testOptAabb $ testOptBoxes
   defaultMain benchy
