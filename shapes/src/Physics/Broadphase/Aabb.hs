@@ -1,10 +1,12 @@
-{-# LANGUAGE MagicHash #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DeriveAnyClass        #-}
+{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MagicHash             #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 
 {- |
 "Aabb" is "Axis-aligned bounding box".
@@ -12,28 +14,33 @@ The "broadphase" of collision detection is a conservative estimate of which bodi
 -}
 module Physics.Broadphase.Aabb where
 
-import GHC.Prim (Double#, (>##), (<##))
-import GHC.Types (Double(D#), isTrue#)
+import           GHC.Generics                 (Generic)
+import           GHC.Prim                     (Double#, (<##), (>##))
+import           GHC.Types                    (Double (D#), isTrue#)
 
-import Control.Lens ((^.), itoListOf)
-import Data.Array (elems)
-import Data.Maybe
-import qualified Data.Vector.Unboxed as V
-import Data.Vector.Unboxed.Deriving
-import Physics.Linear
-import Physics.Contact.ConvexHull
-import qualified Physics.Constraint as C
-import Physics.World.Class
-import Physics.World.Object
+import           Control.DeepSeq
+import           Control.Lens                 (itoListOf, (^.))
+import           Data.Array                   (elems)
+import           Data.Maybe
+import qualified Data.Vector.Unboxed          as V
+import           Data.Vector.Unboxed.Deriving
+import qualified Physics.Constraint           as C
+import           Physics.Contact.ConvexHull
+import           Physics.Linear
+import           Physics.World.Class
+import           Physics.World.Object
 
-import Utils.Descending
+import           Utils.Descending
 
 -- TODO: explore rewrite rules or other alternatives to manually using primops
 
 -- | An interval, bounded above and below
 data Bounds = Bounds { _bmin :: Double# -- ^ lower bound
                      , _bmax :: Double# -- ^ upper bound
-                     }
+                     } deriving (Eq, Generic)
+
+instance NFData Bounds where
+  rnf (Bounds _ _) = ()
 
 derivingUnbox "Bounds"
   [t| Bounds -> (Double, Double) |]
@@ -43,7 +50,7 @@ derivingUnbox "Bounds"
 -- | An axis-aligned bounding box (AABB)
 data Aabb = Aabb { _aabbx :: {-# UNPACK #-} !Bounds -- ^ bounds on x axis
                  , _aabby :: {-# UNPACK #-} !Bounds -- ^ bounds on y axis
-                 }
+                 } deriving (Eq, Generic, NFData)
 
 derivingUnbox "Aabb"
   [t| Aabb -> (Bounds, Bounds) |]
