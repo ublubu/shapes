@@ -1,4 +1,5 @@
 # shapes #
+[![Build Status](https://travis-ci.org/ublubu/shapes.svg?branch=master)](https://travis-ci.org/ublubu/shapes)
 
 physics engine and other tools for 2D shapes
 

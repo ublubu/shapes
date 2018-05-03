@@ -6,10 +6,6 @@ author:              "Kynan Rilee"
 maintainer:          "kynan.rilee@gmail.com"
 copyright:           "2018 Kynan Rilee"
 
-extra-source-files:
-- README.md
-- ChangeLog.md
-
 # Metadata used when publishing your package
 synopsis:            faster vector/matrix math using unboxed numbers and Template Haskell
 # category:            Web

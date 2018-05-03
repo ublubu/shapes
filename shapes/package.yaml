@@ -6,10 +6,6 @@ author:              "Kynan Rilee"
 maintainer:          "kynan.rilee@gmail.com"
 copyright:           "2018 Kynan Rilee"
 
-extra-source-files:
-- README.md
-- ChangeLog.md
-
 # Metadata used when publishing your package
 synopsis:            physics engine and other tools for 2D shapes
 # category:            Web
