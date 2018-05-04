@@ -8,7 +8,7 @@ copyright:           "2018 Kynan Rilee"
 
 # Metadata used when publishing your package
 synopsis:            physics engine and other tools for 2D shapes
-# category:            Web
+category:            Physics
 
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
@@ -17,7 +17,7 @@ description:         Please see the README on Github at <https://github.com/ublu
 
 dependencies:
 - array
-- base
+- base >= 4.7 && < 5
 - containers
 - deepseq
 - either
@@ -37,15 +37,6 @@ executables:
   shapes-bench:
     main:                Main.hs
     source-dirs:         bench
-    ghc-options:
-    - -O2
-    - -optc-O3
-    - -optc-ffast-math
-    - -funfolding-use-threshold=16
-    - -fexcess-precision
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
     dependencies:
     - criterion
     - shapes
@@ -54,10 +45,6 @@ tests:
   shapes-spec:
     main:                Spec.hs
     source-dirs:         test
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
     dependencies:
     - hspec
     - QuickCheck
