@@ -100,7 +100,7 @@ shiftSimplex2 :: Simplex2
   -- ^ new simplex, new search direction
 shiftSimplex2 aabb@(Simplex2 aa bb) origin
   | sameDirection ab ao = (Right aabb, crossV2V2 ab ao ab)
-  -- ^ search perpendicular to AB toward the origin.
+  -- search perpendicular to AB toward the origin.
   | otherwise = (Left $ Simplex1 aa, ao) -- throw out B, search from A toward the origin.
   where
     a = _neighborhoodCenter aa
