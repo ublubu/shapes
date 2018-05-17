@@ -105,6 +105,12 @@ plusV6 :: V6 -> V6 -> V6
 plusV6 = lift2V6 (+##)
 {-# INLINE plusV6 #-}
 
+zeroV2 :: V2
+zeroV2 = V2 0.0## 0.0##
+
+zeroP2 :: P2
+zeroP2 = P2 zeroV2
+
 minusV2 :: V2 -> V2 -> V2
 minusV2 = lift2V2 (-##)
 {-# INLINE minusV2 #-}
@@ -112,6 +118,25 @@ minusV2 = lift2V2 (-##)
 crossV2 :: V2 -> V2 -> Double
 crossV2 (V2 ax ay) (V2 bx by) = D# ((ax *## by) -## (ay *## bx))
 {-# INLINE crossV2 #-}
+
+crosszV2 :: V2 -> Double -> V2
+crosszV2 (V2 ax ay) (D# bz) = V2 x y
+  where x = ay *## bz
+        y = negateDouble# (ax *## bz)
+
+zcrossV2 :: Double -> V2 -> V2
+zcrossV2 (D# az) (V2 bx by) = V2 x y
+  where x = negateDouble# (az *## by)
+        y = az *## bx
+
+unitV2 :: Double -> V2
+unitV2 (D# theta) = V2 (cosDouble# theta) (sinDouble# theta)
+
+crossV2V2 :: V2 -> V2 -> V2 -> V2
+crossV2V2 (V2 ax ay) (V2 bx by) (V2 cx cy) = V2 abcx abcy
+  where abz = ax *## by -## ay *## bx
+        abcx = negateDouble# (abz *## cy)
+        abcy = abz *## cx
 
 vmulDiag6 :: V6 -> Diag6 -> V6
 vmulDiag6 v (Diag6 m) = lift2V6 (*##) v m
@@ -142,9 +167,29 @@ normalizeV2 (V2 x y) = V2 (x /## n) (y /## n)
   where n = sqrtDouble# ((x *## x) +## (y *## y))
 {-# INLINE normalizeV2 #-}
 
+-- | Length of a vector.
+lengthV2 :: V2 -> Double
+lengthV2 (V2 x y) = D# (sqrtDouble# ((x *## x) +## (y *## y)))
+
+-- | Squared length of a vector.
+sqLengthV2 :: V2 -> Double
+sqLengthV2 (V2 x y) = D# ((x *## x) +## (y *## y))
+
 diffP2 :: P2 -> P2 -> V2
 diffP2 (P2 v0) (P2 v1) = v0 `minusV2` v1
 {-# INLINE diffP2 #-}
+
+midpointP2 :: P2 -> P2 -> P2
+midpointP2 (P2 v0) (P2 v1) = P2 (2 `sdivV2` (v0 `plusV2` v1))
+
+vplusP2 :: V2 -> P2 -> P2
+vplusP2 v0 (P2 v1) = P2 (v0 `plusV2` v1)
+
+pminusV2 :: P2 -> V2 -> P2
+pminusV2 (P2 v0) v1 = P2 (v0 `minusV2` v1)
+
+pplusV2 :: P2 -> V2 -> P2
+pplusV2 (P2 v0) v1 = P2 (v0 `plusV2` v1)
 
 invM2x2 :: M2x2 -> M2x2
 invM2x2 (M2x2 a b c d) =
@@ -209,11 +254,22 @@ intersect2 (Line2 p n@(V2 n0 n1)) (Line2 p' n'@(V2 n2 n3)) =
 CLIPPING LINE SEGMENTS
 -}
 
-data ClipResult a = ClipLeft !a | ClipRight !a | ClipBoth !a | ClipNone
+data ClipResult a
+  = ClipLeft !a -- ^ clip the left side to this new endpoint
+  | ClipRight !a -- ^ clip the right side to this new endpoint
+  | ClipBoth !a -- ^ the entire segment was out-of-bounds
+  | ClipNone -- ^ the entire segment was in-bounds
 
--- replace clipped points with the intersection point
--- if both points were clipped (entire segment behind the bound) return just the intersection
-applyClip :: ClipResult a -> SP a a -> Either a (SP a a)
+{- |
+Apply a 'ClipResult' to a line segment. Replaces clipped endpoints.
+If both endpoints (entire segment) clipped, use 'Left'ed clip point.
+
+TODO: Delete this function?
+-}
+applyClip ::
+     ClipResult a
+  -> SP a a
+  -> Either a (SP a a)
 applyClip res (SP a b) = case res of
   ClipLeft c -> Right (SP c b)
   ClipRight c -> Right (SP a c)
@@ -221,13 +277,13 @@ applyClip res (SP a b) = case res of
   ClipNone -> Right (SP a b)
 {-# INLINE applyClip #-}
 
--- if the entire segment was behind the bound, return Nothing
+-- | Alternate form of 'applyClip'. 'Nothing' if entire segment clipped.
 applyClip' :: ClipResult a -> SP a a -> Maybe (SP a a)
-applyClip' (ClipBoth _) _ = Nothing
+applyClip' (ClipBoth _) _ = Nothing -- redundant definition
 applyClip' res seg = either (const Nothing) Just (applyClip res seg)
 {-# INLINE applyClip' #-}
 
--- remove clipped points
+-- | Alternate form of 'applyClip'. Removes clipped points.
 applyClip'' :: ClipResult a -> SP s s -> Maybe (Either s (SP s s))
 applyClip'' res (SP a b) = case res of
   ClipLeft _ -> Just $ Left b
@@ -236,7 +292,21 @@ applyClip'' res (SP a b) = case res of
   ClipNone -> Just $ Right (SP a b)
 {-# INLINE applyClip'' #-}
 
-lApplyClip :: ASetter' s a -> ClipResult a -> (SP s s) -> Either s (SP s s)
+{- |
+Alternate form of 'applyClip'. Applies clipping using the given lens.
+
+If 'ClipBoth', then use only the 'first' vertex of the line segment
+and change it to use the clipping point. (TODO: Why?)
+
+TODO: Delete this function?
+-}
+lApplyClip :: ASetter' s a
+  -- ^ lens to access the "point" data to apply the clipping
+  -> ClipResult a
+  -- ^ clipping
+  -> (SP s s)
+  -- ^ line segment with endpoints that contain "point" data
+  -> Either s (SP s s)
 lApplyClip l res (SP a b) = case res of
   ClipLeft c -> Right (SP (set l c a) b)
   ClipRight c -> Right (SP a (set l c b))
@@ -244,13 +314,22 @@ lApplyClip l res (SP a b) = case res of
   ClipNone -> Right (SP a b)
 {-# INLINE lApplyClip #-}
 
--- if the entire segment was behind the bound, return Nothing
+-- | Alternate form of 'lApplyClip'. If the entire segment was behind the bound, use 'Nothing'.
 lApplyClip' :: ASetter' s a -> ClipResult a -> (SP s s) -> Maybe (SP s s)
-lApplyClip' _ (ClipBoth _) _ = Nothing
+lApplyClip' _ (ClipBoth _) _ = Nothing -- redundant definition
 lApplyClip' l res seg = either (const Nothing) Just (lApplyClip l res seg)
 {-# INLINE lApplyClip' #-}
 
-clipSegment :: Line2 -> SP Line2 (SP P2 P2) -> ClipResult P2
+{- |
+Given a bounding plane (expressed as a point and a normal),
+figure out how to clip a line segment so it is on the positive side of the plane.
+-}
+clipSegment :: Line2
+  -- ^ bounding plane
+  -> SP Line2 (SP P2 P2)
+  -- ^ (plane of the line segment, endpoints of the line segment)
+  -> ClipResult P2
+  -- ^ which endpoint(s) to clip, and what point to clip to
 clipSegment boundary (SP incident (SP a b))
   | a' < c' = if b' < c' then ClipBoth c
               else ClipLeft c

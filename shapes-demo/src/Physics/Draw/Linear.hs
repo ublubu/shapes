@@ -8,6 +8,7 @@
 module Physics.Draw.Linear where
 
 import GHC.TypeLits (Nat)
+import GHC.TypeNats (KnownNat)
 import Control.Lens
 import qualified Data.Vector as Vec
 import Data.Vector ((!))
@@ -54,7 +55,7 @@ append2 (V2 a b) = V3 a b
 split3 :: V3 a -> (V2 a, a)
 split3 (V3 a b c) = (V2 a b, c)
 
-listToV :: Dim n => [a] -> V (n :: Nat) a
+listToV :: KnownNat n => [a] -> V (n :: Nat) a
 listToV = fromJust . fromVector . Vec.fromList
 
 rotate22_ :: (Num a) => a -> a -> M22 a

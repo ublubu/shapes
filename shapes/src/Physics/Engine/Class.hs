@@ -18,7 +18,7 @@ class (Fractional (PENumber e)) => PhysicsEngine e where
   type PEPhysicalObj e
   type PEContactBehavior e
   type PENumber e
-  type PEConvexHull e
+  type PEShape e
 
   -- | Create a @PEPhysicalObj e@.
   makePhysicalObj :: Proxy e
@@ -40,7 +40,7 @@ class (Fractional (PENumber e)) => PhysicsEngine e where
                -- ^ The physical body of this object.
                -> PENumber e
                -- ^ Coefficient of friction μ (mu).
-               -> PEConvexHull e
+               -> PEShape e
                -- ^ The shape of the object.
                -> PEExternalObj e
                -- ^ Any userland piece of data from outside the simulation.
@@ -49,8 +49,9 @@ class (Fractional (PENumber e)) => PhysicsEngine e where
   makeWorld :: Proxy e -> [PEWorldObj e (PEExternalObj e)] -> PEWorld' e
   makeContactBehavior :: Proxy e -> PENumber e -> PENumber e -> PEContactBehavior e
   makeConstantAccel :: Proxy e -> (PENumber e, PENumber e) -> External
-  makeHull :: Proxy e -> [(PENumber e, PENumber e)] -> PEConvexHull e
-  makeRectangleHull :: Proxy e -> PENumber e -> PENumber e -> PEConvexHull e
+  makeHull :: Proxy e -> [(PENumber e, PENumber e)] -> PEShape e
+  makeRectangleHull :: Proxy e -> PENumber e -> PENumber e -> PEShape e
+  makeCircle :: Proxy e -> PENumber e -> PEShape e
 
 type PEWorldObj' e = PEWorldObj e (PEExternalObj e)
 type PEWorld' e = PEWorld e (PEWorldObj' e)

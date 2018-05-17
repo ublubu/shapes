@@ -8,7 +8,7 @@ module Physics.Constraints.Contact.NonPenetration where
 import Physics.Constraint
 import Physics.Constraints.Types
 import Physics.Constraints.SolutionProcessors
-import Physics.Contact
+import Physics.Contact.Types
 import Physics.Linear
 
 import Utils.Utils

@@ -49,8 +49,8 @@ drawAabb r (Aabb aabb) = do
         se = extractCorner _2 _1
         extractCorner lx ly = P $ V2 (aabb ^._x.lx) (aabb ^._y.ly)
 
-drawConvexHull :: R.Renderer -> Polygon -> IO ()
-drawConvexHull r vertices = sequence_ (fmap f segments)
+drawPolygon :: R.Renderer -> Polygon -> IO ()
+drawPolygon r vertices = sequence_ (fmap f segments)
   where f (v1, v2) = drawLine r v1 v2
         segments = zip vertices (tail vertices ++ [head vertices])
 

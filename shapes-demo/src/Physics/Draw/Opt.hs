@@ -1,33 +1,35 @@
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE MagicHash            #-}
+{-# LANGUAGE RecordWildCards      #-}
+{-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE MagicHash #-}
 
 module Physics.Draw.Opt where
 
-import GHC.Types (Double(D#))
+import           GHC.Types                  (Double (D#))
 
-import Physics.Draw.Canonical
+import           Physics.Draw.Canonical
 
-import Control.Lens ((^.), sequenceOf_)
-import Data.Array (elems)
-import Data.Either.Combinators
+import           Control.Lens               (sequenceOf_, (^.))
+import           Data.Array                 (elems)
+import           Data.Either.Combinators
 
-import qualified Linear.V2 as L
-import qualified Linear.Matrix as L
-import qualified SDL.Video.Renderer as R
-import Physics.Draw
+import qualified Linear.Matrix              as L
+import qualified Linear.V2                  as L
+import           Physics.Draw
+import qualified SDL.Video.Renderer         as R
 
-import Physics.Contact.ConvexHull
-import Physics.World.Object (WorldObj(..))
-import qualified Physics.Broadphase.Aabb as B
-import qualified Physics.Contact.SAT as O
-import qualified Physics.Contact as O
-import Physics.World (World(..), worldObjs)
-import Physics.Linear
-import Physics.Linear.Convert
-import Utils.Utils
+import qualified Physics.Broadphase.Aabb    as B
+import           Physics.Contact            (Shape (..))
+import           Physics.Contact.Circle     (Circle (..))
+import           Physics.Contact.ConvexHull
+import qualified Physics.Contact.SAT        as O
+import qualified Physics.Contact.Types      as O
+import           Physics.Linear
+import           Physics.Linear.Convert
+import           Physics.World              (World (..), worldObjs)
+import           Physics.World.Object       (WorldObj (..))
+import           Utils.Utils
 
 instance ToCanonical V2 where
   type Canonical V2 = V2'
@@ -71,14 +73,26 @@ instance ToCanonical ConvexHull where
   type Canonical ConvexHull = Polygon
   toCanonical ConvexHull{..} = toCanonical <$> elems _hullVertices
 
+unitCircle :: [P2]
+unitCircle = fmap f [0,step..(2 - step)]
+  where f = P2 . unitV2 . (*pi)
+        step = 0.1
+
+instance ToCanonical Circle where
+  type Canonical Circle = Polygon
+  toCanonical Circle{..} = toCanonical . t <$> unitCircle
+    where t (P2 a) = _circleCenter `pplusV2` (_circleRadius `smulV2` a)
+
 instance ToCanonical B.Aabb where
   type Canonical B.Aabb = Aabb
   toCanonical (B.Aabb (B.Bounds x0 x1) (B.Bounds y0 y1)) =
     Aabb $ L.V2 (D# x0, D# x1) (D# y0, D# y1)
 
-drawObj :: R.Renderer -> L.M33 Double -> ConvexHull -> IO ()
-drawObj r viewtrans hull =
-  drawConvexHull r (transform viewtrans . toCanonical $ hull)
+drawObj :: R.Renderer -> L.M33 Double -> Shape -> IO ()
+drawObj r viewtrans (HullShape hull) =
+  drawPolygon r (transform viewtrans . toCanonical $ hull)
+drawObj r viewtrans (CircleShape circle) =
+  drawPolygon r (transform viewtrans . toCanonical $ circle)
 
 drawWorld :: R.Renderer -> L.M33 Double -> World (WorldObj ()) -> IO ()
 drawWorld r vt w = sequenceOf_ traverse (fmap (drawObj r vt . _worldShape) (w ^. worldObjs))

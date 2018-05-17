@@ -22,7 +22,7 @@ import qualified Physics.Broadphase.Grid     as G
 import           Physics.Constraint
 import           Physics.Constraints.Contact
 import           Physics.Constraints.Types
-import           Physics.Contact             (ContactBehavior)
+import           Physics.Contact.Types       (ContactBehavior)
 import           Physics.Solvers.Contact
 import           Physics.World
 import           Physics.World.Class

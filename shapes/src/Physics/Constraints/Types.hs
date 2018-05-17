@@ -15,7 +15,7 @@ import           Data.Vector.Unboxed          (Unbox)
 import           Data.Vector.Unboxed.Deriving
 
 import           Physics.Constraint
-import           Physics.Contact
+import           Physics.Contact.Types
 
 import           Utils.Utils
 

@@ -23,7 +23,7 @@ import qualified Physics.Constraints.Contact.Friction       as F
 import qualified Physics.Constraints.Contact.NonPenetration as NP
 import           Physics.Constraints.Types
 import           Physics.Contact
-import           Physics.Contact.ConvexHull
+import           Physics.Contact.Types
 import           Utils.Descending
 import           Utils.Utils
 
@@ -47,7 +47,7 @@ derivingUnbox
 -- | Calculate all contacts between a pair of shapes.
 keyedContacts ::
      (k, k)
-  -> (ConvexHull, ConvexHull)
+  -> (Shape, Shape)
   -> Descending (ObjectFeatureKey k, Flipping Contact')
 keyedContacts ij ab = fmap f contacts
   where contacts = generateContacts ab

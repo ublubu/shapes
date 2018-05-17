@@ -11,7 +11,7 @@ module Physics.World.Class where
 import Control.Lens hiding (transform)
 
 import Physics.Constraint (PhysicalObj, advanceObj, _physObjTransform)
-import Physics.Contact.ConvexHull (ConvexHull, setHullTransform)
+import Physics.Contact (Shape, setShapeTransform)
 import Physics.Transform (transform)
 
 -- | Class for objects with physical properties.
@@ -24,10 +24,10 @@ class (Physical p) => Contactable p where
   -- | Lens for embedded coefficient of friction \"mu\"
   woMu :: Functor f => (Double -> f Double) -> p -> f p
   -- | Lens for embedded contact shape
-  woShape :: Functor f => (ConvexHull -> f ConvexHull) -> p -> f p
+  woShape :: Functor f => (Shape -> f Shape) -> p -> f p
   -- | Lens for embedded pair of (coefficient of friction, contact shape)
   woMuShape :: Functor f
-            => ((Double, ConvexHull) -> f (Double, ConvexHull))
+            => ((Double, Shape) -> f (Double, Shape))
             -> p
             -> f p
 
@@ -57,7 +57,7 @@ wAdvance dt w = w & wObjs.woPhys %~ (`advanceObj` dt)
 -- only needs to be transformed once per frame.
 woUpdateShape :: (Contactable o) => o -> o
 woUpdateShape obj =
-  obj & woShape %~ flip setHullTransform (transform t)
+  obj & woShape %~ flip setShapeTransform (transform t)
   where t = _physObjTransform . view woPhys $ obj
 {-# INLINE woUpdateShape #-}
 

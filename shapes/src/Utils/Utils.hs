@@ -223,11 +223,15 @@ flipInjectF :: Functor f => Flipping (f a) -> f (Flipping a)
 flipInjectF x = fmap (flipWrap x) . flipExtractUnsafe $ x
 {-# INLINE flipInjectF #-}
 
+{- |
+Combine two 'Either's, using the provided function to choose between two 'Right's.
+Always choose the first 'Left'.
+-}
 eitherBranchBoth :: (b -> b -> Bool) -> Either a b -> Either a b -> Flipping (Either a b)
 eitherBranchBoth _ x@(Left _) _ = Same x
 eitherBranchBoth _ _ x@(Left _) = Flip x
-eitherBranchBoth useLeft x@(Right a) y@(Right b) =
-  if useLeft a b then Same x else Flip y
+eitherBranchBoth useFirst x@(Right a) y@(Right b) =
+  if useFirst a b then Same x else Flip y
 {-# INLINE eitherBranchBoth #-}
 
 liftRightMaybe :: Either a (Maybe b) -> Maybe (Either a b)

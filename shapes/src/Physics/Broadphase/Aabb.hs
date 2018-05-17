@@ -15,7 +15,8 @@ The "broadphase" of collision detection is a conservative estimate of which bodi
 module Physics.Broadphase.Aabb where
 
 import           GHC.Generics                 (Generic)
-import           GHC.Prim                     (Double#, (<##), (>##))
+import           GHC.Prim                     (Double#, (+##), (-##), (<##),
+                                               (>##))
 import           GHC.Types                    (Double (D#), isTrue#)
 
 import           Control.DeepSeq
@@ -25,6 +26,8 @@ import           Data.Maybe
 import qualified Data.Vector.Unboxed          as V
 import           Data.Vector.Unboxed.Deriving
 import qualified Physics.Constraint           as C
+import           Physics.Contact
+import           Physics.Contact.Circle
 import           Physics.Contact.ConvexHull
 import           Physics.Linear
 import           Physics.World.Class
@@ -74,10 +77,18 @@ aabbCheck (Aabb xBounds yBounds) (Aabb xBounds' yBounds') =
 {-# INLINE aabbCheck #-}
 
 -- | Find the AABB for a convex polygon.
-toAabb :: ConvexHull -> Aabb
-toAabb hull = foldl1 mergeAabb aabbs
+hullToAabb :: ConvexHull -> Aabb
+hullToAabb hull = foldl1 mergeAabb aabbs
   where aabbs = fmap toAabb_ . elems . _hullVertices $ hull
-{-# INLINE toAabb #-}
+{-# INLINE hullToAabb #-}
+
+circleToAabb :: Circle -> Aabb
+circleToAabb (Circle (P2 (V2 x y)) (D# r)) =
+  Aabb (Bounds (x -## r) (x +## r)) (Bounds (y -## r) (y +## r))
+
+toAabb :: Shape -> Aabb
+toAabb (HullShape hull)     = hullToAabb hull
+toAabb (CircleShape circle) = circleToAabb circle
 
 -- | Get the (degenerate) AABB for a single point.
 toAabb_ :: P2 -> Aabb

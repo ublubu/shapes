@@ -2,18 +2,23 @@
 
 module Physics.Contact.Benchmark where
 
-import GHC.Types (Double(D#))
+import           GHC.Types                  (Double (D#))
 
-import Criterion.Main
+import           Criterion.Main
 
 import qualified Physics.Contact.ConvexHull as OC
-import qualified Physics.Contact.SAT as OS
-import qualified Physics.Linear as OL
-import qualified Physics.Transform as OT
+import qualified Physics.Contact.SAT        as OS
+import qualified Physics.Linear             as OL
+import qualified Physics.Transform          as OT
 
-import Utils.Utils
+import           Utils.Utils
 
-makeOptBox :: Double -> Double -> Double -> Double -> OC.ConvexHull
+makeOptBox ::
+     Double -- ^ center x
+  -> Double -- ^ center y
+  -> Double -- ^ width
+  -> Double -- ^ height
+  -> OC.ConvexHull
 makeOptBox (D# x) (D# y) (D# w) (D# h) =
   OC.listToHull $ OT.transform (OT.translateTransform (OL.V2 x y)) vertices
   where vertices = OC.rectangleVertices w h
@@ -27,7 +32,7 @@ benchy' = bench "opt contact" $ whnf (evalOptContact . uncurry OS.contact) testO
 evalOptContact :: Maybe (Flipping (Either OC.Neighborhood OS.Contact )) -> OS.Contact
 evalOptContact (Just (Flip (Right c))) = c
 evalOptContact (Just (Same (Right c))) = c
-evalOptContact _ = error "unexpected non-contact"
+evalOptContact _                       = error "unexpected non-contact"
 
 main :: IO ()
 main = do

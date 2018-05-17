@@ -16,6 +16,7 @@ import qualified Physics.Broadphase.Aabb    as B
 import qualified Physics.Broadphase.Grid    as G
 import           Physics.Contact
 import           Physics.Contact.ConvexHull
+import           Physics.Contact.Types
 import           Physics.Engine
 import qualified Physics.Engine.Main        as OM
 import           Physics.Scenes.Scene
@@ -46,7 +47,7 @@ instance Demo (Engine ()) where
         cs = fmap (flipExtractUnsafe . snd) . join $ generateContacts <$> culledPairs
         pairKeys = G.culledKeys (G.toGrid OM.gridAxes world)
         culledPairs = fmap f pairKeys
-        f :: (Int, Int) -> (ConvexHull, ConvexHull)
+        f :: (Int, Int) -> (Shape, Shape)
         f ij = fromJust $ iixView (\k -> wObj k . woShape) ij world
     return . _descList $ toCanonical <$> cs
   worldAabbs p = do

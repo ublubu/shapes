@@ -1,108 +1,45 @@
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric  #-}
 
-{- |
-Finding and describing the contact between two colliding objects.
-Also, a type for configuring contact constraint solver behavior.
--}
 module Physics.Contact where
 
-import Control.Lens
-import Data.Vector.Unboxed.Deriving
+import           GHC.Generics                   (Generic)
 
-import Physics.Linear
-import Physics.Contact.ConvexHull
-import Physics.Contact.SAT
-import Utils.Descending
-import Utils.Utils
+import           Control.DeepSeq
+import           Physics.Contact.Circle
+import qualified Physics.Contact.CircleVsCircle as CC
+import qualified Physics.Contact.CircleVsHull   as CH
+import           Physics.Contact.ConvexHull
+import qualified Physics.Contact.HullVsHull     as HH
+import           Physics.Contact.Types
+import           Physics.Linear
+import           Utils.Descending
+import           Utils.Utils
 
--- | Configuring contact constraint behavior
--- | TODO: does this belong in a different module?
-data ContactBehavior =
-  ContactBehavior { contactBaumgarte :: !Double
-                  -- ^ Bias factor: 0 <= B <= 1, used to feed positional error back into a constraint
-                  , contactPenetrationSlop :: !Double
-                  -- ^ Amount objects must overlap before they are considered \"touching\"
-                  } deriving Show
+data Shape = HullShape ConvexHull | CircleShape Circle
+  deriving (Show, Generic, NFData)
 
--- | A contact between two objects - the source of a single set of contact constraints
-data Contact' =
-  Contact' { _contactEdgeNormal' :: !V2 -- ^ Normal of penetrated edge
-           , _contactPenetrator' :: !P2 -- ^ Coordinates of penetrating feature
-           , _contactDepth' :: !Double -- ^ Depth of penetration
-           } deriving Show
+generateContacts ::
+  (Shape, Shape)
+  -> Descending ((Int, Int), Flipping Contact')
+generateContacts (CircleShape a, CircleShape b) =
+  Descending $
+  case CC.generateContacts a b of
+    Nothing      -> []
+    Just contact -> [((0, 0), Same contact)]
+generateContacts (CircleShape a, HullShape b) =
+  Descending $
+  case CH.generateContacts a b of
+    Nothing                     -> []
+    Just (hullFeature, contact) -> [((0, hullFeature), Same contact)]
+generateContacts (HullShape a, CircleShape b) =
+  Descending $
+  case CH.generateContacts b a of
+    Nothing                     -> []
+    Just (hullFeature, contact) -> [((hullFeature, 0), Flip contact)]
+generateContacts (HullShape a, HullShape b) = HH.generateContacts (a, b)
 
-makeLenses ''Contact'
-derivingUnbox "Contact'"
-  [t| Contact' -> (V2, P2, Double) |]
-  [| \Contact'{..} -> (_contactEdgeNormal', _contactPenetrator', _contactDepth') |]
-  [| \(n, p, d) -> Contact' n p d |]
-
-contactDepth :: Neighborhood -- ^ Penetrated edge
-             -> Neighborhood -- ^ Penetrating feature
-             -> Double -- ^ Penetration depth
-contactDepth edge = contactDepth_ edge . _neighborhoodCenter
-{-# INLINE contactDepth #-}
-
-contactDepth_ :: Neighborhood -- ^ Penetrated edge
-              -> P2 -- ^ Penetrating feature
-              -> Double -- ^ Penetration depth
-contactDepth_ neighborhood p = f v - f p
-  where f = afdot' n
-        n = _neighborhoodUnitNormal neighborhood
-        v = _neighborhoodCenter neighborhood
-{-# INLINE contactDepth_ #-}
-
-defaultContactBehavior :: ContactBehavior
-defaultContactBehavior =
-  ContactBehavior { contactBaumgarte = 0
-                  , contactPenetrationSlop = 0
-                  }
-{-# INLINE defaultContactBehavior #-}
-
--- | Extract the 'Contact' if it exists.
-unwrapContactResult :: Maybe (Flipping (Either Neighborhood Contact))
-                    -- ^ May contain either a separating axis or a 'Contact'
-                    -> Maybe (Flipping Contact)
-unwrapContactResult contactInfo = (flipInjectF . fmap eitherToMaybe) =<< contactInfo
-{-# INLINE unwrapContactResult #-}
-
--- TODO: better names for Contact vs Contact'
--- | Flatten a 'Contact' into 'Contact''s.
-flattenContactResult :: Maybe (Flipping Contact)
-                     -> Descending ((Int, Int), Flipping Contact')
-                     -- ^ in decreasing key order, where x is MSV and y is LSV in (x, y)
-flattenContactResult Nothing = Descending []
-flattenContactResult (Just fContact) =
-  fmap f . flipInjectF . fmap flatten $ fContact
-  where flatten :: Contact -> Descending ((Int, Int), Contact')
-        flatten Contact{..} = g <$> flattenContactPoints _contactPenetrator
-          where g :: Neighborhood -> ((Int, Int), Contact')
-                g pen =
-                  ( (_neighborhoodIndex _contactEdge, _neighborhoodIndex pen)
-                  , Contact' { _contactEdgeNormal' = _neighborhoodUnitNormal _contactEdge
-                             , _contactPenetrator' = _neighborhoodCenter pen
-                             , _contactDepth' = contactDepth _contactEdge pen
-                             }
-                  )
-        {-# INLINE flatten #-}
-        f :: Flipping ((Int, Int), Contact') -> ((Int, Int), Flipping Contact')
-        f x = (flipExtractPair fst x, snd <$> x)
-        {-# INLINE f #-}
-{-# INLINE flattenContactResult #-}
-
--- Find the 'Contact' between a pair of shapes if they overlap.
-generateContacts' :: (ConvexHull, ConvexHull)
-                  -> Maybe (Flipping Contact)
-generateContacts' shapes = unwrapContactResult $ uncurry contact shapes
-{-# INLINE generateContacts' #-}
-
--- Find the 'Contact''s between a pair of shapes if they overlap.
-generateContacts :: (ConvexHull, ConvexHull)
-                 -> Descending ((Int, Int), Flipping Contact')
-                 -- ^ in decreasing key order, where x is MSV and y is LSV in (x, y)
-generateContacts = flattenContactResult . generateContacts'
-{-# INLINE generateContacts #-}
+-- assumes scale-invariant transform from localspace
+setShapeTransform :: Shape -> (P2 -> P2) -> Shape
+setShapeTransform (HullShape hull) = HullShape . setHullTransform hull
+setShapeTransform (CircleShape circle) = CircleShape . setCircleTransform circle

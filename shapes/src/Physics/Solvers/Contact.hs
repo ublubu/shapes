@@ -32,7 +32,7 @@ import qualified Data.Vector.Unboxed         as V
 import           Physics.Constraint
 import           Physics.Constraints.Contact
 import           Physics.Constraints.Types
-import           Physics.Contact
+import           Physics.Contact.Types
 import           Physics.World.Class
 import           Utils.Descending
 import           Utils.Utils
