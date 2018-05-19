@@ -10,8 +10,7 @@ import qualified Physics.Contact           as OC
 import           Physics.World
 import           Physics.World.Object
 
-import           Physics.Engine            (engineP)
-import           Physics.Engine.Class      (makeWorld)
+import           Physics.Engine      (makeWorld)
 import           Physics.Scenes.Stacks
 
 import           Utils.Utils
@@ -51,7 +50,7 @@ testOptAabb a b = SP (SP boxA boxB) (OB.aabbCheck boxA boxB)
 
 testWorld :: World (WorldObj ())
 testWorld =
-  makeWorld engineP $ stacks engineP (0.2, 0.2) (0, -4.5) (0, 0) 0 (30, 30) ()
+  makeWorld $ stacks (0.2, 0.2) (0, -4.5) (0, 0) 0 (30, 30) ()
 
 benchy :: [Benchmark]
 --benchy = [ bench "opt aabb" $ whnf (uncurry testOptAabb) testOptBoxes

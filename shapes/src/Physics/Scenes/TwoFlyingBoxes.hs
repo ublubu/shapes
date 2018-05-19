@@ -2,41 +2,40 @@
 
 module Physics.Scenes.TwoFlyingBoxes where
 
-import Data.Proxy
-import Physics.Engine.Class
-import Physics.Scenes.Scene
-import Physics.World.Class
+import           Physics.Constraint
+import           Physics.Contact.Types
+import           Physics.Engine
+import           Physics.Scenes.Scene
+import           Physics.World
+import           Physics.World.Class
+import           Physics.World.Object
 
-boxA :: (PhysicsEngine e) => Proxy e -> PEPhysicalObj e
-boxA p = makePhysicalObj p (1, 0) 0 (-5, 0) 0 (2, 1)
+boxA :: PhysicalObj
+boxA = makePhysicalObj (1, 0) 0 (-5, 0) 0 (2, 1)
 
-boxB :: (PhysicsEngine e) => Proxy e -> PEPhysicalObj e
-boxB p = makePhysicalObj p (-4, 0) 0 (5, 2) 0 (1, 0.5)
+boxB :: PhysicalObj
+boxB = makePhysicalObj (-4, 0) 0 (5, 2) 0 (1, 0.5)
 
-boxA' :: (PhysicsEngine e) => Proxy e -> PEExternalObj e -> PEWorldObj' e
-boxA' p = makeWorldObj p (boxA p) 0.2 $ makeRectangleHull p 4 4
+boxA' :: usr -> WorldObj usr
+boxA' = makeWorldObj boxA 0.2 $ makeRectangleHull 4 4
 
-boxB' :: (PhysicsEngine e) => Proxy e -> PEExternalObj e -> PEWorldObj' e
-boxB' p = makeWorldObj p (boxB p) 0.2 $ makeRectangleHull p 2 2
+boxB' :: usr -> WorldObj usr
+boxB' = makeWorldObj boxB 0.2 $ makeRectangleHull 2 2
 
 world
-  :: (PhysicsEngine e)
-  => Proxy e
-  -> PEExternalObj e
-  -> PEExternalObj e
-  -> PEWorld' e
-world p a b = makeWorld p [boxA' p a, boxB' p b]
+  :: usr
+  -> usr
+  -> World (WorldObj usr)
+world a b = makeWorld [boxA' a, boxB' b]
 
-externals :: Proxy e -> [External]
-externals _ = []
+externals :: [External]
+externals = []
 
-contactBehavior :: (PhysicsEngine e) => Proxy e -> PEContactBehavior e
-contactBehavior p = makeContactBehavior p 0.01 0.02
+contactBehavior :: ContactBehavior
+contactBehavior = ContactBehavior 0.01 0.02
 
 scene
-  :: (PhysicsEngine e)
-  => Proxy e
-  -> PEExternalObj e
-  -> PEExternalObj e
-  -> Scene e
-scene p a b = Scene (world p a b) (externals p) (contactBehavior p)
+  :: usr
+  -> usr
+  -> Scene usr
+scene a b = Scene (world a b) externals contactBehavior

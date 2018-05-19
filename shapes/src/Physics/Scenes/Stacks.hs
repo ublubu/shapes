@@ -1,104 +1,105 @@
 module Physics.Scenes.Stacks where
 
-import Control.Lens
-import Control.Monad
-import Data.Proxy
-import Physics.Engine.Class
-import Physics.Scenes.Scene
-import Physics.World.Class
+import           Control.Lens
+import           Control.Monad
 
-box :: (PhysicsEngine e)
-    => Proxy e
-    -> (PENumber e, PENumber e)
-    -> (PENumber e, PENumber e)
-    -> PEPhysicalObj e
-box p (x, y) (vx, vy) =
-  makePhysicalObj p (vx, vy) 0 (x, y) 0 (2, 1)
+import           Physics.Constraint
+import           Physics.Contact.Types
+import           Physics.Engine
+import           Physics.Scenes.Scene
+import           Physics.World
+import           Physics.World.Class
+import           Physics.World.Object
 
-boxFloor :: (PhysicsEngine e) => Proxy e -> PEPhysicalObj e
-boxFloor p =
-  makePhysicalObj p (0, 0) 0 (0, -6) 0 (0, 0)
+box :: (Double, Double)
+    -> (Double, Double)
+    -> PhysicalObj
+box (x, y) (vx, vy) =
+  makePhysicalObj (vx, vy) 0 (x, y) 0 (2, 1)
 
-box' :: (PhysicsEngine e)
-     => Proxy e
-     -> (PENumber e, PENumber e)
-     -> (PENumber e, PENumber e)
-     -> (PENumber e, PENumber e)
-     -> PEExternalObj e
-     -> PEWorldObj' e
-box' p (w, h) center velocity =
-  makeWorldObj p (box p center velocity) 0.2 (makeRectangleHull p w h)
+boxFloor :: PhysicalObj
+boxFloor = makePhysicalObj (0, 0) 0 (0, -6) 0 (0, 0)
 
-boxFloor' :: (PhysicsEngine e) => Proxy e -> PEExternalObj e -> PEWorldObj' e
-boxFloor' p =
-  makeWorldObj p (boxFloor p) 0.2 (makeRectangleHull p 18 1)
+box' :: (Double, Double)
+     -> (Double, Double)
+     -> (Double, Double)
+     -> usr
+     -> WorldObj usr
+box' (w, h) center velocity =
+  makeWorldObj (box center velocity) 0.2 (makeRectangleHull w h)
 
-boxStack :: (PhysicsEngine e)
-         => Proxy e
-         -> (PENumber e, PENumber e)
-         -> (PENumber e, PENumber e)
-         -> (PENumber e, PENumber e)
-         -> PENumber e
+boxFloor' :: usr -> WorldObj usr
+boxFloor' =
+  makeWorldObj boxFloor 0.2 (makeRectangleHull 18 1)
+
+boxStack :: (Double, Double)
+         -> (Double, Double)
+         -> (Double, Double)
+         -> Double
          -> Int
-         -> PEExternalObj e
-         -> [PEWorldObj' e]
-boxStack _ _ _ _ _ 0 _ = []
-boxStack p size@(_, h) bottom vel spacing n ext =
-  box' p size bottom vel ext : boxStack p size bottom' vel spacing (n - 1) ext
+         -> usr
+         -> [WorldObj usr]
+boxStack _ _ _ _ 0 _ = []
+boxStack size@(_, h) bottom vel spacing n ext =
+  box' size bottom vel ext : boxStack size bottom' vel spacing (n - 1) ext
   where bottom' = bottom & _2 %~ (+ (h + spacing))
 
-stacks :: (PhysicsEngine e)
-       => Proxy e
-       -> (PENumber e, PENumber e)
-       -> (PENumber e, PENumber e)
-       -> (PENumber e, PENumber e)
-       -> PENumber e
+stacks :: (Double, Double)
+       -> (Double, Double)
+       -> (Double, Double)
+       -> Double
        -> (Int, Int)
-       -> PEExternalObj e
-       -> [PEWorldObj' e]
-stacks p size@(w, _) (center, bottom) vel spacing (n_w, n_h) ext =
+       -> usr
+       -> [WorldObj usr]
+stacks size@(w, _) (center, bottom) vel spacing (n_w, n_h) ext =
   join . fmap f . take n_w $ iterate (+ w) leftmost
   where leftmost = center - (w * fromIntegral (n_w - 1) / 2)
-        f left = boxStack p size (left, bottom) vel spacing n_h ext
+        f left = boxStack size (left, bottom) vel spacing n_h ext
 
-world :: (PhysicsEngine e) => Proxy e -> PEExternalObj e -> PEWorld' e
-world p ext = makeWorld p $ concat [ [boxFloor' p ext]
-                                   , boxStack p (2, 2) (8  , -4.5) (-1, 0) 0 5 ext
-                                   , boxStack p (2, 2) (5.5, -4.5) (-2, 0) 0 5 ext
-                                   ]
+world :: usr -> World (WorldObj usr)
+world ext =
+  makeWorld $
+  concat
+    [ [boxFloor' ext]
+    , boxStack (2, 2) (8, -4.5) (-1, 0) 0 5 ext
+    , boxStack (2, 2) (5.5, -4.5) (-2, 0) 0 5 ext
+    ]
 
-world' :: (PhysicsEngine e) => Proxy e -> PEExternalObj e -> PEWorld' e
-world' p ext = makeWorld p $ concat [ [boxFloor' p ext]
-                                    , boxStack p (2, 2) (0, -4.5) (0, 0) 0 5 ext
-                                    , [box' p (2, 2) (8, 0) (-6, 0) ext]
-                                    ]
+world' :: usr -> World (WorldObj usr)
+world' ext =
+  makeWorld $
+  concat
+    [ [boxFloor' ext]
+    , boxStack (2, 2) (0, -4.5) (0, 0) 0 5 ext
+    , [box' (2, 2) (8, 0) (-6, 0) ext]
+    ]
 
-world'' :: (PhysicsEngine e) => Proxy e -> PEExternalObj e -> PEWorld' e
-world'' p ext =
-  makeWorld p (boxFloor' p ext : stacks p (1, 1) (0, -4.5) (0, 0) 1 (10, 10) ext)
+world'' :: usr -> World (WorldObj usr)
+world'' ext =
+  makeWorld (boxFloor' ext : stacks (1, 1) (0, -4.5) (0, 0) 1 (10, 10) ext)
 
-world''' :: (PhysicsEngine e) => Proxy e -> PEExternalObj e -> PEWorld' e
-world''' p ext =
-  makeWorld p (boxFloor' p ext : stacks p (0.75, 0.75) (0, -4.5) (0, 0) 1 (15, 15) ext)
+world''' :: usr -> World (WorldObj usr)
+world''' ext =
+  makeWorld (boxFloor' ext : stacks (0.75, 0.75) (0, -4.5) (0, 0) 1 (15, 15) ext)
 
-externals :: (PhysicsEngine e) => Proxy e -> [External]
-externals p = [makeConstantAccel p (0, -2)]
+externals :: [External]
+externals = [makeConstantAccel (0, -2)]
 
-contactBehavior :: (PhysicsEngine e) => Proxy e -> PEContactBehavior e
-contactBehavior p = makeContactBehavior p 0.01 0.02
+contactBehavior :: ContactBehavior
+contactBehavior = ContactBehavior 0.01 0.02
 
-scene :: (PhysicsEngine e) => Proxy e -> PEExternalObj e -> Scene e
-scene p ext = Scene (world p ext) (externals p) (contactBehavior p)
+scene :: usr -> Scene usr
+scene ext = Scene (world ext) externals contactBehavior
 
-scene' :: (PhysicsEngine e) => Proxy e -> PEExternalObj e -> Scene e
-scene' p ext = Scene (world' p ext) (externals p) (contactBehavior p)
+scene' :: usr -> Scene usr
+scene' ext = Scene (world' ext) externals contactBehavior
 
-scene'' :: (PhysicsEngine e) => Proxy e -> PEExternalObj e -> Scene e
-scene'' p ext = Scene (world'' p ext) (externals p) (contactBehavior p)
+scene'' :: usr -> Scene usr
+scene'' ext = Scene (world'' ext) externals contactBehavior
 
-scene''' :: (PhysicsEngine e) => Proxy e -> PEExternalObj e -> Scene e
-scene''' p ext = Scene (world''' p ext) (externals p) (contactBehavior p)
+scene''' :: usr -> Scene usr
+scene''' ext = Scene (world''' ext) externals contactBehavior
 
-makeScene :: (PhysicsEngine e) => (Int, Int) -> PENumber e -> Proxy e -> PEExternalObj e -> Scene e
-makeScene dims spacing p ext = Scene w (externals p) (contactBehavior p)
-  where w = makeWorld p (boxFloor' p ext : stacks p (0.2, 0.2) (0, -4.5) (0, 0) spacing dims ext)
+makeScene :: (Int, Int) -> Double -> usr -> Scene usr
+makeScene dims spacing ext = Scene w externals contactBehavior
+  where w = makeWorld (boxFloor' ext : stacks (0.2, 0.2) (0, -4.5) (0, 0) spacing dims ext)

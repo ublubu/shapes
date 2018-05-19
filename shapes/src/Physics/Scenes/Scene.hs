@@ -7,12 +7,14 @@ TODO: Figure out a good place to put demo/sample stuff without slowing down my d
 module Physics.Scenes.Scene where
 
 import Control.Lens
-import Physics.Engine.Class
 import Physics.World.Class
+import Physics.World
+import Physics.World.Object
+import Physics.Contact.Types
 
-data Scene e =
-  Scene { _scWorld :: PEWorld' e
+data Scene usr =
+  Scene { _scWorld :: World (WorldObj usr)
         , _scExts :: [External]
-        , _scContactBeh :: PEContactBehavior e
+        , _scContactBeh :: ContactBehavior
         }
 makeLenses ''Scene

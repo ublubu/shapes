@@ -1,53 +1,103 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE RecordWildCards      #-}
+{-# LANGUAGE TemplateHaskell      #-}
+{-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE RecordWildCards #-}
 
 module Physics.Demo.IOWorld where
 
-import Control.Monad
-import Control.Monad.IO.Class
-import Control.Lens ((^.), (.~), (%~), (&), makeLenses)
-import Data.Proxy
+import           Control.Lens               (makeLenses, view, (%~), (&), (.~),
+                                             (^.), _1)
+import           Control.Monad
+import           Control.Monad.IO.Class
+import           Control.Monad.Reader
+import           Control.Monad.ST
+import           Control.Monad.State.Strict
+import           Data.Maybe
+import qualified Data.Vector.Unboxed        as V
 
+import           Linear.Matrix              (M33)
+import           Linear.V2
 
-import Linear.V2
-import Linear.Matrix (M33)
+import           EasySDL.Draw
+import           GameLoop                   hiding (testStep)
+import qualified SDL.Event                  as E
+import qualified SDL.Input.Keyboard         as K
+import qualified SDL.Input.Keyboard.Codes   as KC
+import qualified SDL.Time                   as T
+import qualified SDL.Video.Renderer         as R
 
-import EasySDL.Draw
-import qualified SDL.Event as E
-import qualified SDL.Time as T
-import qualified SDL.Video.Renderer as R
-import qualified SDL.Input.Keyboard as K
-import qualified SDL.Input.Keyboard.Codes as KC
-import GameLoop hiding (testStep)
+import qualified Physics.Broadphase.Aabb    as B
+import qualified Physics.Broadphase.Grid    as G
+import           Physics.Contact
+import           Physics.Contact.ConvexHull
+import           Physics.Contact.Types
+import           Physics.Demo.Scenes
+import           Physics.Draw
+import           Physics.Draw.Canonical
+import qualified Physics.Draw.Opt           as D
+import           Physics.Engine
+import qualified Physics.Engine.Main        as OM
+import           Physics.Scenes.Scene
+import           Physics.World
+import           Physics.World.Class
+import           Physics.World.Object
 
-import Physics.Draw
-import Physics.Draw.Canonical
-import Physics.Engine.Class
-import Utils.Utils
+import           Utils.Descending
+import           Utils.Utils
 
-import Physics.Scenes.Scene
-import Physics.Demo.Scenes
+type DemoM = ReaderT OM.EngineConfig (StateT (OM.EngineState () RealWorld) IO)
 
-class (PhysicsEngine e, PEExternalObj e ~ (), MonadIO (DemoM e)) => Demo e where
-  type DemoM e :: * -> *
-  runDemo :: Proxy e -> Scene e -> DemoM e a -> IO a
-  resetEngine :: Proxy e -> Scene e -> DemoM e ()
-  drawWorld :: Proxy e -> R.Renderer -> M33 Double -> DemoM e ()
-  demoWorld :: Proxy e -> DemoM e (PEWorld' e)
-  worldContacts :: Proxy e -> DemoM e [Contact]
-  worldAabbs :: Proxy e -> DemoM e [Aabb]
-  debugEngineState :: Proxy e -> DemoM e String
-  updateWorld :: Proxy e -> DemoM e ()
+convertEngineT :: OM.EngineST () RealWorld a -> DemoM a
+convertEngineT action =
+  ReaderT (\config -> StateT (\state -> stToIO $ runStateT (runReaderT action config) state))
+
+runDemo :: Scene () -> DemoM a -> IO a
+runDemo scene@Scene{..} action = do
+  eState <- liftIO . stToIO $ OM.initEngine scene
+  evalStateT (runReaderT action eConfig) eState
+  where eConfig = OM.EngineConfig 0.01 _scContactBeh
+
+resetEngine :: Scene () -> DemoM ()
+resetEngine scene =
+  convertEngineT $ OM.changeScene scene
+
+drawWorld :: R.Renderer -> M33 Double -> DemoM ()
+drawWorld r vt = do
+  world <- demoWorld
+  liftIO $ D.drawWorld r vt world
+
+demoWorld :: DemoM (World (WorldObj ()))
+demoWorld = view _1 <$> get
+
+worldContacts :: DemoM [Contact]
+worldContacts = do
+  world <- demoWorld
+  let cs :: Descending Contact'
+      cs = fmap (flipExtractUnsafe . snd) . join $ generateContacts <$> culledPairs
+      pairKeys = G.culledKeys (G.toGrid OM.gridAxes world)
+      culledPairs = fmap f pairKeys
+      f :: (Int, Int) -> (Shape, Shape)
+      f ij = fromJust $ iixView (\k -> wObj k . woShape) ij world
+  return . _descList $ toCanonical <$> cs
+
+worldAabbs :: DemoM [Aabb]
+worldAabbs = do
+  world <- demoWorld
+  return $ toCanonical . snd <$> V.toList (B.toAabbs world)
+
+debugEngineState :: DemoM String
+debugEngineState = return "<insert debug trace here>"
+
+updateWorld :: DemoM ()
+updateWorld = void . convertEngineT $ OM.updateWorld
 
 data DemoState =
-  DemoState { _demoFinished :: Bool
-            , _demoSceneIndex :: Int
-            , _demoDrawDebug :: Bool
-            , _demoPrintDebug :: Bool
+  DemoState { _demoFinished      :: Bool
+            , _demoSceneIndex    :: Int
+            , _demoDrawDebug     :: Bool
+            , _demoPrintDebug    :: Bool
             , _demoViewTransform :: M33 Double
             }
 makeLenses ''DemoState
@@ -58,9 +108,9 @@ getViewTransform window scale = fst $ viewTransform window scale (V2 0 0)
 initialState :: Int -> M33 Double -> DemoState
 initialState i = DemoState False i True False
 
-nextInitialState :: (Demo e) => Proxy e -> DemoState -> Int -> DemoM e DemoState
-nextInitialState p DemoState{..} i = do
-  resetEngine p (scenes p !! i)
+nextInitialState :: DemoState -> Int -> DemoM DemoState
+nextInitialState DemoState{..} i = do
+  resetEngine (scenes !! i)
   return $ initialState i _demoViewTransform
     & demoDrawDebug .~ _demoDrawDebug
     & demoPrintDebug .~ _demoPrintDebug
@@ -68,74 +118,72 @@ nextInitialState p DemoState{..} i = do
 timeStep :: Num a => a
 timeStep = 10
 
-renderWorld :: (Demo e) => Proxy e -> R.Renderer -> DemoState -> DemoM e ()
-renderWorld p r DemoState{..} = do
+renderWorld :: R.Renderer -> DemoState -> DemoM ()
+renderWorld r DemoState{..} = do
   liftIO $ setColor r black
-  drawWorld p r _demoViewTransform
+  drawWorld r _demoViewTransform
 
-renderContacts :: (Demo e) => Proxy e -> R.Renderer -> DemoState -> DemoM e ()
-renderContacts p r DemoState{..} = do
+renderContacts :: R.Renderer -> DemoState -> DemoM ()
+renderContacts r DemoState{..} = do
   liftIO $ setColor r pink
-  contacts <- worldContacts p
+  contacts <- worldContacts
   liftIO $ mapM_ (drawContact r . transform _demoViewTransform) contacts
 
-renderAabbs :: (Demo e) => Proxy e -> R.Renderer -> DemoState -> DemoM e ()
-renderAabbs p r DemoState{..} = do
+renderAabbs :: R.Renderer -> DemoState -> DemoM ()
+renderAabbs r DemoState{..} = do
   liftIO $ setColor r silver
-  aabbs <- worldAabbs p
+  aabbs <- worldAabbs
   liftIO $ mapM_ (drawAabb r . transform _demoViewTransform) aabbs
 
-demoStep :: (Demo e) => Proxy e -> R.Renderer -> DemoState -> DemoM e DemoState
-demoStep p r s0@DemoState{..} = do
+demoStep :: R.Renderer -> DemoState -> DemoM DemoState
+demoStep r s0@DemoState {..} = do
   events <- liftIO E.pollEvents
   liftIO $ clearScreen r
-  renderWorld p r s0
+  renderWorld r s0
   when (s0 ^. demoDrawDebug) $ do
-    renderContacts p r s0
-    renderAabbs p r s0
+    renderContacts r s0
+    renderAabbs r s0
   when (s0 ^. demoPrintDebug) $ do
-    debug <- debugEngineState p
+    debug <- debugEngineState
     liftIO $ print debug
-  s1 <- foldM (handleEvent p) s0 events
-  updateWorld p
+  s1 <- foldM handleEvent s0 events
+  updateWorld
   liftIO $ R.present r
   return s1
 
-handleEvent :: (Demo e) => Proxy e -> DemoState -> E.Event -> DemoM e DemoState
-handleEvent _ s0 (E.Event _ E.QuitEvent) =
+handleEvent :: DemoState -> E.Event -> DemoM DemoState
+handleEvent s0 (E.Event _ E.QuitEvent) =
   return s0 { _demoFinished = True }
-handleEvent p s0 (E.Event _ (E.KeyboardEvent (E.KeyboardEventData _ motion _ key)))
+handleEvent s0 (E.Event _ (E.KeyboardEvent (E.KeyboardEventData _ motion _ key)))
   | motion == E.Pressed =
-    handleKeypress p s0 (K.keysymScancode key) (K.keysymModifier key)
+    handleKeypress s0 (K.keysymScancode key) (K.keysymModifier key)
   | otherwise = return s0
-handleEvent _ s0 _ = return s0
+handleEvent s0 _ = return s0
 
-handleKeypress :: (Demo e)
-               => Proxy e
-               -> DemoState
+handleKeypress :: DemoState
                -> K.Scancode
                -> K.KeyModifier
-               -> DemoM e DemoState
-handleKeypress p state KC.ScancodeR _ =
-  nextInitialState p state (state ^. demoSceneIndex)
-handleKeypress p state KC.ScancodeN km
+               -> DemoM DemoState
+handleKeypress state KC.ScancodeR _ =
+  nextInitialState state (state ^. demoSceneIndex)
+handleKeypress state KC.ScancodeN km
   | K.keyModifierLeftShift km || K.keyModifierRightShift km =
-    nextInitialState p state $
+    nextInitialState state $
     (state ^. demoSceneIndex - 1)
     `posMod` sceneCount
   | otherwise =
-    nextInitialState p state $
+    nextInitialState state $
     (state ^. demoSceneIndex + 1)
     `mod` sceneCount
-  where sceneCount = length $ scenes p
-handleKeypress _ state KC.ScancodeD _ =
+  where sceneCount = length scenes
+handleKeypress state KC.ScancodeD _ =
   return $ state & demoDrawDebug %~ not
-handleKeypress _ state KC.ScancodeP _ =
+handleKeypress state KC.ScancodeP _ =
   return $ state & demoPrintDebug %~ not
-handleKeypress _ state _ _ = return state
+handleKeypress state _ _ = return state
 
-demoMain :: (Demo e) => Proxy e -> V2 Double -> V2 Double -> R.Renderer -> IO ()
-demoMain p window scale r = do
+demoMain :: V2 Double -> V2 Double -> R.Renderer -> IO ()
+demoMain window scale r = do
   t0 <- T.ticks
-  let demo = timedRunUntil t0 timeStep (initialState 0 $ getViewTransform window scale) _demoFinished (\s _ -> demoStep p r s)
-  runDemo p (head $ scenes p) demo
+  let demo = timedRunUntil t0 timeStep (initialState 0 $ getViewTransform window scale) _demoFinished (\s _ -> demoStep r s)
+  runDemo (head scenes) demo

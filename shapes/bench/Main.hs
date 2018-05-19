@@ -3,17 +3,17 @@ Main. I just use this for benchmarking and profiling different scenes and solver
 -}
 module Main where
 
-import Control.DeepSeq
-import Criterion.Main
-import Data.Proxy
-import Utils.Utils
-import qualified Physics.Scenes.Stacks as Stacks
+import           Control.DeepSeq
+import           Criterion.Main
+import           Data.Proxy
+import qualified Physics.Scenes.Stacks        as Stacks
+import           Utils.Utils
 
-import qualified Physics.Constraint.Benchmark as BC
-import qualified Physics.Contact.Benchmark as BC'
 import qualified Physics.Broadphase.Benchmark as BB
+import qualified Physics.Constraint.Benchmark as BC
+import qualified Physics.Contact.Benchmark    as BC'
 
-import qualified Physics.Engine.Main as OM
+import qualified Physics.Engine.Main          as OM
 
 benchy :: (Num n, NFData world)
        => String
@@ -34,6 +34,10 @@ main :: IO ()
 -- 770ms simple 3x
 -- 310ms opt+hashtable 3x
 --  80ms opt+vector 2x
-main = defaultMain [bench "opt updateWorld 10" $ nf (OM.runWorld 0.01 (Stacks.makeScene (30, 30) 0 OM.engineP ())) 10]
+main =
+  defaultMain
+    [ bench "opt updateWorld 10" $
+      nf (OM.runWorld 0.01 (Stacks.makeScene (30, 30) 0 ())) 10
+    ]
 --main = print . rnf $ OM.runWorld 0.01 (Stacks.makeScene (15, 15) 0 OM.engineP) 200
 --main = BB.main
