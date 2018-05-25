@@ -5,7 +5,6 @@ import           Physics.Contact.Types
 import           Physics.Engine
 import           Physics.Scenes.Scene
 import           Physics.World
-import           Physics.World.Class
 import           Physics.World.Object
 
 boxA :: PhysicalObj
@@ -43,7 +42,7 @@ world
   -> usr
   -> usr
   -> usr
-  -> World (WorldObj usr)
+  -> World usr
 world a b c d = makeWorld [boxA' a, boxB' b, boxC' c, boxD' d]
 
 world'
@@ -51,7 +50,7 @@ world'
   -> usr
   -> usr
   -> usr
-  -> World (WorldObj usr)
+  -> World usr
 world' a b c d = makeWorld [boxA' a, boxB' b, boxC' c, staticBoxD' d]
 
 externals :: [External]

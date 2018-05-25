@@ -7,7 +7,6 @@ import           Physics.Contact.Types
 import           Physics.Engine
 import           Physics.Scenes.Scene
 import           Physics.World
-import           Physics.World.Class
 import           Physics.World.Object
 
 boxA :: PhysicalObj
@@ -25,7 +24,7 @@ boxB' = makeWorldObj boxB 0.2 $ makeRectangleHull 2 2
 world
   :: usr
   -> usr
-  -> World (WorldObj usr)
+  -> World usr
 world a b = makeWorld [boxA' a, boxB' b]
 
 externals :: [External]

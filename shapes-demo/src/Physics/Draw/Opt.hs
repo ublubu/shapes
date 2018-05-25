@@ -76,7 +76,7 @@ instance ToCanonical ConvexHull where
 unitCircle :: [P2]
 unitCircle = fmap f [0,step..(2 - step)]
   where f = P2 . unitV2 . (*pi)
-        step = 0.1
+        step = 0.2
 
 instance ToCanonical Circle where
   type Canonical Circle = Polygon
@@ -94,5 +94,5 @@ drawObj r viewtrans (HullShape hull) =
 drawObj r viewtrans (CircleShape circle) =
   drawPolygon r (transform viewtrans . toCanonical $ circle)
 
-drawWorld :: R.Renderer -> L.M33 Double -> World (WorldObj ()) -> IO ()
+drawWorld :: R.Renderer -> L.M33 Double -> World () -> IO ()
 drawWorld r vt w = sequenceOf_ traverse (fmap (drawObj r vt . _worldShape) (w ^. worldObjs))

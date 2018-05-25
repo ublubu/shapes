@@ -28,12 +28,7 @@ benchy prefix p sceneGen stateGen stepGen =
         f = stepGen scene 10
         scene = sceneGen p
 
--- TODO: use something other than show to ensure evaluation of the world
 main :: IO ()
--- 10 frames 15x15
--- 770ms simple 3x
--- 310ms opt+hashtable 3x
---  80ms opt+vector 2x
 main =
   defaultMain
     [ bench "opt updateWorld 10" $

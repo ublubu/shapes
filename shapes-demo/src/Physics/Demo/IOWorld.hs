@@ -41,7 +41,6 @@ import           Physics.Engine
 import qualified Physics.Engine.Main        as OM
 import           Physics.Scenes.Scene
 import           Physics.World
-import           Physics.World.Class
 import           Physics.World.Object
 
 import           Utils.Descending
@@ -68,7 +67,7 @@ drawWorld r vt = do
   world <- demoWorld
   liftIO $ D.drawWorld r vt world
 
-demoWorld :: DemoM (World (WorldObj ()))
+demoWorld :: DemoM (World ())
 demoWorld = view _1 <$> get
 
 worldContacts :: DemoM [Contact]

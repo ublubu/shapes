@@ -28,7 +28,7 @@ import           Physics.Broadphase.Aabb      (Aabb (..), Bounds (..),
                                                aabbCheck, toTaggedAabbs)
 import qualified Physics.Constraint           as C
 import           Physics.Contact.ConvexHull
-import           Physics.World.Class
+import           Physics.World
 import           Physics.World.Object
 import           Utils.Descending
 import           Utils.Utils
@@ -64,7 +64,7 @@ data TaggedAabb = TaggedAabb
 makeLenses ''Grid
 makeLenses ''GridAxis
 
-toGrid :: (PhysicsWorld Int w o, WorldObj a ~ o) => (GridAxis, GridAxis) -> w -> Grid
+toGrid :: (GridAxis, GridAxis) -> World usr -> Grid
 toGrid axes@(xAxis, yAxis) w = Grid (fromTaggedAabbs axes taggedAabbs) xAxis yAxis
   where taggedAabbs = toTaggedAabbs isStatic w
         isStatic WorldObj{..} = C.isStatic $ C._physObjInvMass _worldPhysObj

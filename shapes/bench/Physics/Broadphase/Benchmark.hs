@@ -48,7 +48,7 @@ testOptAabb a b = SP (SP boxA boxB) (OB.aabbCheck boxA boxB)
   where boxA = OB.toAabb a
         boxB = OB.toAabb b
 
-testWorld :: World (WorldObj ())
+testWorld :: World ()
 testWorld =
   makeWorld $ stacks (0.2, 0.2) (0, -4.5) (0, 0) 0 (30, 30) ()
 

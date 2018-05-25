@@ -30,7 +30,7 @@ import           Physics.Contact
 import           Physics.Contact.Circle
 import           Physics.Contact.ConvexHull
 import           Physics.Linear
-import           Physics.World.Class
+import           Physics.World
 import           Physics.World.Object
 
 import           Utils.Descending
@@ -115,7 +115,7 @@ Build a vector of these AABBs, each identified by its key in the world.
 
 Objects are ordered using the world's traversal order
 -}
-toAabbs :: (V.Unbox k, PhysicsWorld k w o) => w -> V.Vector (k, Aabb)
+toAabbs :: World usr -> V.Vector (Int, Aabb)
 toAabbs = V.fromList . fmap f . itoListOf wObjs
   where f (k, obj) = (k, toAabb $ obj ^. woShape)
 {-# INLINE toAabbs #-}
@@ -129,7 +129,7 @@ Given a world:
 
 Objects are ordered using the world's traversal order
 -}
-toTaggedAabbs :: (V.Unbox k, V.Unbox tag, PhysicsWorld k w o) => (o -> tag) -> w -> V.Vector (k, Aabb, tag)
+toTaggedAabbs :: (V.Unbox tag) => (WorldObj usr -> tag) -> World usr -> V.Vector (Int, Aabb, tag)
 toTaggedAabbs toTag = V.fromList . fmap f . itoListOf wObjs
   where f (k, obj) = (k, toAabb $ obj ^. woShape, toTag obj)
 {-# INLINE toTaggedAabbs #-}
@@ -154,7 +154,7 @@ unorderedPairs n
 -- | Find pairs of objects with overlapping AABBs.
 -- Note: Pairs of static objects are excluded.
 -- These pairs are in descending order according to 'unorderedPairs', where \"ascending\" is the world's traversal order.
-culledKeys :: (V.Unbox k, PhysicsWorld k w o, WorldObj a ~ o) => w -> Descending (k, k)
+culledKeys :: World usr -> Descending (Int, Int)
 culledKeys w = Descending . catMaybes $ fmap f ijs
   where taggedAabbs = toTaggedAabbs isStatic w
         ijs = unorderedPairs $ V.length taggedAabbs

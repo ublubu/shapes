@@ -25,16 +25,13 @@ import           Physics.Constraints.Types
 import           Physics.Contact.Types       (ContactBehavior)
 import           Physics.Solvers.Contact
 import           Physics.World
-import           Physics.World.Class
 import           Physics.World.Object
 
 import           Physics.Engine
 import           Physics.Scenes.Scene
 
-type World' usr = World (WorldObj usr)
-
 type EngineCache s = V.MVector s (ObjectFeatureKey Int, ContactResult Lagrangian)
-type EngineState usr s = (World' usr, EngineCache s, [External])
+type EngineState usr s = (World usr, EngineCache s, [External])
 data EngineConfig =
   EngineConfig { _engineTimestep   :: Double
                , _engineContactBeh :: ContactBehavior
@@ -56,14 +53,14 @@ changeScene scene = do
 
 -- TODO: can I do this with _1?
 wrapUpdater :: V.Vector (ContactResult Constraint)
-            -> (EngineCache s -> V.Vector (ContactResult Constraint) -> World' usr -> ST s (World' usr))
+            -> (EngineCache s -> V.Vector (ContactResult Constraint) -> World usr -> ST s (World usr))
             -> EngineST usr s ()
 wrapUpdater constraints f = do
   (world, cache, externals) <- get
   world' <- lift . lift $ f cache constraints world
   put (world', cache, externals)
 
-wrapUpdater' :: (World' usr -> ST s (World' usr)) -> EngineST usr s (World' usr)
+wrapUpdater' :: (World usr -> ST s (World usr)) -> EngineST usr s (World usr)
 wrapUpdater' f = do
   (world, cache, externals) <- get
   world' <- lift . lift $ f world
@@ -71,9 +68,9 @@ wrapUpdater' f = do
   return world'
 
 wrapInitializer ::
-     (EngineCache s -> (World' usr) -> ST s ( EngineCache s
+     (EngineCache s -> (World usr) -> ST s ( EngineCache s
                                             , V.Vector (ContactResult Constraint)
-                                            , (World' usr)))
+                                            , (World usr)))
   -> EngineST usr s (V.Vector (ContactResult Constraint))
 wrapInitializer f = do
   (world, cache, externals) <- get
@@ -81,7 +78,7 @@ wrapInitializer f = do
   put (world', cache', externals)
   return constraints
 
-updateWorld :: EngineST usr s (World' usr)
+updateWorld :: EngineST usr s (World usr)
 updateWorld = do
   EngineConfig{..} <- ask
   (world, _, exts) <- get
@@ -94,7 +91,7 @@ updateWorld = do
   void . wrapUpdater' $ return . wAdvance _engineTimestep
   wrapUpdater' $ return . over worldObjs (fmap woUpdateShape)
 
-stepWorld :: Int -> EngineST usr s (World' usr)
+stepWorld :: Int -> EngineST usr s (World usr)
 stepWorld steps = do
   replicateM_ steps updateWorld
   view _1 <$> get
@@ -105,5 +102,5 @@ runEngineST dt scene@Scene{..} action = runST $ do
   evalStateT (runReaderT action engineConfig) state'
   where engineConfig = EngineConfig dt _scContactBeh
 
-runWorld :: Double -> Scene usr -> Int -> (World' usr)
+runWorld :: Double -> Scene usr -> Int -> (World usr)
 runWorld dt scene steps = runEngineST dt scene $ stepWorld steps

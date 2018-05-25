@@ -33,16 +33,16 @@ import           Physics.Constraint
 import           Physics.Constraints.Contact
 import           Physics.Constraints.Types
 import           Physics.Contact.Types
-import           Physics.World.Class
+import           Physics.World
+import           Physics.World.Object
 import           Utils.Descending
 import           Utils.Utils
 
 -- | Calculate all contacts for the current frame.
 prepareFrame ::
-     (PhysicsWorld k w o)
-  => Descending (k, k) -- ^ broadphase-filtered pairs of shapes to check for contact
-  -> w -- ^ the world
-  -> Descending (ObjectFeatureKey k, Flipping Contact') -- ^ list of contacts between shapes (in descending order of 'ObjectFeatureKey' because the caches are ordered)
+     Descending (Int, Int) -- ^ broadphase-filtered pairs of shapes to check for contact
+  -> World usr -- ^ the world
+  -> Descending (ObjectFeatureKey Int, Flipping Contact') -- ^ list of contacts between shapes (in descending order of 'ObjectFeatureKey' because the caches are ordered)
 prepareFrame pairKeys w =
   join $ f <$> pairKeys
   where f pairKey = keyedContacts pairKey shapes
@@ -68,23 +68,23 @@ Build new lagrangians cache with either zero or previously cached value.
 TODO: reader monad for stuff that's const between frames (beh, dt)
 -}
 applyCachedSlns ::
-     forall s k w o. (V.Unbox k, PhysicsWorld k w o)
-  => ContactBehavior
+     forall s usr.
+     ContactBehavior
   -> Double -- ^ dt
-  -> Descending (ObjectFeatureKey k, Flipping Contact') -- ^ list of contacts between shapes
-  -> V.MVector s (ObjectFeatureKey k, ContactResult Lagrangian) -- ^ list of constraint solutions from the previous frame
-  -> w -- ^ the world
-  -> ST s ( V.MVector s (ObjectFeatureKey k, ContactResult Lagrangian)
+  -> Descending (ObjectFeatureKey Int, Flipping Contact') -- ^ list of contacts between shapes
+  -> V.MVector s (ObjectFeatureKey Int, ContactResult Lagrangian) -- ^ list of constraint solutions from the previous frame
+  -> World usr -- ^ the world
+  -> ST s ( V.MVector s (ObjectFeatureKey Int, ContactResult Lagrangian)
           , V.Vector (ContactResult Constraint)
-          , w)
+          , World usr)
                           -- ^ (this frame's constraint solutions, this frame's constraints, the updated world)
 applyCachedSlns beh dt kContacts oldLagrangians world0 = do
   lagrangians <- MV.new contactCount
   constraints <- MV.new contactCount
   let newCache ::
-           (Int, w) -- ^ (current index in cache, current world)
-        -> (ObjectFeatureKey k, Flipping Contact') -- ^ the contact to store at this index in the cache
-        -> ST s (Int, w) -- ^ (next index in cache, updated world)
+           (Int, World usr) -- ^ (current index in cache, current world)
+        -> (ObjectFeatureKey Int, Flipping Contact') -- ^ the contact to store at this index in the cache
+        -> ST s (Int, World usr) -- ^ (next index in cache, updated world)
       newCache (cache_i', world) (key@ObjectFeatureKey {..}, fContact) = do
         let ab = fromJust $ iixView (\k -> wObj k . woPhys) _ofkObjKeys world
             -- ^ a pair of shapes (a, b)
@@ -96,10 +96,10 @@ applyCachedSlns beh dt kContacts oldLagrangians world0 = do
         return (cache_i' + 1, world)
       {-# INLINE newCache #-}
       useCache ::
-           (Int, w) -- ^ (current index in cache, current world)
-        -> (ObjectFeatureKey k, Flipping Contact') -- ^ the contact to store at this index in the cache
-        -> (ObjectFeatureKey k, ContactResult Lagrangian) -- ^ the previous frame's solution for the last frame's corresponding contact
-        -> ST s (Int, w) -- ^ (next index in cache, updated world)
+           (Int, World usr) -- ^ (current index in cache, current world)
+        -> (ObjectFeatureKey Int, Flipping Contact') -- ^ the contact to store at this index in the cache
+        -> (ObjectFeatureKey Int, ContactResult Lagrangian) -- ^ the previous frame's solution for the last frame's corresponding contact
+        -> ST s (Int, World usr) -- ^ (next index in cache, updated world)
       useCache (cache_i', world) (ObjectFeatureKey {..}, fContact) kLagr@(_, lagr) = do
         let ab = fromJust $ iixView (\k -> wObj k . woPhys) _ofkObjKeys world
             -- ^ a pair of shapes (a, b)
@@ -128,14 +128,13 @@ applyCachedSlns beh dt kContacts oldLagrangians world0 = do
 
 -- | Solve the constraints for a given contact. (And apply the solution.)
 improveSln ::
-     (V.Unbox k, Contactable o)
-  => SolutionProcessor (Double, Double) (ContactResult Lagrangian)
-  -> ObjectFeatureKey k -- ^ identifies the contact: which objects, and which features within the objects
+  SolutionProcessor (Double, Double) (ContactResult Lagrangian)
+  -> ObjectFeatureKey Int -- ^ identifies the contact: which objects, and which features within the objects
   -> Int -- ^ index in the solution/constraint caches
-  -> V.MVector s (ObjectFeatureKey k, ContactResult Lagrangian) -- ^ solution cache
+  -> V.MVector s (ObjectFeatureKey Int, ContactResult Lagrangian) -- ^ solution cache
   -> V.Vector (ContactResult Constraint) -- ^ constraint cache
-  -> (o, o) -- ^ pair of objects
-  -> ST s (o, o) -- ^ updated pair of objects
+  -> (WorldObj usr, WorldObj usr) -- ^ pair of objects
+  -> ST s (WorldObj usr, WorldObj usr) -- ^ updated pair of objects
 improveSln slnProc key cache_i lagrangians constraints ab = do
   (_, cached_l) <- MV.read lagrangians cache_i
   let constraint = constraints V.! cache_i
@@ -150,14 +149,13 @@ improveSln slnProc key cache_i lagrangians constraints ab = do
 
 -- | Wraps `improveSln` to operate on the world instead of a pair of objects.
 improveWorld' ::
-     (V.Unbox k, PhysicsWorld k w o)
-  => SolutionProcessor (Double, Double) (ContactResult Lagrangian)
-  -> ObjectFeatureKey k
+  SolutionProcessor (Double, Double) (ContactResult Lagrangian)
+  -> ObjectFeatureKey Int
   -> Int
-  -> V.MVector s (ObjectFeatureKey k, ContactResult Lagrangian)
+  -> V.MVector s (ObjectFeatureKey Int, ContactResult Lagrangian)
   -> V.Vector (ContactResult Constraint)
-  -> w
-  -> ST s w
+  -> World usr
+  -> ST s (World usr)
 improveWorld' slnProc key@ObjectFeatureKey{..} cache_i lagrangians constraints =
   iixOver' wObj f _ofkObjKeys
   where f = improveSln slnProc key cache_i lagrangians constraints
@@ -165,13 +163,12 @@ improveWorld' slnProc key@ObjectFeatureKey{..} cache_i lagrangians constraints =
 
 -- | Run `improveSln` on every constraint in the world.
 improveWorld ::
-     (V.Unbox k, PhysicsWorld k w o)
-  => SolutionProcessor (Double, Double) (ContactResult Lagrangian)
-  -> Descending (ObjectFeatureKey k, Flipping Contact')
-  -> V.MVector s (ObjectFeatureKey k, ContactResult Lagrangian)
+  SolutionProcessor (Double, Double) (ContactResult Lagrangian)
+  -> Descending (ObjectFeatureKey Int, Flipping Contact')
+  -> V.MVector s (ObjectFeatureKey Int, ContactResult Lagrangian)
   -> V.Vector (ContactResult Constraint)
-  -> w
-  -> ST s w
+  -> World usr
+  -> ST s (World usr)
 improveWorld slnProc kContacts lagrangians constraints world0 =
   snd <$> foldM f (0, world0) kContacts
   where f (cache_i, world) (key, _) =

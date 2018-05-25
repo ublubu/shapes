@@ -5,7 +5,6 @@ import           Physics.Contact.Types
 import           Physics.Engine
 import           Physics.Scenes.Scene
 import           Physics.World
-import           Physics.World.Class
 import           Physics.World.Object
 
 shapeA :: PhysicalObj
@@ -23,7 +22,7 @@ shapeB' =
   makeHull
     [(2, 1), (1, 2), (-1, 2), (-2, 1), (-2, -1), (-1, -2), (1, -2), (2, -1)]
 
-world :: usr -> usr -> World (WorldObj usr)
+world :: usr -> usr -> World usr
 world a b = makeWorld [shapeA' a, shapeB' b]
 
 externals :: [External]

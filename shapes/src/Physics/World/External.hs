@@ -11,7 +11,7 @@ import GHC.Types (Double(D#))
 import Control.Lens
 import Physics.Constraint
 import Physics.Linear
-import Physics.World.Class
+import Physics.World
 
 constantForce :: V2 -> External
 constantForce f dt o = o & physObjVel %~ f'

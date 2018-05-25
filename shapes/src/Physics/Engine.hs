@@ -16,8 +16,7 @@ import           Physics.Contact.ConvexHull (ConvexHull, listToHull,
                                              rectangleHull)
 import           Physics.Contact.Types      (ContactBehavior (..))
 import           Physics.Linear             (P2 (..), V2 (..))
-import           Physics.World              (World, fromList)
-import           Physics.World.Class
+import           Physics.World              (World, fromList, External)
 import           Physics.World.External     (constantAccel)
 import           Physics.World.Object       (WorldObj, makeWorldObj)
 
@@ -39,7 +38,7 @@ makePhysicalObj :: (Double, Double)
 makePhysicalObj vel rotvel pos rotpos =
   PhysicalObj (pairToV2 vel) rotvel (pairToV2 pos) rotpos . toInvMass2
 
-makeWorld :: [WorldObj usr] -> World (WorldObj usr)
+makeWorld :: [WorldObj usr] -> World usr
 makeWorld = fromList
 
 makeConstantAccel :: (Double, Double) -> External

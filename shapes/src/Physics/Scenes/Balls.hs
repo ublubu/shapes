@@ -11,7 +11,6 @@ import           Physics.Scenes.Stacks         (box, boxFloor', boxStack,
                                                 contactBehavior, externals)
 import           Physics.Scenes.TwoFlyingBoxes (boxB')
 import           Physics.World
-import           Physics.World.Class
 import           Physics.World.Object
 
 circle' :: Double

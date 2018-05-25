@@ -8,7 +8,6 @@ import           Physics.Contact.Types
 import           Physics.Engine
 import           Physics.Scenes.Scene
 import           Physics.World
-import           Physics.World.Class
 import           Physics.World.Object
 
 box :: (Double, Double)
@@ -56,7 +55,7 @@ stacks size@(w, _) (center, bottom) vel spacing (n_w, n_h) ext =
   where leftmost = center - (w * fromIntegral (n_w - 1) / 2)
         f left = boxStack size (left, bottom) vel spacing n_h ext
 
-world :: usr -> World (WorldObj usr)
+world :: usr -> World usr
 world ext =
   makeWorld $
   concat
@@ -65,7 +64,7 @@ world ext =
     , boxStack (2, 2) (5.5, -4.5) (-2, 0) 0 5 ext
     ]
 
-world' :: usr -> World (WorldObj usr)
+world' :: usr -> World usr
 world' ext =
   makeWorld $
   concat
@@ -74,11 +73,11 @@ world' ext =
     , [box' (2, 2) (8, 0) (-6, 0) ext]
     ]
 
-world'' :: usr -> World (WorldObj usr)
+world'' :: usr -> World usr
 world'' ext =
   makeWorld (boxFloor' ext : stacks (1, 1) (0, -4.5) (0, 0) 1 (10, 10) ext)
 
-world''' :: usr -> World (WorldObj usr)
+world''' :: usr -> World usr
 world''' ext =
   makeWorld (boxFloor' ext : stacks (0.75, 0.75) (0, -4.5) (0, 0) 1 (15, 15) ext)
 
