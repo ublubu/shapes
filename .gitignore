@@ -1,6 +1,8 @@
 *.out
 *.tags
 *.sosrc
+*.prof
+*.prof.html
 .stack-work
 dist
 result
