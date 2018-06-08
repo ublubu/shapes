@@ -28,6 +28,7 @@ benchy prefix p sceneGen stateGen stepGen =
         f = stepGen scene 10
         scene = sceneGen p
 
+-- | 228ms
 main :: IO ()
 main =
   defaultMain
