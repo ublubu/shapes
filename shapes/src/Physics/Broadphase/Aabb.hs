@@ -19,11 +19,13 @@ import           GHC.Prim                     (Double#, (+##), (-##), (<##),
                                                (>##))
 import           GHC.Types                    (Double (D#), isTrue#)
 
+import Control.Monad.ST
 import           Control.DeepSeq
 import           Control.Lens                 (itoListOf, (^.))
 import           Data.Array                   (elems)
 import           Data.Maybe
 import qualified Data.Vector.Unboxed          as V
+import qualified Data.Vector.Unboxed.Mutable          as MV
 import           Data.Vector.Unboxed.Deriving
 import qualified Physics.Constraint           as C
 import           Physics.Contact
@@ -31,8 +33,7 @@ import           Physics.Contact.Circle
 import           Physics.Contact.ConvexHull
 import           Physics.Linear
 import           Physics.World
-import           Physics.World.Object
-
+import qualified Utils.EmptiesVector as E
 import           Utils.Descending
 
 -- TODO: explore rewrite rules or other alternatives to manually using primops
@@ -115,9 +116,12 @@ Build a vector of these AABBs, each identified by its key in the world.
 
 Objects are ordered using the world's traversal order
 -}
-toAabbs :: World usr -> V.Vector (Int, Aabb)
-toAabbs = V.fromList . fmap f . itoListOf wObjs
-  where f (k, obj) = (k, toAabb $ obj ^. woShape)
+toAabbs :: World s label -> ST s (V.Vector (Int, Aabb))
+toAabbs world@World {..} = V.unsafeFreeze =<< E.mapM f _wEmpties
+  where
+    f i = do
+      shape <- readShape world i
+      return (i, toAabb shape)
 {-# INLINE toAabbs #-}
 
 {- |
@@ -129,9 +133,16 @@ Given a world:
 
 Objects are ordered using the world's traversal order
 -}
-toTaggedAabbs :: (V.Unbox tag) => (WorldObj usr -> tag) -> World usr -> V.Vector (Int, Aabb, tag)
-toTaggedAabbs toTag = V.fromList . fmap f . itoListOf wObjs
-  where f (k, obj) = (k, toAabb $ obj ^. woShape, toTag obj)
+toTaggedAabbs :: (V.Unbox tag)
+  => (Int -> ST s tag)
+  -> World s label
+  -> ST s (V.Vector (Int, Aabb, tag))
+toTaggedAabbs toTag world@World {..} = V.unsafeFreeze =<< E.mapM f _wEmpties
+  where
+    f i = do
+      tag <- toTag i
+      shape <- readShape world i
+      return (i, toAabb shape, tag)
 {-# INLINE toTaggedAabbs #-}
 
 {- |
@@ -154,15 +165,19 @@ unorderedPairs n
 -- | Find pairs of objects with overlapping AABBs.
 -- Note: Pairs of static objects are excluded.
 -- These pairs are in descending order according to 'unorderedPairs', where \"ascending\" is the world's traversal order.
-culledKeys :: World usr -> Descending (Int, Int)
-culledKeys w = Descending . catMaybes $ fmap f ijs
-  where taggedAabbs = toTaggedAabbs isStatic w
-        ijs = unorderedPairs $ V.length taggedAabbs
-        -- NOTE: don't aabbCheck static objects, otherwise the sim explodes
-        f (i, j) = if not (isStaticA && isStaticB) && aabbCheck a b then Just (i', j') else Nothing
-          where (i', a, isStaticA) = taggedAabbs V.! i
-                (j', b, isStaticB) = taggedAabbs V.! j
-        {-# INLINE f #-}
-        isStatic WorldObj{..} = C.isStatic $ C._physObjInvMass _worldPhysObj
-        {-# INLINE isStatic #-}
+culledKeys :: World s label -> ST s (Descending (Int, Int))
+culledKeys world = do
+  taggedAabbs <- toTaggedAabbs isStatic world
+  let ijs = unorderedPairs $ V.length taggedAabbs
+      -- NOTE: don't aabbCheck static objects, otherwise the sim explodes
+      f (i, j) =
+        if not (isStaticA && isStaticB) && aabbCheck a b
+          then Just (i', j')
+          else Nothing
+        where
+          (i', a, isStaticA) = taggedAabbs V.! i
+          (j', b, isStaticB) = taggedAabbs V.! j
+  return $ Descending . catMaybes $ fmap f ijs
+  where
+    isStatic i = (C.isStatic . C._physObjInvMass) <$> readPhysObj world i
 {-# INLINE culledKeys #-}

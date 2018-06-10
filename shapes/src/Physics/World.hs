@@ -84,6 +84,10 @@ append World {..} WorldObj {..} = do
 delete :: World s label -> Int -> ST s ()
 delete World {..} = E.safeDelete _wEmpties
 
+-- | How many objects are in the world. ("filled" slots)
+filled :: World s label -> ST s Int
+filled World {..} = E.filled _wEmpties
+
 readPhysObj :: World s label -> Int -> ST s PhysicalObj
 readPhysObj World {..} = U.read _wPhysObjs
 
@@ -142,7 +146,7 @@ Apply 'External' effects to the objects in a world.
 This happens each frame before constraints are created and solved.
 -}
 applyExternal :: External -> Double -> World s label -> ST s ()
-applyExternal f_ dt World {..} = E.forEach _wEmpties f
+applyExternal f_ dt World {..} = E.mapM_ f _wEmpties
   where f = U.modify _wPhysObjs (f_ dt)
 
 
@@ -153,5 +157,5 @@ using the current velocity of each.
 Does not move the 'Shape's to match their physical state.
 -}
 advance :: Double -> World s label -> ST s ()
-advance dt World {..} = E.forEach _wEmpties f
+advance dt World {..} = E.mapM_ f _wEmpties
   where f = U.modify _wPhysObjs (`advanceObj` dt)
