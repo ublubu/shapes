@@ -28,21 +28,16 @@ makeLenses ''Descending
 
 instance Functor Descending where
   fmap f (Descending xs) = Descending $ fmap f xs
-  {-# INLINE fmap #-}
 
 instance Applicative Descending where
   pure = Descending . pure
   (Descending fs) <*> (Descending xs) = Descending (fs <*> xs)
-  {-# INLINE pure #-}
-  {-# INLINE (<*>) #-}
 
 instance Monad Descending where
   (Descending xs) >>= f = Descending (xs >>= _descList . f)
-  {-# INLINE (>>=) #-}
 
 instance Foldable Descending where
   foldMap f (Descending xs) = foldMap f xs
-  {-# INLINE foldMap #-}
 
 descZipVector ::
      forall a b c m k. (Ord k, MV.MVector V.MVector b, PrimMonad m)
@@ -70,4 +65,3 @@ descZipVector getThisKey getThatKey accumBoth accumThis accum0 these those =
           thatCount = MV.length those
           thisKey = getThisKey this
   in snd <$> foldM f (0, accum0) these
-{-# INLINE descZipVector #-}

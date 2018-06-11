@@ -51,7 +51,6 @@ prepareFrame (Descending pairKeys) world = do
       shape_i <- readShape world i
       shape_j <- readShape world j
       return . _descList $ keyedContacts (i, j) (shape_i, shape_j)
-{-# INLINE prepareFrame #-}
 
 -- | Update a pair of shapes based on the solution to their constraint.
 applySln ::
@@ -61,7 +60,6 @@ applySln ::
   -> (PhysicalObj, PhysicalObj)
 applySln crL crConstraint ab =
   foldl (flip ($)) ab $ applyLagrangian <$> crL <*> crConstraint
-{-# INLINE applySln #-}
 
 {- |
 Calculate all new constraints from the contacts.
@@ -96,7 +94,6 @@ applyCachedSlns beh dt kContacts oldLagrangians world = do
         -- save the constraint so we can solve it (calculate/apply lagrangian)
         MV.write constraints i constraint
         return (i + 1)
-      {-# INLINE newCache #-}
       useCache ::
            Int -- ^ current index in cache
         -> (ObjectFeatureKey Int, Flipping Contact') -- ^ the contact to store at this index in the cache
@@ -111,14 +108,12 @@ applyCachedSlns beh dt kContacts oldLagrangians world = do
         -- save the constraint so we can solve it (calculate/apply lagrangian)
         MV.write constraints i constraint
         return (i + 1)
-      {-# INLINE useCache #-}
   -- zip the previous frame's cached solutions into this frame's contacts, applying cached solutions as we go
   _ <- descZipVector fst fst useCache newCache 0 kContacts oldLagrangians
   frozenConstraints <- V.unsafeFreeze constraints
   return (lagrangians, frozenConstraints)
   where
     contactCount = length kContacts
-{-# INLINE applyCachedSlns #-}
 
 -- | Solve the constraints for a given contact. (And apply the solution.)
 improveContactSln ::
@@ -139,7 +134,6 @@ improveContactSln slnProc key@ObjectFeatureKey{..} i lagrangians constraints wor
       Processed {..} = slnProc mu_ab cached_l new_l
   modifyPhysObjPair world (applySln _processedToApply constraint) _ofkObjKeys
   MV.write lagrangians i (key, _processedToCache)
-{-# INLINE improveContactSln #-}
 
 -- | Run `improveSln` on every constraint in the world.
 improveWorld ::
@@ -154,5 +148,4 @@ improveWorld slnProc (Descending kContacts) lagrangians constraints world =
   mapM_ f $ zip [0..] kContacts
   where
     f (i, (key, _)) = improveContactSln slnProc key i lagrangians constraints world
-{-# INLINE improveWorld #-}
 

@@ -25,31 +25,25 @@ data instance U.Vector (Either a b) =
 
 instance (U.Unbox a, U.Unbox b) => U.Unbox (Either a b)
 instance (U.Unbox a, U.Unbox b) => M.MVector U.MVector (Either a b) where
-  {-# INLINE basicLength #-}
   basicLength (MV_Either n_ _ _ _) = n_
-  {-# INLINE basicUnsafeSlice #-}
   basicUnsafeSlice i_ m_ (MV_Either _ fs as bs) =
     MV_Either
       m_
       (M.basicUnsafeSlice i_ m_ fs)
       (M.basicUnsafeSlice i_ m_ as)
       (M.basicUnsafeSlice i_ m_ bs)
-  {-# INLINE basicOverlaps #-}
   basicOverlaps (MV_Either _ fs1 as1 bs1) (MV_Either _ fs2 as2 bs2) =
     M.basicOverlaps fs1 fs2 ||
     M.basicOverlaps as1 as2 || M.basicOverlaps bs1 bs2
-  {-# INLINE basicUnsafeNew #-}
   basicUnsafeNew n_ = do
     fs <- M.basicUnsafeNew n_
     as <- M.basicUnsafeNew n_
     bs <- M.basicUnsafeNew n_
     return $ MV_Either n_ fs as bs
-  {-# INLINE basicInitialize #-}
   basicInitialize (MV_Either _ fs as bs) = do
     M.basicInitialize fs
     M.basicInitialize as
     M.basicInitialize bs
-  {-# INLINE basicUnsafeReplicate #-}
   basicUnsafeReplicate n_ (Left a) = do
     fs <- M.basicUnsafeReplicate n_ True
     as <- M.basicUnsafeReplicate n_ a
@@ -60,80 +54,66 @@ instance (U.Unbox a, U.Unbox b) => M.MVector U.MVector (Either a b) where
     as <- M.basicUnsafeNew n_
     bs <- M.basicUnsafeReplicate n_ b
     return $ MV_Either n_ fs as bs
-  {-# INLINE basicUnsafeRead #-}
   basicUnsafeRead (MV_Either _ fs as bs) i_ = do
     f <- M.basicUnsafeRead fs i_
     if f
       then Left <$> M.basicUnsafeRead as i_
       else Right <$> M.basicUnsafeRead bs i_
-  {-# INLINE basicUnsafeWrite #-}
   basicUnsafeWrite (MV_Either _ fs as _) i_ (Left a) = do
     M.basicUnsafeWrite fs i_ True
     M.basicUnsafeWrite as i_ a
   basicUnsafeWrite (MV_Either _ fs _ bs) i_ (Right b) = do
     M.basicUnsafeWrite fs i_ False
     M.basicUnsafeWrite bs i_ b
-  {-# INLINE basicClear #-}
   basicClear (MV_Either _ fs as bs) = do
     M.basicClear fs
     M.basicClear as
     M.basicClear bs
-  {-# INLINE basicSet #-}
   basicSet (MV_Either _ fs as _) (Left a) = do
     M.basicSet fs True
     M.basicSet as a
   basicSet (MV_Either _ fs _ bs) (Right b) = do
     M.basicSet fs False
     M.basicSet bs b
-  {-# INLINE basicUnsafeCopy #-}
   basicUnsafeCopy (MV_Either _ fs1 as1 bs1) (MV_Either _ fs2 as2 bs2) = do
     M.basicUnsafeCopy fs1 fs2
     M.basicUnsafeCopy as1 as2
     M.basicUnsafeCopy bs1 bs2
-  {-# INLINE basicUnsafeMove #-}
   basicUnsafeMove (MV_Either _ fs1 as1 bs1) (MV_Either _ fs2 as2 bs2) = do
     M.basicUnsafeMove fs1 fs2
     M.basicUnsafeMove as1 as2
     M.basicUnsafeMove bs1 bs2
-  {-# INLINE basicUnsafeGrow #-}
   basicUnsafeGrow (MV_Either n_ fs as bs) m_ = do
     fs' <- M.basicUnsafeGrow fs m_
     as' <- M.basicUnsafeGrow as m_
     bs' <- M.basicUnsafeGrow bs m_
     return $ MV_Either (m_ + n_) fs' as' bs'
 instance (U.Unbox a, U.Unbox b) => G.Vector U.Vector (Either a b) where
-  {-# INLINE basicUnsafeFreeze #-}
   basicUnsafeFreeze (MV_Either n_ fs as bs) = do
     fs' <- G.basicUnsafeFreeze fs
     as' <- G.basicUnsafeFreeze as
     bs' <- G.basicUnsafeFreeze bs
     return $ V_Either n_ fs' as' bs'
-  {-# INLINE basicUnsafeThaw #-}
   basicUnsafeThaw (V_Either n_ fs as bs) = do
     fs' <- G.basicUnsafeThaw fs
     as' <- G.basicUnsafeThaw as
     bs' <- G.basicUnsafeThaw bs
     return $ MV_Either n_ fs' as' bs'
-  {-# INLINE basicLength #-}
   basicLength (V_Either n_ _ _ _) = n_
-  {-# INLINE basicUnsafeSlice #-}
   basicUnsafeSlice i_ m_ (V_Either _ fs as bs) =
     V_Either
       m_
       (G.basicUnsafeSlice i_ m_ fs)
       (G.basicUnsafeSlice i_ m_ as)
       (G.basicUnsafeSlice i_ m_ bs)
-  {-# INLINE basicUnsafeIndexM #-}
   basicUnsafeIndexM (V_Either _ fs as bs) i_ = do
     f <- G.basicUnsafeIndexM fs i_
     if f
       then Left <$> G.basicUnsafeIndexM as i_
       else Right <$> G.basicUnsafeIndexM bs i_
-  {-# INLINE basicUnsafeCopy #-}
   basicUnsafeCopy (MV_Either _ fs1 as1 bs1) (V_Either _ fs2 as2 bs2) = do
     G.basicUnsafeCopy fs1 fs2
     G.basicUnsafeCopy as1 as2
     G.basicUnsafeCopy bs1 bs2
-  {-# INLINE elemseq #-}
   elemseq _ (Left a) = G.elemseq (undefined :: U.Vector a) a
   elemseq _ (Right b) = G.elemseq (undefined :: U.Vector b) b

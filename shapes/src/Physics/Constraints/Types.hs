@@ -58,13 +58,10 @@ makeLenses ''ContactResult
 
 instance Functor ContactResult where
   fmap f (ContactResult a b) = ContactResult (f a) (f b)
-  {-# INLINE fmap #-}
 
 instance Applicative ContactResult where
   pure x = ContactResult x x
   ContactResult f g <*> ContactResult x y = ContactResult (f x) (g y)
-  {-# INLINE pure #-}
-  {-# INLINE (<*>) #-}
 
 -- do nonpen before friction
 instance Foldable ContactResult where
@@ -72,10 +69,7 @@ instance Foldable ContactResult where
 
 instance Functor Processed where
   fmap f (Processed a b) = Processed (f a) (f b)
-  {-# INLINE fmap #-}
 
 instance Applicative Processed where
   pure x = Processed x x
   Processed f g <*> Processed x y = Processed (f x) (g y)
-  {-# INLINE pure #-}
-  {-# INLINE (<*>) #-}

@@ -40,7 +40,6 @@ newtype Diag6 = Diag6 V6 deriving Show
 
 instance NFData V2 where
   rnf (V2 _ _) = ()
-  {-# INLINE rnf #-}
 
 newtype P2 = P2 V2 deriving (Generic, Show, NFData)
 
@@ -63,47 +62,36 @@ derivingUnbox "V6"
 
 append2 :: V2 -> Double -> V3
 (V2 a b) `append2` (D# c) = V3 a b c
-{-# INLINE append2 #-}
 
 split3 :: V3 -> (V2, Double)
 split3 (V3 a b c) = (V2 a b, D# c)
-{-# INLINE split3 #-}
 
 smulV2 :: Double -> V2 -> V2
 smulV2 (D# s) = liftV2 (*## s)
-{-# INLINE smulV2 #-}
 
 smulV2' :: V2 -> Double -> V2
 smulV2' = flip smulV2
-{-# INLINE smulV2' #-}
 
 sdivV2 :: Double -> V2 -> V2
 sdivV2 (D# s) = liftV2 (/## s)
-{-# INLINE sdivV2 #-}
 
 smulV6 :: Double -> V6 -> V6
 smulV6 (D# s) = liftV6 (*## s)
-{-# INLINE smulV6 #-}
 
 smulV6' :: V6 -> Double -> V6
 smulV6' = flip smulV6
-{-# INLINE smulV6' #-}
 
 smulM2x2 :: Double -> M2x2 -> M2x2
 smulM2x2 (D# s) = liftM2x2 (*## s)
-{-# INLINE smulM2x2 #-}
 
 smulM2x2' :: M2x2 -> Double -> M2x2
 smulM2x2' = flip smulM2x2
-{-# INLINE smulM2x2' #-}
 
 plusV2 :: V2 -> V2 -> V2
 plusV2 = lift2V2 (+##)
-{-# INLINE plusV2 #-}
 
 plusV6 :: V6 -> V6 -> V6
 plusV6 = lift2V6 (+##)
-{-# INLINE plusV6 #-}
 
 zeroV2 :: V2
 zeroV2 = V2 0.0## 0.0##
@@ -113,11 +101,9 @@ zeroP2 = P2 zeroV2
 
 minusV2 :: V2 -> V2 -> V2
 minusV2 = lift2V2 (-##)
-{-# INLINE minusV2 #-}
 
 crossV2 :: V2 -> V2 -> Double
 crossV2 (V2 ax ay) (V2 bx by) = D# ((ax *## by) -## (ay *## bx))
-{-# INLINE crossV2 #-}
 
 crosszV2 :: V2 -> Double -> V2
 crosszV2 (V2 ax ay) (D# bz) = V2 x y
@@ -140,32 +126,25 @@ crossV2V2 (V2 ax ay) (V2 bx by) (V2 cx cy) = V2 abcx abcy
 
 vmulDiag6 :: V6 -> Diag6 -> V6
 vmulDiag6 v (Diag6 m) = lift2V6 (*##) v m
-{-# INLINE vmulDiag6 #-}
 
 vmulDiag6' :: Diag6 -> V6 -> V6
 vmulDiag6' (Diag6 m) v = lift2V6 (*##) v m
-{-# INLINE vmulDiag6' #-}
 
 flip3v3 :: V6 -> V6
 flip3v3 (V6 a b c d e f) = V6 d e f a b c
-{-# INLINE flip3v3 #-}
 
 afdot :: P2 -> V2 -> Double
 afdot (P2 v0) v1 = D# (v0 `dotV2` v1)
-{-# INLINE afdot #-}
 
 afdot' :: V2 -> P2 -> Double
 afdot' = flip afdot
-{-# INLINE afdot' #-}
 
 clockwiseV2 :: V2 -> V2
 clockwiseV2 (V2 x y) = V2 y (negateDouble# x)
-{-# INLINE clockwiseV2 #-}
 
 normalizeV2 :: V2 -> V2
 normalizeV2 (V2 x y) = V2 (x /## n) (y /## n)
   where n = sqrtDouble# ((x *## x) +## (y *## y))
-{-# INLINE normalizeV2 #-}
 
 -- | Length of a vector.
 lengthV2 :: V2 -> Double
@@ -177,7 +156,6 @@ sqLengthV2 (V2 x y) = D# ((x *## x) +## (y *## y))
 
 diffP2 :: P2 -> P2 -> V2
 diffP2 (P2 v0) (P2 v1) = v0 `minusV2` v1
-{-# INLINE diffP2 #-}
 
 midpointP2 :: P2 -> P2 -> P2
 midpointP2 (P2 v0) (P2 v1) = P2 (2 `sdivV2` (v0 `plusV2` v1))
@@ -196,15 +174,12 @@ invM2x2 (M2x2 a b c d) =
   D# invDet `smulM2x2` M2x2 d (negateDouble# b) (negateDouble# c) a
   where det = (a *## d) -## (b *## c)
         invDet = 1.0## /## det
-{-# INLINE invM2x2 #-}
 
 negateV2 :: V2 -> V2
 negateV2 = liftV2 negateDouble#
-{-# INLINE negateV2 #-}
 
 identity2x2 :: M2x2
 identity2x2 = M2x2 1.0## 0.0## 0.0## 1.0##
-{-# INLINE identity2x2 #-}
 
 identity3x3 :: M3x3
 identity3x3 =
@@ -212,16 +187,13 @@ identity3x3 =
   1.0## 0.0## 0.0##
   0.0## 1.0## 0.0##
   0.0## 0.0## 1.0##
-{-# INLINE identity3x3 #-}
 
 afmul :: M3x3 -> V2 -> V2
 afmul t (V2 a b) = V2 x y
   where !(V3 x y _) = t `mul3x3c` V3 a b 1.0##
-{-# INLINE afmul #-}
 
 afmul' :: M3x3 -> P2 -> P2
 afmul' t (P2 v) = P2 $ t `afmul` v
-{-# INLINE afmul' #-}
 
 {-
 WORKING WITH LINES
@@ -233,12 +205,10 @@ data Line2 = Line2 { linePoint :: !P2
 toLine2 :: P2 -> P2 -> Line2
 toLine2 a b = Line2 { linePoint = a
                     , lineNormal = clockwiseV2 (b `diffP2` a) }
-{-# INLINE toLine2 #-}
 
 perpLine2 :: P2 -> P2 -> Line2
 perpLine2 a b = Line2 { linePoint = a
                       , lineNormal = b `diffP2` a }
-{-# INLINE perpLine2 #-}
 
 -- solving some `mx = b` up in here
 intersect2 :: Line2 -> Line2 -> P2
@@ -248,7 +218,6 @@ intersect2 (Line2 p n@(V2 n0 n1)) (Line2 p' n'@(V2 n2 n3)) =
         !(D# b0) = p `afdot` n
         !(D# b1) = p' `afdot` n'
         m = M2x2 n0 n1 n2 n3
-{-# INLINE intersect2 #-}
 
 {-
 CLIPPING LINE SEGMENTS
@@ -275,13 +244,11 @@ applyClip res (SP a b) = case res of
   ClipRight c -> Right (SP a c)
   ClipBoth c -> Left c
   ClipNone -> Right (SP a b)
-{-# INLINE applyClip #-}
 
 -- | Alternate form of 'applyClip'. 'Nothing' if entire segment clipped.
 applyClip' :: ClipResult a -> SP a a -> Maybe (SP a a)
 applyClip' (ClipBoth _) _ = Nothing -- redundant definition
 applyClip' res seg = either (const Nothing) Just (applyClip res seg)
-{-# INLINE applyClip' #-}
 
 -- | Alternate form of 'applyClip'. Removes clipped points.
 applyClip'' :: ClipResult a -> SP s s -> Maybe (Either s (SP s s))
@@ -290,7 +257,6 @@ applyClip'' res (SP a b) = case res of
   ClipRight _ -> Just $ Left a
   ClipBoth _ -> Nothing
   ClipNone -> Just $ Right (SP a b)
-{-# INLINE applyClip'' #-}
 
 {- |
 Alternate form of 'applyClip'. Applies clipping using the given lens.
@@ -312,13 +278,11 @@ lApplyClip l res (SP a b) = case res of
   ClipRight c -> Right (SP a (set l c b))
   ClipBoth c -> Left (set l c a) -- use the 'first' vertex by default
   ClipNone -> Right (SP a b)
-{-# INLINE lApplyClip #-}
 
 -- | Alternate form of 'lApplyClip'. If the entire segment was behind the bound, use 'Nothing'.
 lApplyClip' :: ASetter' s a -> ClipResult a -> (SP s s) -> Maybe (SP s s)
 lApplyClip' _ (ClipBoth _) _ = Nothing -- redundant definition
 lApplyClip' l res seg = either (const Nothing) Just (lApplyClip l res seg)
-{-# INLINE lApplyClip' #-}
 
 {- |
 Given a bounding plane (expressed as a point and a normal),
@@ -340,7 +304,6 @@ clipSegment boundary (SP incident (SP a b))
         a' = a `afdot` n
         b' = b `afdot` n
         c' = c `afdot` n
-{-# INLINE clipSegment #-}
 
 {-
 TRANSFORMS
@@ -348,13 +311,11 @@ TRANSFORMS
 
 rotate22_ :: Double# -> Double# -> M2x2
 rotate22_ cosv sinv = M2x2 cosv (negateDouble# sinv) sinv cosv
-{-# INLINE rotate22_ #-}
 
 rotate22 :: Double# -> M2x2
 rotate22 ori = rotate22_ c s
   where c = cosDouble# ori
         s = sinDouble# ori
-{-# INLINE rotate22 #-}
 
 afmat33 :: M2x2 -> M3x3
 afmat33 (M2x2 x0 x1 y0 y1) =
@@ -364,7 +325,6 @@ afmat33 (M2x2 x0 x1 y0 y1) =
   zer zer one
   where !one = 1.0##
         !zer = 0.0##
-{-# INLINE afmat33 #-}
 
 aftranslate33 :: V2 -> M3x3
 aftranslate33 (V2 x y) =
@@ -374,11 +334,9 @@ aftranslate33 (V2 x y) =
   zer zer one
   where !one = 1.0##
         !zer = 0.0##
-{-# INLINE aftranslate33 #-}
 
 afrotate33 :: Double# -> M3x3
 afrotate33 ori = afmat33 (rotate22 ori)
-{-# INLINE afrotate33 #-}
 
 afscale33 :: V2 -> M3x3
 afscale33 (V2 x y) =
@@ -388,4 +346,3 @@ afscale33 (V2 x y) =
   zer zer one
   where !one = 1.0##
         !zer = 0.0##
-{-# INLINE afscale33 #-}

@@ -69,19 +69,16 @@ instance Show Aabb where
 boundsOverlap :: Bounds -> Bounds -> Bool
 boundsOverlap (Bounds a b) (Bounds c d) =
   not $ isTrue# (c >## b) || isTrue# (d <## a)
-{-# INLINE boundsOverlap #-}
 
 -- | Do a pair of AABBs overlap?
 aabbCheck :: Aabb -> Aabb -> Bool
 aabbCheck (Aabb xBounds yBounds) (Aabb xBounds' yBounds') =
   boundsOverlap xBounds xBounds' && boundsOverlap yBounds yBounds'
-{-# INLINE aabbCheck #-}
 
 -- | Find the AABB for a convex polygon.
 hullToAabb :: ConvexHull -> Aabb
 hullToAabb hull = foldl1 mergeAabb aabbs
   where aabbs = fmap toAabb_ . elems . _hullVertices $ hull
-{-# INLINE hullToAabb #-}
 
 circleToAabb :: Circle -> Aabb
 circleToAabb (Circle (P2 (V2 x y)) (D# r)) =
@@ -94,20 +91,17 @@ toAabb (CircleShape circle) = circleToAabb circle
 -- | Get the (degenerate) AABB for a single point.
 toAabb_ :: P2 -> Aabb
 toAabb_ (P2 (V2 a b))= Aabb (Bounds a a) (Bounds b b)
-{-# INLINE toAabb_ #-}
 
 -- | Find the AABB of a pair of AABBs.
 mergeAabb :: Aabb -> Aabb -> Aabb
 mergeAabb (Aabb ax ay) (Aabb bx by) =
   Aabb (mergeRange ax bx) (mergeRange ay by)
-{-# INLINE mergeAabb #-}
 
 -- | Find the interval that contains a pair of intervals.
 mergeRange :: Bounds -> Bounds -> Bounds
 mergeRange (Bounds a b) (Bounds c d) = Bounds minx maxx
   where minx = if isTrue# (a <## c) then a else c
         maxx = if isTrue# (b >## d) then b else d
-{-# INLINE mergeRange #-}
 
 {- |
 Find the AABB for each object in a world.
@@ -122,7 +116,6 @@ toAabbs world@World {..} = V.unsafeFreeze =<< E.mapM f _wEmpties
     f i = do
       shape <- readShape world i
       return (i, toAabb shape)
-{-# INLINE toAabbs #-}
 
 {- |
 Given a world:
@@ -143,7 +136,6 @@ toTaggedAabbs toTag world@World {..} = V.unsafeFreeze =<< E.mapM f _wEmpties
       tag <- toTag i
       shape <- readShape world i
       return (i, toAabb shape, tag)
-{-# INLINE toTaggedAabbs #-}
 
 {- |
 Called \"unordered\" because (x, y) is equivalent to (y, x)
@@ -159,8 +151,6 @@ unorderedPairs n
   where f 1 0 = [(1, 0)]
         f x 0 = (x, 0) : f (x - 1) (x - 2)
         f x y = (x, y) : f x (y - 1)
-        {-# INLINE f #-}
-{-# INLINE unorderedPairs #-}
 
 -- | Find pairs of objects with overlapping AABBs.
 -- Note: Pairs of static objects are excluded.
@@ -180,4 +170,3 @@ culledKeys world = do
   return $ Descending . catMaybes $ fmap f ijs
   where
     isStatic i = (C.isStatic . C._physObjInvMass) <$> readPhysObj world i
-{-# INLINE culledKeys #-}

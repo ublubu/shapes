@@ -41,7 +41,6 @@ new n = do
   return
     EmptiesVector
     {_evVector = vec, _evEmptyHead = emptyHead, _evFilled = filled}
-{-# INLINE new #-}
 
 -- | Assumes this slot is not already empty. No error if this assumption is false.
 delete :: (PrimMonad m) => EmptiesVector (PrimState m) -> Int -> m ()
@@ -54,7 +53,6 @@ delete EmptiesVector {..} i = do
   stToPrim $ writeSTRef _evEmptyHead i
   V.write _evVector i emptyHead
   stToPrim $ modifySTRef _evFilled (subtract 1)
-{-# INLINE delete #-}
 
 -- | Assumes this slot is not already empty. Errors if this assumption is false.
 safeDelete :: (PrimMonad m) => EmptiesVector (PrimState m) -> Int -> m ()
@@ -68,7 +66,6 @@ safeDelete EmptiesVector {..} i = do
       stToPrim $ writeSTRef _evEmptyHead i
       V.write _evVector i emptyHead
       stToPrim $ modifySTRef _evFilled (subtract 1)
-{-# INLINE safeDelete #-}
 
 -- | Assumes the 'SparseVector' is not full.
 append ::
@@ -89,7 +86,6 @@ append EmptiesVector {..} = do
       stToPrim $ writeSTRef _evEmptyHead emptyHead'
       stToPrim $ modifySTRef _evFilled (+ 1)
       return emptyHead
-{-# INLINE append #-}
 
 
 -- | Is this slot occupied?
@@ -97,7 +93,6 @@ read :: (PrimMonad m) => EmptiesVector (PrimState m) -> Int -> m Bool
 read EmptiesVector {..} i = do
   val <- V.read _evVector i
   return $ val == sentinel
-{-# INLINE read #-}
 
 -- | Errors if the 'EmptiesVector' is messed up.
 validate :: (PrimMonad m) => EmptiesVector (PrimState m) -> m ()
@@ -124,15 +119,12 @@ validate EmptiesVector {..} = do
     else return ()
   where
     n = V.length _evVector
-{-# INLINE validate #-}
 
 length :: EmptiesVector s -> Int
 length EmptiesVector {..} = V.length _evVector
-{-# INLINE length #-}
 
 filled :: (PrimMonad m) => EmptiesVector (PrimState m) -> m Int
 filled EmptiesVector {..} = stToPrim $ readSTRef _evFilled
-{-# INLINE filled #-}
 
 -- | Perform some action for the index of each filled slot.
 mapM_ :: (PrimMonad m) => (Int -> m ()) -> EmptiesVector (PrimState m) -> m ()
@@ -143,7 +135,6 @@ mapM_ f_ empties = P.mapM_ f [0 .. (length empties - 1)]
       if nonempty
         then f_ i
         else return ()
-{-# INLINE mapM_ #-}
 
 -- | Fold the indices of filled slots into a single value.
 foldM ::
@@ -162,7 +153,6 @@ foldM f accum0 empties = loop 0 accum0
           else loop (i + 1) accum
       | otherwise = return accum
     n = length empties
-{-# INLINE foldM #-}
 
 -- | Map the indices of filled slots into a new vector.
 mapM :: (V.Unbox a, PrimMonad m)
@@ -178,4 +168,3 @@ mapM f_ empties = do
         return $ vec_i + 1
   foldM f 0 empties
   return vec
-{-# INLINE mapM #-}

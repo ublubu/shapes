@@ -52,8 +52,6 @@ keyedContacts ::
 keyedContacts ij ab = fmap f contacts
   where contacts = generateContacts ab
         f (featKeys, contact) = (ObjectFeatureKey ij featKeys, contact)
-        {-# INLINE f #-}
-{-# INLINE keyedContacts #-}
 
 -- | Build a constraint from a pair of shapes and a contact between them.
 constraintGen ::
@@ -65,7 +63,6 @@ constraintGen ::
 constraintGen beh dt fContact ab =
   ContactResult { _crNonPen = NP.constraintGen beh dt fContact ab
                 , _crFriction = F.constraintGen fContact ab }
-{-# INLINE constraintGen #-}
 
 {- |
 Given an already-applied Lagrangian and the newly-calculated Lagrangian,
@@ -80,4 +77,3 @@ solutionProcessor mu_ab (ContactResult npCached fCached) (ContactResult npNew fN
   ContactResult <$> npProcessed <*> fProcessed
   where npProcessed = NP.solutionProcessor npCached npNew
         fProcessed = F.solutionProcessor mu_ab (_processedToCache npProcessed) fCached fNew
-{-# INLINE solutionProcessor #-}

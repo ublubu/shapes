@@ -70,7 +70,6 @@ new capacity = do
     , _wShapes = shapes
     , _wEmpties = empties
     }
-{-# INLINE new #-}
 
 append :: (PrimMonad m) => World (PrimState m) label -> WorldObj label -> m Int
 append World {..} WorldObj {..} = do
@@ -80,53 +79,42 @@ append World {..} WorldObj {..} = do
   U.write _wMaterials i _woMaterial
   V.write _wShapes i _woShape
   return i
-{-# INLINE append #-}
 
 delete :: (PrimMonad m) => World (PrimState m) label -> Int -> m ()
 delete World {..} = E.safeDelete _wEmpties
-{-# INLINE delete #-}
 
 -- | How many objects are in the world. ("filled" slots)
 filled :: (PrimMonad m) => World (PrimState m) label -> m Int
 filled World {..} = E.filled _wEmpties
-{-# INLINE filled #-}
 
 readPhysObj ::
      (PrimMonad m) => World (PrimState m) label -> Int -> m PhysicalObj
 readPhysObj World {..} = U.read _wPhysObjs
-{-# INLINE readPhysObj #-}
 
 updatePhysObj ::
      (PrimMonad m) => World (PrimState m) label -> Int -> PhysicalObj -> m ()
 updatePhysObj World {..} = U.write _wPhysObjs
-{-# INLINE updatePhysObj #-}
 
 readLabel :: (PrimMonad m) => World (PrimState m) label -> Int -> m label
 readLabel World {..} = V.read _wLabels
-{-# INLINE readLabel #-}
 
 updateLabel ::
      (PrimMonad m) => World (PrimState m) label -> Int -> label -> m ()
 updateLabel World {..} = V.write _wLabels
-{-# INLINE updateLabel #-}
 
 readMaterial :: (PrimMonad m) => World (PrimState m) label -> Int -> m Material
 readMaterial World {..} = U.read _wMaterials
-{-# INLINE readMaterial #-}
 
 updateMaterial ::
      (PrimMonad m) => World (PrimState m) label -> Int -> Material -> m ()
 updateMaterial World {..} = U.write _wMaterials
-{-# INLINE updateMaterial #-}
 
 readShape :: (PrimMonad m) => World (PrimState m) label -> Int -> m Shape
 readShape World {..} = V.read _wShapes
-{-# INLINE readShape #-}
 
 updateShape ::
      (PrimMonad m) => World (PrimState m) label -> Int -> Shape -> m ()
 updateShape World {..} = V.write _wShapes
-{-# INLINE updateShape #-}
 
 -- | Create a 'World' from a list of inhabitants
 fromList ::
@@ -137,7 +125,6 @@ fromList objs = do
   world <- new (length objs)
   mapM_ (append world) objs
   return world
-{-# INLINE fromList #-}
 
 {- |
 Update the shape of an object to match its current physical state.
@@ -148,14 +135,12 @@ only needs to be transformed once per frame.
 moveShape :: PhysicalObj -> Shape -> Shape
 moveShape physObj =
   flip setShapeTransform (transform $ _physObjTransform physObj)
-{-# INLINE moveShape #-}
 
 moveShapes :: (PrimMonad m) => World (PrimState m) label -> m ()
 moveShapes World {..} = E.mapM_ f _wEmpties
   where f i = do
           physObj <- U.read _wPhysObjs i
           V.modify _wShapes (moveShape physObj) i
-{-# INLINE moveShapes #-}
 
 makeWorldObj :: PhysicalObj -> Double -> Shape -> label -> WorldObj label
 makeWorldObj physObj mu shape label =
@@ -165,7 +150,6 @@ makeWorldObj physObj mu shape label =
   , _woMaterial = Material {_mMu = mu}
   , _woShape = moveShape physObj shape
   }
-{-# INLINE makeWorldObj #-}
 
 {- |
 Apply 'External' effects to the objects in a world.
@@ -176,7 +160,6 @@ applyExternal ::
      (PrimMonad m) => External -> Double -> World (PrimState m) label -> m ()
 applyExternal f_ dt World {..} = E.mapM_ f _wEmpties
   where f = U.modify _wPhysObjs (f_ dt)
-{-# INLINE applyExternal #-}
 
 
 {- |
@@ -188,7 +171,6 @@ Does not move the 'Shape's to match their physical state.
 advance :: (PrimMonad m) => Double -> World (PrimState m) label -> m ()
 advance dt World {..} = E.mapM_ f _wEmpties
   where f = U.modify _wPhysObjs (`advanceObj` dt)
-{-# INLINE advance #-}
 
 readPhysObjPair ::
      (PrimMonad m)
@@ -199,7 +181,6 @@ readPhysObjPair world (i, j) = do
   obj_i <- readPhysObj world i
   obj_j <- readPhysObj world j
   return (obj_i, obj_j)
-{-# INLINE readPhysObjPair #-}
 
 updatePhysObjPair ::
      (PrimMonad m)
@@ -210,7 +191,6 @@ updatePhysObjPair ::
 updatePhysObjPair world (i, j) (a, b) = do
   updatePhysObj world i a
   updatePhysObj world j b
-{-# INLINE updatePhysObjPair #-}
 
 modifyPhysObjPair ::
      (PrimMonad m)
@@ -221,7 +201,6 @@ modifyPhysObjPair ::
 modifyPhysObjPair world f ij = do
   ab <- readPhysObjPair world ij
   updatePhysObjPair world ij (f ab)
-{-# INLINE modifyPhysObjPair #-}
 
 -- TODO: change to readMaterialPair
 readMuPair :: (PrimMonad m) => World (PrimState m) label -> (Int, Int) -> m (Double, Double)
@@ -229,4 +208,3 @@ readMuPair world (i, j) = do
   u_i <- _mMu <$> readMaterial world i
   u_j <- _mMu <$> readMaterial world j
   return (u_i, u_j)
-{-# INLINE readMuPair #-}
