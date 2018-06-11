@@ -20,13 +20,11 @@ constraintGen :: Flipping Contact'
               -> Constraint
 constraintGen fContact ab =
   flipExtract $ flipMap toConstraint fContact ab
-{-# INLINE constraintGen #-}
 
 toConstraint :: Contact'
              -> (PhysicalObj, PhysicalObj)
              -> Constraint
 toConstraint c ab = Constraint (jacobian c ab) 0
-{-# INLINE toConstraint #-}
 
 jacobian :: Contact'
          -> (PhysicalObj, PhysicalObj)
@@ -40,11 +38,9 @@ jacobian Contact'{..} (a, b) = ja `join3v3` jb
         ta = negateV2 tb
         tb = clockwiseV2 n
         n = _contactEdgeNormal'
-{-# INLINE jacobian #-}
 
 pairMu :: (Double, Double) -> Double
 pairMu (ua, ub) = (ua + ub) / 2
-{-# INLINE pairMu #-}
 
 solutionProcessor :: (Double, Double)
                   -> Lagrangian
@@ -52,4 +48,3 @@ solutionProcessor :: (Double, Double)
                   -> Lagrangian
                   -> Processed Lagrangian
 solutionProcessor ab nonpen = clampAbs (nonpen & lagrangianVal *~ pairMu ab)
-{-# INLINE solutionProcessor #-}

@@ -24,7 +24,6 @@ contactDepth :: Neighborhood -- ^ Penetrated edge
              -> Neighborhood -- ^ Penetrating feature
              -> Double -- ^ Penetration depth
 contactDepth edge = contactDepth_ edge . _neighborhoodCenter
-{-# INLINE contactDepth #-}
 
 contactDepth_ :: Neighborhood -- ^ Penetrated edge
               -> P2 -- ^ Penetrating feature
@@ -33,21 +32,18 @@ contactDepth_ neighborhood p = f v - f p
   where f = afdot' n
         n = _neighborhoodUnitNormal neighborhood
         v = _neighborhoodCenter neighborhood
-{-# INLINE contactDepth_ #-}
 
 defaultContactBehavior :: ContactBehavior
 defaultContactBehavior =
   ContactBehavior { contactBaumgarte = 0
                   , contactPenetrationSlop = 0
                   }
-{-# INLINE defaultContactBehavior #-}
 
 -- | Extract the 'Contact' if it exists.
 unwrapContactResult :: Maybe (Flipping (Either Neighborhood Contact))
                     -- ^ May contain either a separating axis or a 'Contact'
                     -> Maybe (Flipping Contact)
 unwrapContactResult contactInfo = (flipInjectF . fmap eitherToMaybe) =<< contactInfo
-{-# INLINE unwrapContactResult #-}
 
 -- TODO: better names for Contact vs Contact'
 -- | Flatten a 'Contact' into 'Contact''s.
@@ -67,17 +63,13 @@ flattenContactResult (Just fContact) =
                              , _contactDepth' = contactDepth _contactEdge pen
                              }
                   )
-        {-# INLINE flatten #-}
         f :: Flipping ((Int, Int), Contact') -> ((Int, Int), Flipping Contact')
         f x = (flipExtractPair fst x, snd <$> x)
-        {-# INLINE f #-}
-{-# INLINE flattenContactResult #-}
 
 -- Find the 'Contact' between a pair of shapes if they overlap.
 generateContacts' :: (ConvexHull, ConvexHull)
                   -> Maybe (Flipping Contact)
 generateContacts' shapes = unwrapContactResult $ uncurry contact shapes
-{-# INLINE generateContacts' #-}
 
 -- Find the 'Contact''s between a pair of shapes if they overlap.
 generateContacts :: (ConvexHull, ConvexHull)
@@ -85,4 +77,3 @@ generateContacts :: (ConvexHull, ConvexHull)
                  -- ^ in decreasing key order, where x is MSV and y is LSV in (x, y)
                  --   x is the first hull's feature, y is the second hull's feature
 generateContacts = flattenContactResult . generateContacts'
-{-# INLINE generateContacts #-}

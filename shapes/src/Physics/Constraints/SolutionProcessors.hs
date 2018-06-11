@@ -18,12 +18,10 @@ wrapProcessor f cached_l new_l =
   where
     cached_l' = cached_l + apply_l
     apply_l = f cached_l new_l
-{-# INLINE wrapProcessor #-}
 
 -- | Apply the entire newly-calculated Lagrangian.
 simple :: Lagrangian -> Lagrangian -> Processed Lagrangian
 simple = wrapProcessor (flip const)
-{-# INLINE simple #-}
 
 {- |
 Ensure that the sum of the applied Lagrangians is always positive.
@@ -32,7 +30,6 @@ e.g. Non-penetration should resist penetration but have no effect on separation.
 -}
 positive :: Lagrangian -> Lagrangian -> Processed Lagrangian
 positive = wrapProcessor (\cached_l new_l -> max new_l (-cached_l))
-{-# INLINE positive #-}
 
 {- |
 Ensure that the magnitude of the sum of the applied Lagrangians never exceeds a threshold.
@@ -50,4 +47,3 @@ clampAbs maxThresh cached new =
       | otherwise = accum_l
     apply_l = accum_l' - cached
     minThresh = -maxThresh
-{-# INLINE clampAbs #-}
