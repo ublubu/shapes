@@ -19,22 +19,22 @@ import           GHC.Prim                     (Double#, (+##), (-##), (<##),
                                                (>##))
 import           GHC.Types                    (Double (D#), isTrue#)
 
-import Control.Monad.ST
 import           Control.DeepSeq
 import           Control.Lens                 (itoListOf, (^.))
+import           Control.Monad.Primitive
 import           Data.Array                   (elems)
 import           Data.Maybe
 import qualified Data.Vector.Unboxed          as V
-import qualified Data.Vector.Unboxed.Mutable          as MV
 import           Data.Vector.Unboxed.Deriving
+import qualified Data.Vector.Unboxed.Mutable  as MV
 import qualified Physics.Constraint           as C
 import           Physics.Contact
 import           Physics.Contact.Circle
 import           Physics.Contact.ConvexHull
 import           Physics.Linear
 import           Physics.World
-import qualified Utils.EmptiesVector as E
 import           Utils.Descending
+import qualified Utils.EmptiesVector          as E
 
 -- TODO: explore rewrite rules or other alternatives to manually using primops
 
@@ -116,7 +116,7 @@ Build a vector of these AABBs, each identified by its key in the world.
 
 Objects are ordered using the world's traversal order
 -}
-toAabbs :: World s label -> ST s (V.Vector (Int, Aabb))
+toAabbs :: (PrimMonad m) => World (PrimState m) label -> m (V.Vector (Int, Aabb))
 toAabbs world@World {..} = V.unsafeFreeze =<< E.mapM f _wEmpties
   where
     f i = do
@@ -133,10 +133,10 @@ Given a world:
 
 Objects are ordered using the world's traversal order
 -}
-toTaggedAabbs :: (V.Unbox tag)
-  => (Int -> ST s tag)
-  -> World s label
-  -> ST s (V.Vector (Int, Aabb, tag))
+toTaggedAabbs :: (V.Unbox tag, PrimMonad m)
+  => (Int -> m tag)
+  -> World (PrimState m) label
+  -> m (V.Vector (Int, Aabb, tag))
 toTaggedAabbs toTag world@World {..} = V.unsafeFreeze =<< E.mapM f _wEmpties
   where
     f i = do
@@ -165,7 +165,7 @@ unorderedPairs n
 -- | Find pairs of objects with overlapping AABBs.
 -- Note: Pairs of static objects are excluded.
 -- These pairs are in descending order according to 'unorderedPairs', where \"ascending\" is the world's traversal order.
-culledKeys :: World s label -> ST s (Descending (Int, Int))
+culledKeys :: (PrimMonad m) => World (PrimState m) label -> m (Descending (Int, Int))
 culledKeys world = do
   taggedAabbs <- toTaggedAabbs isStatic world
   let ijs = unorderedPairs $ V.length taggedAabbs

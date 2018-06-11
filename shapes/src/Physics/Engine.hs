@@ -9,7 +9,7 @@ module Physics.Engine (module Physics.Engine, ContactBehavior(..), makeWorldObj)
 
 import           GHC.Types                  (Double (D#))
 
-import           Control.Monad.ST
+import           Control.Monad.Primitive
 import           Physics.Constraint         (PhysicalObj (..), toInvMass2)
 import           Physics.Contact            (Shape (..))
 import           Physics.Contact.Circle     (circleWithRadius)
@@ -25,21 +25,17 @@ pairToV2 :: (Double, Double) -> V2
 pairToV2 (D# x, D# y) = V2 x y
 
 -- | Create a @PhysicalObj@.
-makePhysicalObj :: (Double, Double)
-                -- ^ Velocity
-                -> Double
-                -- ^ Rotational velocity
-                -> (Double, Double)
-                -- ^ Position
-                -> Double
-                -- ^ Rotation
-                -> (Double, Double)
-                -- ^ Linear mass paired with rotational mass
-                -> PhysicalObj
+makePhysicalObj ::
+     (Double, Double) -- ^ Velocity
+  -> Double -- ^ Rotational velocity
+  -> (Double, Double) -- ^ Position
+  -> Double -- ^ Rotation
+  -> (Double, Double) -- ^ Linear mass paired with rotational mass
+  -> PhysicalObj
 makePhysicalObj vel rotvel pos rotpos =
   PhysicalObj (pairToV2 vel) rotvel (pairToV2 pos) rotpos . toInvMass2
 
-makeWorld :: [WorldObj label] -> ST s (World s label)
+makeWorld :: (PrimMonad m) => [WorldObj label] -> m (World (PrimState m) label)
 makeWorld = fromList
 
 makeConstantAccel :: (Double, Double) -> External

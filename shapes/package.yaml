@@ -25,6 +25,7 @@ dependencies:
 - lens
 - linear
 - mtl
+- primitive
 - shapes-math
 - transformers
 - vector

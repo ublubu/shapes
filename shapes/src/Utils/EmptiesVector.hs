@@ -6,7 +6,7 @@ import           Prelude                     hiding (length, map, mapM, mapM_,
                                               read)
 import qualified Prelude                     as P
 
-import           Control.Monad.ST
+import           Control.Monad.Primitive
 import           Data.Monoid
 import           Data.STRef
 import qualified Data.Vector.Unboxed.Mutable as V
@@ -25,12 +25,13 @@ sentinel :: Int
 sentinel = -1
 
 new ::
-     Int -- ^ capacity
-  -> ST s (EmptiesVector s)
+     (PrimMonad m)
+  => Int -- ^ capacity
+  -> m (EmptiesVector (PrimState m))
 new n = do
   vec <- V.unsafeNew n
-  emptyHead <- newSTRef 0
-  filled <- newSTRef 0
+  emptyHead <- stToPrim $ newSTRef 0
+  filled <- stToPrim $ newSTRef 0
   let loop i
         | i < n =
           let j = i + 1
@@ -40,36 +41,42 @@ new n = do
   return
     EmptiesVector
     {_evVector = vec, _evEmptyHead = emptyHead, _evFilled = filled}
+{-# INLINE new #-}
 
 -- | Assumes this slot is not already empty. No error if this assumption is false.
-delete :: EmptiesVector s -> Int -> ST s ()
+delete :: (PrimMonad m) => EmptiesVector (PrimState m) -> Int -> m ()
 delete EmptiesVector {..} i = do
-  emptyHead <- readSTRef _evEmptyHead
+  emptyHead <- stToPrim $ readSTRef _evEmptyHead
   -- 'i' is the new emptyHead
   -- _evEmptyHead -> emptyHead -> ...
   --     becomes
   -- _evEmptyHead -> i -> emptyHead -> ...
-  writeSTRef _evEmptyHead i
+  stToPrim $ writeSTRef _evEmptyHead i
   V.write _evVector i emptyHead
-  modifySTRef _evFilled (subtract 1)
+  stToPrim $ modifySTRef _evFilled (subtract 1)
+{-# INLINE delete #-}
 
 -- | Assumes this slot is not already empty. Errors if this assumption is false.
-safeDelete :: EmptiesVector s -> Int -> ST s ()
+safeDelete :: (PrimMonad m) => EmptiesVector (PrimState m) -> Int -> m ()
 safeDelete EmptiesVector {..} i = do
   val <- V.read _evVector i
   if val == sentinel
     then error $ "i=" <> show i <> " points at an empty slot"
     else do
-      emptyHead <- readSTRef _evEmptyHead
+      emptyHead <- stToPrim $ readSTRef _evEmptyHead
       -- 'i' is the new emptyHead
-      writeSTRef _evEmptyHead i
+      stToPrim $ writeSTRef _evEmptyHead i
       V.write _evVector i emptyHead
-      modifySTRef _evFilled (subtract 1)
+      stToPrim $ modifySTRef _evFilled (subtract 1)
+{-# INLINE safeDelete #-}
 
 -- | Assumes the 'SparseVector' is not full.
-append :: EmptiesVector s -> ST s Int -- ^ the index of the newly-added object
+append ::
+     (PrimMonad m)
+  => EmptiesVector (PrimState m)
+  -> m Int -- ^ the index of the newly-added object
 append EmptiesVector {..} = do
-  emptyHead <- readSTRef _evEmptyHead
+  emptyHead <- stToPrim $ readSTRef _evEmptyHead
   emptyHead' <- V.read _evVector emptyHead
   if emptyHead' == sentinel
     then error $ "emptyHead=" <> show emptyHead <> " points at a filled slot"
@@ -79,24 +86,26 @@ append EmptiesVector {..} = do
       -- _evEmptyHead -> emptyHead' -> ...
     else do
       V.write _evVector emptyHead sentinel
-      writeSTRef _evEmptyHead emptyHead'
-      modifySTRef _evFilled (+ 1)
+      stToPrim $ writeSTRef _evEmptyHead emptyHead'
+      stToPrim $ modifySTRef _evFilled (+ 1)
       return emptyHead
+{-# INLINE append #-}
+
 
 -- | Is this slot occupied?
-read :: EmptiesVector s
-  -> Int
-  -> ST s Bool
+read :: (PrimMonad m) => EmptiesVector (PrimState m) -> Int -> m Bool
 read EmptiesVector {..} i = do
   val <- V.read _evVector i
   return $ val == sentinel
+{-# INLINE read #-}
 
 -- | Errors if the 'EmptiesVector' is messed up.
-validate :: EmptiesVector s -> ST s ()
+validate :: (PrimMonad m) => EmptiesVector (PrimState m) -> m ()
 validate EmptiesVector {..} = do
   empties <-
-    (P.length . filter (/= sentinel)) <$> P.mapM (V.read _evVector) [0 .. (n - 1)]
-  emptyHead <- readSTRef _evEmptyHead
+    (P.length . filter (/= sentinel)) <$>
+    P.mapM (V.read _evVector) [0 .. (n - 1)]
+  emptyHead <- stToPrim $ readSTRef _evEmptyHead
   let loop emptyHead =
         if emptyHead == n
           then return 1
@@ -115,17 +124,18 @@ validate EmptiesVector {..} = do
     else return ()
   where
     n = V.length _evVector
+{-# INLINE validate #-}
 
 length :: EmptiesVector s -> Int
 length EmptiesVector {..} = V.length _evVector
+{-# INLINE length #-}
 
-filled :: EmptiesVector s -> ST s Int
-filled EmptiesVector {..} = readSTRef _evFilled
+filled :: (PrimMonad m) => EmptiesVector (PrimState m) -> m Int
+filled EmptiesVector {..} = stToPrim $ readSTRef _evFilled
+{-# INLINE filled #-}
 
 -- | Perform some action for the index of each filled slot.
-mapM_ :: (Int -> ST s ())
-  -> EmptiesVector s
-  -> ST s ()
+mapM_ :: (PrimMonad m) => (Int -> m ()) -> EmptiesVector (PrimState m) -> m ()
 mapM_ f_ empties = P.mapM_ f [0 .. (length empties - 1)]
   where
     f i = do
@@ -133,9 +143,15 @@ mapM_ f_ empties = P.mapM_ f [0 .. (length empties - 1)]
       if nonempty
         then f_ i
         else return ()
+{-# INLINE mapM_ #-}
 
 -- | Fold the indices of filled slots into a single value.
-foldM :: (b -> Int -> ST s b) -> b -> EmptiesVector s -> ST s b
+foldM ::
+     (PrimMonad m)
+  => (b -> Int -> m b)
+  -> b
+  -> EmptiesVector (PrimState m)
+  -> m b
 foldM f accum0 empties = loop 0 accum0
   where
     loop i accum
@@ -146,12 +162,13 @@ foldM f accum0 empties = loop 0 accum0
           else loop (i + 1) accum
       | otherwise = return accum
     n = length empties
+{-# INLINE foldM #-}
 
 -- | Map the indices of filled slots into a new vector.
-mapM :: (V.Unbox a)
-  => (Int -> ST s a)
-  -> EmptiesVector s
-  -> ST s (V.MVector s a)
+mapM :: (V.Unbox a, PrimMonad m)
+  => (Int -> m a)
+  -> EmptiesVector (PrimState m)
+  -> m (V.MVector (PrimState m) a)
 mapM f_ empties = do
   n <- filled empties
   vec <- V.new n
@@ -161,3 +178,4 @@ mapM f_ empties = do
         return $ vec_i + 1
   foldM f 0 empties
   return vec
+{-# INLINE mapM #-}

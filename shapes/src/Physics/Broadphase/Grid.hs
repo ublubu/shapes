@@ -15,9 +15,9 @@ module Physics.Broadphase.Grid where
 import           GHC.Generics                 (Generic)
 import           GHC.Types                    (Double (D#))
 
-import Control.Monad.ST
 import           Control.DeepSeq
 import           Control.Lens
+import           Control.Monad.Primitive
 import           Data.Foldable                (foldl')
 import qualified Data.IntMap.Strict           as IM
 import           Data.List                    (sortBy)
@@ -64,7 +64,11 @@ data TaggedAabb = TaggedAabb
 makeLenses ''Grid
 makeLenses ''GridAxis
 
-toGrid :: (GridAxis, GridAxis) -> World s label -> ST s Grid
+toGrid ::
+     (PrimMonad m)
+  => (GridAxis, GridAxis)
+  -> World (PrimState m) label
+  -> m Grid
 toGrid axes@(xAxis, yAxis) world = do
   taggedAabbs <- toTaggedAabbs isStatic world
   return $ Grid (fromTaggedAabbs axes taggedAabbs) xAxis yAxis
