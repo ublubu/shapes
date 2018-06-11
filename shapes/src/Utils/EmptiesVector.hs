@@ -2,15 +2,14 @@
 
 module Utils.EmptiesVector where
 
-import           Prelude                     hiding (length, map, read, mapM, mapM_)
+import           Prelude                     hiding (length, map, mapM, mapM_,
+                                              read)
 import qualified Prelude                     as P
 
 import           Control.Monad.ST
 import           Data.Monoid
 import           Data.STRef
 import qualified Data.Vector.Unboxed.Mutable as V
-
-import           Utils.UnboxEither
 
 {- |
 Keeps track of 'empty' slots.
@@ -32,14 +31,15 @@ new n = do
   vec <- V.unsafeNew n
   emptyHead <- newSTRef 0
   filled <- newSTRef 0
-  let f i =
-        let j = i + 1
-        in V.write vec i $
-           if j < n
-             then j
-             else sentinel
-  P.mapM_ f [0 .. n]
-  return EmptiesVector {_evVector = vec, _evEmptyHead = emptyHead, _evFilled = filled}
+  let loop i
+        | i < n =
+          let j = i + 1
+          in V.write vec i j >> loop j
+        | otherwise = return ()
+  loop 0
+  return
+    EmptiesVector
+    {_evVector = vec, _evEmptyHead = emptyHead, _evFilled = filled}
 
 -- | Assumes this slot is not already empty. No error if this assumption is false.
 delete :: EmptiesVector s -> Int -> ST s ()
@@ -131,7 +131,7 @@ mapM_ f_ empties = P.mapM_ f [0 .. (length empties - 1)]
     f i = do
       nonempty <- read empties i
       if nonempty
-        then f i
+        then f_ i
         else return ()
 
 -- | Fold the indices of filled slots into a single value.

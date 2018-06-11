@@ -131,6 +131,12 @@ moveShape :: PhysicalObj -> Shape -> Shape
 moveShape physObj =
   flip setShapeTransform (transform $ _physObjTransform physObj)
 
+moveShapes :: World s label -> ST s ()
+moveShapes World {..} = E.mapM_ f _wEmpties
+  where f i = do
+          physObj <- U.read _wPhysObjs i
+          V.modify _wShapes (moveShape physObj) i
+
 makeWorldObj :: PhysicalObj -> Double -> Shape -> label -> WorldObj label
 makeWorldObj physObj mu shape label =
   WorldObj
@@ -159,3 +165,34 @@ Does not move the 'Shape's to match their physical state.
 advance :: Double -> World s label -> ST s ()
 advance dt World {..} = E.mapM_ f _wEmpties
   where f = U.modify _wPhysObjs (`advanceObj` dt)
+
+readPhysObjPair :: World s label -> (Int, Int) -> ST s (PhysicalObj, PhysicalObj)
+readPhysObjPair world (i, j) = do
+  obj_i <- readPhysObj world i
+  obj_j <- readPhysObj world j
+  return (obj_i, obj_j)
+
+updatePhysObjPair ::
+  World s label
+  -> (Int, Int)
+  -> (PhysicalObj, PhysicalObj)
+  -> ST s ()
+updatePhysObjPair world (i, j) (a, b) = do
+  updatePhysObj world i a
+  updatePhysObj world j b
+
+modifyPhysObjPair ::
+     World s label
+  -> ((PhysicalObj, PhysicalObj) -> (PhysicalObj, PhysicalObj))
+  -> (Int, Int)
+  -> ST s ()
+modifyPhysObjPair world f ij = do
+  ab <- readPhysObjPair world ij
+  updatePhysObjPair world ij (f ab)
+
+-- TODO: change to readMaterialPair
+readMuPair :: World s label -> (Int, Int) -> ST s (Double, Double)
+readMuPair world (i, j) = do
+  u_i <- _mMu <$> readMaterial world i
+  u_j <- _mMu <$> readMaterial world j
+  return (u_i, u_j)

@@ -2,6 +2,7 @@ module Physics.Scenes.Balls where
 
 import           Control.Lens
 import           Control.Monad
+import           Control.Monad.ST
 
 import           Physics.Constraint
 import           Physics.Contact.Types
@@ -11,13 +12,12 @@ import           Physics.Scenes.Stacks         (box, boxFloor', boxStack,
                                                 contactBehavior, externals)
 import           Physics.Scenes.TwoFlyingBoxes (boxB')
 import           Physics.World
-import           Physics.World.Object
 
 circle' :: Double
      -> (Double, Double)
      -> (Double, Double)
-     -> usr
-     -> WorldObj usr
+     -> label
+     -> WorldObj label
 circle' radius center velocity =
   makeWorldObj (box center velocity) 0.2 (makeCircle radius)
 
@@ -26,8 +26,8 @@ circleStack :: Double -- ^ radius
          -> (Double, Double) -- ^ velocity
          -> Double -- ^ vertical spacing
          -> Int -- ^ number of objects
-         -> usr -- ^ arbitrary user data
-         -> [WorldObj usr]
+         -> label -- ^ arbitrary user data
+         -> [WorldObj label]
 circleStack _ _ _ _ 0 _ = []
 circleStack diameter bottom vel spacing n ext =
   circle' (diameter / 2) bottom vel ext : circleStack diameter bottom' vel spacing (n - 1) ext
@@ -39,8 +39,8 @@ stacks_ :: (Bool -> Bool)
        -> (Double, Double)
        -> Double
        -> (Int, Int)
-       -> usr
-       -> [WorldObj usr]
+       -> label
+       -> [WorldObj label]
 stacks_ ftype diameter (center, bottom) vel spacing (n_w, n_h) ext =
   join . fmap f . take n_w $ iterate (\(a, b) -> (a + diameter, ftype b)) (leftmost, True)
   where leftmost = center - (diameter * fromIntegral (n_w - 1) / 2)
@@ -52,8 +52,8 @@ stacks :: Double
        -> (Double, Double)
        -> Double
        -> (Int, Int)
-       -> usr
-       -> [WorldObj usr]
+       -> label
+       -> [WorldObj label]
 stacks = stacks_ not
 
 stacks' :: Double
@@ -61,17 +61,19 @@ stacks' :: Double
        -> (Double, Double)
        -> Double
        -> (Int, Int)
-       -> usr
-       -> [WorldObj usr]
+       -> label
+       -> [WorldObj label]
 stacks' = stacks_ (const True)
 
-makeScene :: (Int, Int) -> Double -> Double -> usr -> Scene usr
-makeScene dims diameter spacing ext = Scene w externals contactBehavior
-  where w = makeWorld (boxFloor' ext : stacks diameter (0, -4.5) (0, 0) spacing dims ext)
+makeScene :: (Int, Int) -> Double -> Double -> label -> ST s (Scene s label)
+makeScene dims diameter spacing ext = do
+  w <- makeWorld (boxFloor' ext : stacks diameter (0, -4.5) (0, 0) spacing dims ext)
+  return $ Scene w externals contactBehavior
 
-makeScene' :: (Int, Int) -> Double -> Double -> usr -> Scene usr
-makeScene' dims diameter spacing ext = Scene w externals contactBehavior
-  where w = makeWorld (boxFloor' ext : stacks' diameter (0, -4.5) (0, 0) spacing dims ext)
+makeScene' :: (Int, Int) -> Double -> Double -> label -> ST s (Scene s label)
+makeScene' dims diameter spacing ext = do
+  w <- makeWorld (boxFloor' ext : stacks' diameter (0, -4.5) (0, 0) spacing dims ext)
+  return $ Scene w externals contactBehavior
 
 circleA :: PhysicalObj
 circleA = makePhysicalObj (1, 0) 0 (-5, 0) 0 (2, 1)
@@ -79,16 +81,18 @@ circleA = makePhysicalObj (1, 0) 0 (-5, 0) 0 (2, 1)
 circleB :: PhysicalObj
 circleB = makePhysicalObj (-4, 0) 0 (5, 1.5) 0 (1, 0.5)
 
-circleA' :: usr -> WorldObj usr
+circleA' :: label -> WorldObj label
 circleA' = makeWorldObj circleA 0.2 $ makeCircle 2
 
-circleB' :: usr -> WorldObj usr
+circleB' :: label -> WorldObj label
 circleB' = makeWorldObj circleB 0.2 $ makeCircle 1
 
-twoCircles :: usr -> usr -> Scene usr
-twoCircles a b = Scene world [] contactBehavior
-  where world = makeWorld [circleA' a, circleB' b]
+twoCircles :: label -> label -> ST s (Scene s label)
+twoCircles a b = do
+  world <- makeWorld [circleA' a, circleB' b]
+  return $ Scene world (const id) contactBehavior
 
-circleAndBox :: usr -> usr -> Scene usr
-circleAndBox a b = Scene world [] contactBehavior
-  where world = makeWorld [circleA' a, boxB' b]
+circleAndBox :: label -> label -> ST s (Scene s label)
+circleAndBox a b = do
+  world <- makeWorld [circleA' a, boxB' b]
+  return $ Scene world (const id) contactBehavior
