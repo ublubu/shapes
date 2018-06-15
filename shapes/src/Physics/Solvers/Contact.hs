@@ -76,8 +76,8 @@ applyCachedSlns ::
   -> V.MVector s (ObjectFeatureKey Int, ContactResult Lagrangian) -- ^ list of constraint solutions from the previous frame
   -> World s label -- ^ the world
   -> ST s ( V.MVector s (ObjectFeatureKey Int, ContactResult Lagrangian)
-          , V.Vector (ContactResult Constraint) -- ^ (this frame's constraint solutions, this frame's constraints)
-           )
+          , V.Vector (ContactResult Constraint))
+             -- ^ (this frame's constraint solutions, this frame's constraints)
 applyCachedSlns beh dt kContacts oldLagrangians world = do
   lagrangians <- MV.new contactCount
   constraints <- MV.new contactCount
