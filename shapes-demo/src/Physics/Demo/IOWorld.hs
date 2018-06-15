@@ -41,7 +41,7 @@ import           Physics.Engine
 import qualified Physics.Engine.Main        as OM
 import           Physics.Scenes.Scene
 import           Physics.World
-import           Physics.World.Object
+import qualified Physics.Solvers.Contact as S
 
 import           Utils.Descending
 import           Utils.Utils
@@ -52,13 +52,13 @@ convertEngineT :: OM.EngineST () RealWorld a -> DemoM a
 convertEngineT action =
   ReaderT (\config -> StateT (\state -> stToIO $ runStateT (runReaderT action config) state))
 
-runDemo :: Scene () -> DemoM a -> IO a
+runDemo :: Scene RealWorld () -> DemoM a -> IO a
 runDemo scene@Scene{..} action = do
   eState <- liftIO . stToIO $ OM.initEngine scene
   evalStateT (runReaderT action eConfig) eState
   where eConfig = OM.EngineConfig 0.01 _scContactBeh
 
-resetEngine :: Scene () -> DemoM ()
+resetEngine :: Scene RealWorld () -> DemoM ()
 resetEngine scene =
   convertEngineT $ OM.changeScene scene
 
@@ -67,24 +67,26 @@ drawWorld r vt = do
   world <- demoWorld
   liftIO $ D.drawWorld r vt world
 
-demoWorld :: DemoM (World ())
+demoWorld :: DemoM (World RealWorld ())
 demoWorld = view _1 <$> get
 
 worldContacts :: DemoM [Contact]
 worldContacts = do
   world <- demoWorld
-  let cs :: Descending Contact'
-      cs = fmap (flipExtractUnsafe . snd) . join $ generateContacts <$> culledPairs
-      pairKeys = G.culledKeys (G.toGrid OM.gridAxes world)
-      culledPairs = fmap f pairKeys
-      f :: (Int, Int) -> (Shape, Shape)
-      f ij = fromJust $ iixView (\k -> wObj k . woShape) ij world
-  return . _descList $ toCanonical <$> cs
+  keys <- lifty $ G.culledKeys <$> G.toGrid OM.gridAxes world
+  contacts_ <- lifty $ S.prepareFrame keys world
+  let contacts :: Descending Contact'
+      contacts = fmap (flipExtractUnsafe . snd) contacts_
+  return . _descList $ toCanonical <$> contacts
+
+lifty :: (MonadIO m) => ST RealWorld a -> m a
+lifty = liftIO . stToIO
 
 worldAabbs :: DemoM [Aabb]
 worldAabbs = do
   world <- demoWorld
-  return $ toCanonical . snd <$> V.toList (B.toAabbs world)
+  aabbs <- lifty $ B.toAabbs world
+  return $ toCanonical . snd <$> V.toList aabbs
 
 debugEngineState :: DemoM String
 debugEngineState = return "<insert debug trace here>"
@@ -109,7 +111,8 @@ initialState i = DemoState False i True False
 
 nextInitialState :: DemoState -> Int -> DemoM DemoState
 nextInitialState DemoState{..} i = do
-  resetEngine (scenes !! i)
+  scene <- lifty $ scenes i
+  resetEngine scene
   return $ initialState i _demoViewTransform
     & demoDrawDebug .~ _demoDrawDebug
     & demoPrintDebug .~ _demoPrintDebug
@@ -174,7 +177,6 @@ handleKeypress state KC.ScancodeN km
     nextInitialState state $
     (state ^. demoSceneIndex + 1)
     `mod` sceneCount
-  where sceneCount = length scenes
 handleKeypress state KC.ScancodeD _ =
   return $ state & demoDrawDebug %~ not
 handleKeypress state KC.ScancodeP _ =
@@ -185,4 +187,5 @@ demoMain :: V2 Double -> V2 Double -> R.Renderer -> IO ()
 demoMain window scale r = do
   t0 <- T.ticks
   let demo = timedRunUntil t0 timeStep (initialState 0 $ getViewTransform window scale) _demoFinished (\s _ -> demoStep r s)
-  runDemo (head scenes) demo
+  scene <- lifty $ scenes 0
+  runDemo scene demo
