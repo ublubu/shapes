@@ -32,7 +32,8 @@ import qualified Physics.Broadphase.Aabb    as B
 import qualified Physics.Broadphase.Grid    as G
 import           Physics.Contact
 import           Physics.Contact.ConvexHull
-import           Physics.Contact.Types
+import           Physics.Contact.Types      (ContactBehavior (..))
+import qualified Physics.Contact.Types      as C
 import           Physics.Demo.Scenes
 import           Physics.Draw
 import           Physics.Draw.Canonical
@@ -75,7 +76,7 @@ worldContacts = do
   world <- demoWorld
   keys <- lifty $ G.culledKeys <$> G.toGrid OM.gridAxes world
   contacts_ <- lifty $ S.prepareFrame keys world
-  let contacts :: Descending Contact'
+  let contacts :: Descending C.Contact
       contacts = fmap (flipExtractUnsafe . snd) contacts_
   return . _descList $ toCanonical <$> contacts
 

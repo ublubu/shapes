@@ -19,7 +19,7 @@ import           Physics.Contact.Types
 
 import           Utils.Utils
 
-type ContactConstraintGen a = Flipping Contact' -> (a, a) -> Constraint
+type ContactConstraintGen a = Flipping Contact -> (a, a) -> Constraint
 
 {- |
 Used by "solution processors", which take a cached solution and a new solution

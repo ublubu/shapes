@@ -21,7 +21,7 @@ data Shape = HullShape ConvexHull | CircleShape Circle
 
 generateContacts ::
   (Shape, Shape)
-  -> Descending ((Int, Int), Flipping Contact')
+  -> Descending ((Int, Int), Flipping Contact)
 generateContacts (CircleShape a, CircleShape b) =
   Descending $
   case CC.generateContacts a b of

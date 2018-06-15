@@ -10,9 +10,10 @@
 
 module Physics.Contact.Circle where
 
-import           GHC.Generics    (Generic)
+import           GHC.Generics          (Generic)
 
 import           Control.DeepSeq
+import           Physics.Contact.Types
 import           Physics.Linear
 
 data Circle = Circle
@@ -22,13 +23,6 @@ data Circle = Circle
 
 circleWithRadius :: Double -> Circle
 circleWithRadius = Circle (P2 (V2 0.0## 0.0##))
-
--- TODO: use the same type as Physics.Contact
-data Contact = Contact
-  { _contactCenter :: !P2
-  , _contactDepth  :: !Double
-  , _contactNormal :: !V2
-  } deriving (Show, Generic, NFData)
 
 {- |
 The normal points out of the "penetrated" circle.

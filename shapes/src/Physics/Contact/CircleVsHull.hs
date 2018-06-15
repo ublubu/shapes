@@ -15,39 +15,39 @@ import           Physics.Linear
 import           Utils.Utils
 
 -- | There's only one contact point between a circle and a convex hull.
-generateContacts :: Circle -> ConvexHull -> Maybe (Int, Contact')
+generateContacts :: Circle -> ConvexHull -> Maybe (Int, Contact)
   -- ^ (hull feature index, contact manifold) -- circle is always the penetrator
 generateContacts circle@Circle {..} hull = convertSimplex circle simplex
   where
     simplex = closestSimplex hull _circleCenter
 
 -- TODO: handle the "deep overlap" case (3-point simplex)
-convertSimplex :: Circle -> Simplex -> Maybe (Int, Contact')
+convertSimplex :: Circle -> Simplex -> Maybe (Int, Contact)
 convertSimplex circle (Simplex' simplex) = convertSimplex12 circle simplex
 convertSimplex _ (Simplex3' _)           = Nothing
 
-convertSimplex12 :: Circle -> Simplex12 -> Maybe (Int, Contact')
+convertSimplex12 :: Circle -> Simplex12 -> Maybe (Int, Contact)
 convertSimplex12 circle = either (processSimplex1 circle) (processSimplex2 circle)
 
-processSimplex1 :: Circle -> Simplex1 -> Maybe (Int, Contact')
+processSimplex1 :: Circle -> Simplex1 -> Maybe (Int, Contact)
 processSimplex1 circle (Simplex1 aa) =
   (_neighborhoodIndex aa, ) <$> processSimplex_ circle (_neighborhoodCenter aa)
 
-processSimplex2 :: Circle -> Simplex2 -> Maybe (Int, Contact')
+processSimplex2 :: Circle -> Simplex2 -> Maybe (Int, Contact)
 processSimplex2 circle@Circle {..} simplex@(Simplex2 feature _) =
   (_neighborhoodIndex feature, ) <$> processSimplex_ circle a
   where
     a = _circleCenter `closestAlong` simplex
 
-processSimplex_ :: Circle -> P2 -> Maybe Contact'
+processSimplex_ :: Circle -> P2 -> Maybe Contact
 processSimplex_ Circle {..} a
   | sqRadius < abSq = Nothing -- distance greater than circle radius
   | otherwise =
     Just
-      Contact'
-      { _contactEdgeNormal' = negateV2 normal
-      , _contactPenetrator' = a
-      , _contactDepth' = _circleRadius - abLength
+      Contact
+      { _contactNormal = negateV2 normal
+      , _contactCenter = a
+      , _contactDepth = _circleRadius - abLength
       }
   where
     b = _circleCenter

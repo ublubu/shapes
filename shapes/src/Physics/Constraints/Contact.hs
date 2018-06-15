@@ -48,7 +48,7 @@ derivingUnbox
 keyedContacts ::
      (k, k)
   -> (Shape, Shape)
-  -> Descending (ObjectFeatureKey k, Flipping Contact')
+  -> Descending (ObjectFeatureKey k, Flipping Contact)
 keyedContacts ij ab = fmap f contacts
   where contacts = generateContacts ab
         f (featKeys, contact) = (ObjectFeatureKey ij featKeys, contact)
@@ -59,7 +59,7 @@ keyedContacts ij ab = fmap f contacts
 constraintGen ::
      ContactBehavior
   -> Double
-  -> Flipping Contact'
+  -> Flipping Contact
   -> (PhysicalObj, PhysicalObj)
   -> ContactResult Constraint
 constraintGen beh dt fContact ab =

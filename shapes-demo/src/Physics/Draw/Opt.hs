@@ -21,7 +21,6 @@ import qualified Physics.Broadphase.Aabb    as B
 import           Physics.Contact            (Shape (..))
 import           Physics.Contact.Circle     (Circle (..))
 import           Physics.Contact.ConvexHull
-import qualified Physics.Contact.SAT        as O
 import qualified Physics.Contact.Types      as O
 import           Physics.Draw
 import           Physics.Linear
@@ -39,35 +38,10 @@ instance ToCanonical P2 where
   type Canonical P2 = P2'
   toCanonical = toLP2
 
-instance ToCanonical O.ContactPoints where
-  type Canonical O.ContactPoints = ContactPoints
-  toCanonical =
-    mapBoth f (fromSP . spMap f)
-    where f = toCanonical . _neighborhoodCenter
-
 instance ToCanonical O.Contact where
   type Canonical O.Contact = Contact
-  toCanonical O.Contact{..} =
-    Contact
-    (toCanonical _contactPenetrator)
-    (toCanonical . _neighborhoodUnitNormal $ _contactEdge)
-
-instance ToCanonical O.Contact' where
-  type Canonical O.Contact' = Contact
-  toCanonical O.Contact'{..} =
-    Contact
-    (Left . toCanonical $ _contactPenetrator')
-    (toCanonical _contactEdgeNormal')
-
-instance ToCanonical O.Overlap where
-  type Canonical O.Overlap = Overlap
-  toCanonical O.Overlap{..} =
-    Overlap (e0, e1) depth pen
-    where e0 = toCanonical $ _neighborhoodCenter _overlapEdge
-          e1 = toCanonical . _neighborhoodCenter . _neighborhoodNext $ _overlapEdge
-          n = toCanonical $ _neighborhoodUnitNormal _overlapEdge
-          depth = fmap (*(-_overlapDepth)) n
-          pen = toCanonical $ _neighborhoodCenter _overlapPenetrator
+  toCanonical O.Contact {..} =
+    Contact (Left . toCanonical $ _contactCenter) (toCanonical _contactNormal)
 
 instance ToCanonical ConvexHull where
   type Canonical ConvexHull = Polygon
