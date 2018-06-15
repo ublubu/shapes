@@ -79,9 +79,9 @@ culledKeys Grid{..} = Descending . uniq . sortBy f . concat $ culledKeys' <$> IM
 
 culledKeys' :: IM.IntMap TaggedAabb -> [(Int, Int)]
 culledKeys' square = mapMaybe colliding $ allPairs $ IM.toDescList square
-  where colliding ((_, (TaggedAabb True _)), (_, (TaggedAabb True _))) = Nothing
+  where colliding ((_, TaggedAabb True _), (_, TaggedAabb True _)) = Nothing
         -- ^ Don't check two static shapes for collision.
-        colliding ((a, (TaggedAabb _ boxA)), (b, (TaggedAabb _ boxB)))
+        colliding ((a, TaggedAabb _ boxA), (b, TaggedAabb _ boxB))
           | aabbCheck boxA boxB = Just (a, b)
           | otherwise = Nothing
 
@@ -94,7 +94,7 @@ allPairs (x:xs) = f [] x xs
 
 uniq :: Eq a => [a] -> [a]
 uniq [] = []
-uniq (x:[]) = [x]
+uniq [x] = [x]
 uniq (x:y:rest)
   | x == y = uniq (x:rest)
   | otherwise = x : uniq (y:rest)

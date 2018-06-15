@@ -43,12 +43,12 @@ processSimplex_ :: Circle -> P2 -> Maybe Contact'
 processSimplex_ Circle {..} a
   | sqRadius < abSq = Nothing -- distance greater than circle radius
   | otherwise =
-    Just $
-    Contact'
-    { _contactEdgeNormal' = negateV2 normal
-    , _contactPenetrator' = a
-    , _contactDepth' = _circleRadius - abLength
-    }
+    Just
+      Contact'
+      { _contactEdgeNormal' = negateV2 normal
+      , _contactPenetrator' = a
+      , _contactDepth' = _circleRadius - abLength
+      }
   where
     b = _circleCenter
     sqRadius = _circleRadius * _circleRadius

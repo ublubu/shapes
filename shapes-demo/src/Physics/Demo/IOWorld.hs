@@ -21,7 +21,7 @@ import           Linear.Matrix              (M33)
 import           Linear.V2
 
 import           EasySDL.Draw
-import           GameLoop                   hiding (testStep)
+import           GameLoop
 import qualified SDL.Event                  as E
 import qualified SDL.Input.Keyboard         as K
 import qualified SDL.Input.Keyboard.Codes   as KC
@@ -40,8 +40,8 @@ import qualified Physics.Draw.Opt           as D
 import           Physics.Engine
 import qualified Physics.Engine.Main        as OM
 import           Physics.Scenes.Scene
+import qualified Physics.Solvers.Contact    as S
 import           Physics.World
-import qualified Physics.Solvers.Contact as S
 
 import           Utils.Descending
 import           Utils.Utils
@@ -50,7 +50,7 @@ type DemoM = ReaderT OM.EngineConfig (StateT (OM.EngineState () RealWorld) IO)
 
 convertEngineT :: OM.EngineST () RealWorld a -> DemoM a
 convertEngineT action =
-  ReaderT (\config -> StateT (\state -> stToIO $ runStateT (runReaderT action config) state))
+  ReaderT (\config -> StateT (stToIO . runStateT (runReaderT action config)))
 
 runDemo :: Scene RealWorld () -> DemoM a -> IO a
 runDemo scene@Scene{..} action = do

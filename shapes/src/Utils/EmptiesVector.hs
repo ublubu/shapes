@@ -2,11 +2,11 @@
 
 module Utils.EmptiesVector where
 
-import           Prelude                     hiding (length, map, mapM, mapM_,
-                                              read)
+import           Prelude                     hiding (length, read)
 import qualified Prelude                     as P
 
 import           Control.Monad.ST
+import           Control.Monad (when)
 import           Data.Monoid
 import           Data.STRef
 import qualified Data.Vector.Unboxed.Mutable as V
@@ -95,7 +95,8 @@ read EmptiesVector {..} i = do
 validate :: EmptiesVector s -> ST s ()
 validate EmptiesVector {..} = do
   empties <-
-    (P.length . filter (/= sentinel)) <$> P.mapM (V.read _evVector) [0 .. (n - 1)]
+    (P.length . filter (/= sentinel)) <$>
+    P.mapM (V.read _evVector) [0 .. (n - 1)]
   emptyHead <- readSTRef _evEmptyHead
   let loop emptyHead =
         if emptyHead == n
@@ -107,12 +108,11 @@ validate EmptiesVector {..} = do
                    "empty slot points to filled slot i=" <> show emptyHead
               else (1 +) <$> loop emptyHead'
   empties' <- loop emptyHead
-  if empties /= empties'
-    then error $
-         "stack contains " <> show empties' <> " slots, but there are " <>
-         show empties <>
-         " empty slots"
-    else return ()
+  when (empties /= empties') $
+    error $
+    "stack contains " <> show empties' <> " slots, but there are " <>
+    show empties <>
+    " empty slots"
   where
     n = V.length _evVector
 
@@ -130,9 +130,7 @@ mapM_ f_ empties = P.mapM_ f [0 .. (length empties - 1)]
   where
     f i = do
       nonempty <- read empties i
-      if nonempty
-        then f_ i
-        else return ()
+      when nonempty $ f_ i
 
 -- | Fold the indices of filled slots into a single value.
 foldM :: (b -> Int -> ST s b) -> b -> EmptiesVector s -> ST s b
@@ -159,5 +157,5 @@ mapM f_ empties = do
         val <- f_ empties_i
         V.write vec vec_i val
         return $ vec_i + 1
-  foldM f 0 empties
+  _ <- foldM f 0 empties
   return vec

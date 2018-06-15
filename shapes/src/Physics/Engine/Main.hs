@@ -58,8 +58,8 @@ wrapUpdater constraints f = do
   lift . lift $ f cache constraints world
 
 wrapInitializer ::
-     (EngineCache s -> (World s label) -> ST s ( EngineCache s
-                                               , V.Vector (ContactResult Constraint)))
+     (EngineCache s -> World s label -> ST s ( EngineCache s
+                                             , V.Vector (ContactResult Constraint)))
   -> EngineST label s (V.Vector (ContactResult Constraint))
 wrapInitializer f = do
   (world, cache, externals) <- get

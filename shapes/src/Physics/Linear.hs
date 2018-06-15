@@ -304,7 +304,7 @@ lApplyClip :: ASetter' s a
   -- ^ lens to access the "point" data to apply the clipping
   -> ClipResult a
   -- ^ clipping
-  -> (SP s s)
+  -> SP s s
   -- ^ line segment with endpoints that contain "point" data
   -> Either s (SP s s)
 lApplyClip l res (SP a b) = case res of
@@ -315,7 +315,7 @@ lApplyClip l res (SP a b) = case res of
 {-# INLINE lApplyClip #-}
 
 -- | Alternate form of 'lApplyClip'. If the entire segment was behind the bound, use 'Nothing'.
-lApplyClip' :: ASetter' s a -> ClipResult a -> (SP s s) -> Maybe (SP s s)
+lApplyClip' :: ASetter' s a -> ClipResult a -> SP s s -> Maybe (SP s s)
 lApplyClip' _ (ClipBoth _) _ = Nothing -- redundant definition
 lApplyClip' l res seg = either (const Nothing) Just (lApplyClip l res seg)
 {-# INLINE lApplyClip' #-}

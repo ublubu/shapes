@@ -1,5 +1,3 @@
-{-# LANGUAGE MagicHash #-}
-
 module Physics.Broadphase.Benchmark where
 
 import           Control.Monad.ST
@@ -72,5 +70,4 @@ benchy = [ bench "brute-force broadphase" $ nfIO (stToIO bench0)
          ]
 
 main :: IO ()
-main = do
-  defaultMain benchy
+main = defaultMain benchy

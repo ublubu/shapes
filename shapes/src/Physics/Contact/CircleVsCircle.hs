@@ -1,6 +1,4 @@
-{-# LANGUAGE MagicHash       #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE TupleSections   #-}
 
 module Physics.Contact.CircleVsCircle where
 

@@ -95,7 +95,7 @@ data LocalT b = LocalT !WorldTransform !b deriving Show
 type LV2 = LocalT V2
 type LP2 = LocalT P2
 
-data WorldT a = WorldT !a deriving (Show, Eq)
+newtype WorldT a = WorldT a deriving (Show, Eq)
 type WV2 = WorldT V2
 type WP2 = WorldT P2
 

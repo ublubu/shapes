@@ -24,7 +24,7 @@ import           GHC.Prim                     (Double#, (/##), (==##))
 import           GHC.Types                    (Double (D#), isTrue#)
 
 import           Control.DeepSeq
-import           Control.Lens                 hiding (transform)
+import           Control.Lens
 import           Data.Vector.Unboxed.Deriving
 
 import           Physics.Constraint.Types

@@ -96,7 +96,7 @@ afdot a b = view _Point a `dot` b
 afdot' :: (Num a) => Diff V2 a -> P2 a -> a
 afdot' = flip afdot
 
-data Diag6 a = Diag6 (V6 a)
+newtype Diag6 a = Diag6 (V6 a)
 
 toDiag6 :: [a] -> Diag6 a
 toDiag6 = Diag6 . listToV

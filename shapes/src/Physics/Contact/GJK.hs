@@ -39,8 +39,8 @@ data Simplex2 =
   Simplex2 !Neighborhood
            !Neighborhood
   deriving (Show)
-data Simplex1 =
-  Simplex1 !Neighborhood
+newtype Simplex1 =
+  Simplex1 Neighborhood
   deriving (Show)
 type Simplex12 = Either Simplex1 Simplex2
 type Simplex23 = Either Simplex2 Simplex3
