@@ -9,6 +9,7 @@ module Physics.Engine (module Physics.Engine, ContactBehavior(..), makeWorldObj)
 
 import           GHC.Types                  (Double (D#))
 
+import           Control.Monad.ST
 import           Physics.Constraint         (PhysicalObj (..), toInvMass2)
 import           Physics.Contact            (Shape (..))
 import           Physics.Contact.Circle     (circleWithRadius)
@@ -16,9 +17,9 @@ import           Physics.Contact.ConvexHull (ConvexHull, listToHull,
                                              rectangleHull)
 import           Physics.Contact.Types      (ContactBehavior (..))
 import           Physics.Linear             (P2 (..), V2 (..))
-import           Physics.World              (World, fromList, External)
+import           Physics.World              (External, World, WorldObj,
+                                             fromList, makeWorldObj)
 import           Physics.World.External     (constantAccel)
-import           Physics.World.Object       (WorldObj, makeWorldObj)
 
 pairToV2 :: (Double, Double) -> V2
 pairToV2 (D# x, D# y) = V2 x y
@@ -38,7 +39,7 @@ makePhysicalObj :: (Double, Double)
 makePhysicalObj vel rotvel pos rotpos =
   PhysicalObj (pairToV2 vel) rotvel (pairToV2 pos) rotpos . toInvMass2
 
-makeWorld :: [WorldObj usr] -> World usr
+makeWorld :: [WorldObj label] -> ST s (World s label)
 makeWorld = fromList
 
 makeConstantAccel :: (Double, Double) -> External

@@ -8,12 +8,11 @@ module Physics.Scenes.Scene where
 
 import Control.Lens
 import Physics.World
-import Physics.World.Object
 import Physics.Contact.Types
 
-data Scene usr =
-  Scene { _scWorld :: World usr
-        , _scExts :: [External]
+data Scene s label =
+  Scene { _scWorld :: World s label
+        , _scExts :: External
         , _scContactBeh :: ContactBehavior
         }
 makeLenses ''Scene

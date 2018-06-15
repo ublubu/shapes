@@ -11,24 +11,24 @@ import           GHC.Types                  (Double (D#))
 import           Physics.Draw.Canonical
 
 import           Control.Lens               (sequenceOf_, (^.))
+import           Control.Monad.ST
 import           Data.Array                 (elems)
 import           Data.Either.Combinators
-
+import qualified Data.Vector.Mutable        as V
 import qualified Linear.Matrix              as L
 import qualified Linear.V2                  as L
-import           Physics.Draw
-import qualified SDL.Video.Renderer         as R
-
 import qualified Physics.Broadphase.Aabb    as B
 import           Physics.Contact            (Shape (..))
 import           Physics.Contact.Circle     (Circle (..))
 import           Physics.Contact.ConvexHull
 import qualified Physics.Contact.SAT        as O
 import qualified Physics.Contact.Types      as O
+import           Physics.Draw
 import           Physics.Linear
 import           Physics.Linear.Convert
-import           Physics.World              (World (..), worldObjs)
-import           Physics.World.Object       (WorldObj (..))
+import           Physics.World              (World (..))
+import qualified SDL.Video.Renderer         as R
+import qualified Utils.EmptiesVector        as E
 import           Utils.Utils
 
 instance ToCanonical V2 where
@@ -94,5 +94,11 @@ drawObj r viewtrans (HullShape hull) =
 drawObj r viewtrans (CircleShape circle) =
   drawPolygon r (transform viewtrans . toCanonical $ circle)
 
-drawWorld :: R.Renderer -> L.M33 Double -> World () -> IO ()
-drawWorld r vt w = sequenceOf_ traverse (fmap (drawObj r vt . _worldShape) (w ^. worldObjs))
+drawWorld :: R.Renderer -> L.M33 Double -> World RealWorld () -> IO ()
+drawWorld r vt World {..} = do
+  shapes <- stToIO $ E.foldM f [] _wEmpties
+  mapM_ (drawObj r vt) shapes
+  where
+    f shapes i = do
+      shape <- V.read _wShapes i
+      return $ shape : shapes

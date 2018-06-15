@@ -25,82 +25,73 @@ import           Physics.Constraints.Types
 import           Physics.Contact.Types       (ContactBehavior)
 import           Physics.Solvers.Contact
 import           Physics.World
-import           Physics.World.Object
 
 import           Physics.Engine
 import           Physics.Scenes.Scene
 
 type EngineCache s = V.MVector s (ObjectFeatureKey Int, ContactResult Lagrangian)
-type EngineState usr s = (World usr, EngineCache s, [External])
+type EngineState label s = (World s label, EngineCache s, External)
 data EngineConfig =
   EngineConfig { _engineTimestep   :: Double
                , _engineContactBeh :: ContactBehavior
                } deriving Show
-type EngineST usr s = ReaderT EngineConfig (StateT (EngineState usr s) (ST s))
+type EngineST label s = ReaderT EngineConfig (StateT (EngineState label s) (ST s))
 
 gridAxes :: (G.GridAxis, G.GridAxis)
 gridAxes = (G.GridAxis 20 1 (-10), G.GridAxis 20 1 (-10))
 
-initEngine :: Scene usr -> ST s (EngineState usr s)
+initEngine :: Scene s label -> ST s (EngineState label s)
 initEngine Scene{..} = do
   cache <- MV.new 0
   return (_scWorld, cache, _scExts)
 
-changeScene :: Scene usr -> EngineST usr s ()
+changeScene :: Scene s label -> EngineST label s ()
 changeScene scene = do
   eState <- lift . lift $ initEngine scene
   put eState
 
--- TODO: can I do this with _1?
 wrapUpdater :: V.Vector (ContactResult Constraint)
-            -> (EngineCache s -> V.Vector (ContactResult Constraint) -> World usr -> ST s (World usr))
-            -> EngineST usr s ()
+            -> (EngineCache s -> V.Vector (ContactResult Constraint) -> World s label -> ST s ())
+            -> EngineST label s ()
 wrapUpdater constraints f = do
   (world, cache, externals) <- get
-  world' <- lift . lift $ f cache constraints world
-  put (world', cache, externals)
-
-wrapUpdater' :: (World usr -> ST s (World usr)) -> EngineST usr s (World usr)
-wrapUpdater' f = do
-  (world, cache, externals) <- get
-  world' <- lift . lift $ f world
-  put (world', cache, externals)
-  return world'
+  lift . lift $ f cache constraints world
 
 wrapInitializer ::
-     (EngineCache s -> (World usr) -> ST s ( EngineCache s
-                                            , V.Vector (ContactResult Constraint)
-                                            , (World usr)))
-  -> EngineST usr s (V.Vector (ContactResult Constraint))
+     (EngineCache s -> (World s label) -> ST s ( EngineCache s
+                                               , V.Vector (ContactResult Constraint)))
+  -> EngineST label s (V.Vector (ContactResult Constraint))
 wrapInitializer f = do
   (world, cache, externals) <- get
-  (cache', constraints, world') <- lift . lift $ f cache world
-  put (world', cache', externals)
+  (cache', constraints) <- lift . lift $ f cache world
+  put (world, cache', externals)
   return constraints
 
-updateWorld :: EngineST usr s (World usr)
+updateWorld :: EngineST label s ()
 updateWorld = do
-  EngineConfig{..} <- ask
+  EngineConfig {..} <- ask
   (world, _, exts) <- get
-  let keys = G.culledKeys (G.toGrid gridAxes world)
-      kContacts = prepareFrame keys world
-  void . wrapUpdater' $ return . wApplyExternals exts _engineTimestep
-  constraints <- wrapInitializer $ applyCachedSlns _engineContactBeh _engineTimestep kContacts
+  keys <- lifty $ G.culledKeys <$> G.toGrid gridAxes world
+  lifty $ applyExternal exts _engineTimestep world
+  kContacts <- lifty $ prepareFrame keys world
+  constraints <-
+    wrapInitializer $
+    applyCachedSlns _engineContactBeh _engineTimestep kContacts
   wrapUpdater constraints $ improveWorld solutionProcessor kContacts
   wrapUpdater constraints $ improveWorld solutionProcessor kContacts
-  void . wrapUpdater' $ return . wAdvance _engineTimestep
-  wrapUpdater' $ return . over worldObjs (fmap woUpdateShape)
+  lifty $ advance _engineTimestep world
+  lifty $ moveShapes world
+  where
+    lifty = lift . lift
 
-stepWorld :: Int -> EngineST usr s (World usr)
-stepWorld steps = do
-  replicateM_ steps updateWorld
-  view _1 <$> get
+stepWorld :: Int -> EngineST label s ()
+stepWorld steps = replicateM_ steps updateWorld
 
-runEngineST :: Double -> Scene usr -> (forall s. EngineST usr s b) -> b
-runEngineST dt scene@Scene{..} action = runST $ do
+runEngine :: Double -> Scene s label -> EngineST label s b -> ST s b
+runEngine dt scene@Scene{..} action = do
   state' <- initEngine scene
   evalStateT (runReaderT action engineConfig) state'
   where engineConfig = EngineConfig dt _scContactBeh
 
-runWorld :: Double -> Scene usr -> Int -> (World usr)
-runWorld dt scene steps = runEngineST dt scene $ stepWorld steps
+runWorld :: Double -> Scene s label -> Int -> ST s ()
+runWorld dt scene steps = runEngine dt scene $ stepWorld steps

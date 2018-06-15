@@ -15,6 +15,7 @@ module Physics.Broadphase.Grid where
 import           GHC.Generics                 (Generic)
 import           GHC.Types                    (Double (D#))
 
+import Control.Monad.ST
 import           Control.DeepSeq
 import           Control.Lens
 import           Data.Foldable                (foldl')
@@ -29,7 +30,6 @@ import           Physics.Broadphase.Aabb      (Aabb (..), Bounds (..),
 import qualified Physics.Constraint           as C
 import           Physics.Contact.ConvexHull
 import           Physics.World
-import           Physics.World.Object
 import           Utils.Descending
 import           Utils.Utils
 
@@ -64,10 +64,12 @@ data TaggedAabb = TaggedAabb
 makeLenses ''Grid
 makeLenses ''GridAxis
 
-toGrid :: (GridAxis, GridAxis) -> World usr -> Grid
-toGrid axes@(xAxis, yAxis) w = Grid (fromTaggedAabbs axes taggedAabbs) xAxis yAxis
-  where taggedAabbs = toTaggedAabbs isStatic w
-        isStatic WorldObj{..} = C.isStatic $ C._physObjInvMass _worldPhysObj
+toGrid :: (GridAxis, GridAxis) -> World s label -> ST s Grid
+toGrid axes@(xAxis, yAxis) world = do
+  taggedAabbs <- toTaggedAabbs isStatic world
+  return $ Grid (fromTaggedAabbs axes taggedAabbs) xAxis yAxis
+  where
+    isStatic i = (C.isStatic . C._physObjInvMass) <$> readPhysObj world i
 
 culledKeys :: Grid -> Descending (Int, Int)
 culledKeys Grid{..} = Descending . uniq . sortBy f . concat $ culledKeys' <$> IM.elems _gridSquares

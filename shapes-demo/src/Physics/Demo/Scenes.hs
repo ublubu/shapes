@@ -1,8 +1,7 @@
 {-# LANGUAGE TypeFamilies #-}
 module Physics.Demo.Scenes where
 
-import           Data.Proxy
-
+import           Control.Monad.ST
 import           Physics.Scenes.Scene
 import           Utils.Utils                       (posMod)
 
@@ -12,8 +11,8 @@ import qualified Physics.Scenes.Rolling            as S2
 import qualified Physics.Scenes.Stacks             as S3
 import qualified Physics.Scenes.TwoFlyingBoxes     as S0
 
-scenes :: [Scene ()]
-scenes =
+scenes_ :: [ST s (Scene s ())]
+scenes_ =
   [ S4.makeScene (10, 10) 1 1 ()
   , S4.makeScene' (30, 30) 0.2 1 ()
   , S3.makeScene (30, 30) 1 ()
@@ -29,6 +28,13 @@ scenes =
   , S4.twoCircles () ()
   ]
 
-nextScene :: Int -> [a] -> (Int, a)
-nextScene i ss = (i', ss !! i')
-  where i' = posMod (i + 1) (length ss)
+sceneCount = length scenes_
+
+scenes :: Int -> ST s (Scene s ())
+scenes i = scenes_ !! i
+
+nextScene :: Int -> ST s (Int, Scene s ())
+nextScene i = do
+  s <- scenes i'
+  return (i', s)
+  where i' = posMod (i + 1) sceneCount

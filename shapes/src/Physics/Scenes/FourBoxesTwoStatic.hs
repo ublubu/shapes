@@ -1,11 +1,11 @@
 module Physics.Scenes.FourBoxesTwoStatic where
 
+import           Control.Monad.ST
 import           Physics.Constraint
 import           Physics.Contact.Types
 import           Physics.Engine
 import           Physics.Scenes.Scene
 import           Physics.World
-import           Physics.World.Object
 
 boxA :: PhysicalObj
 boxA = makePhysicalObj (1, 0) 0 (-5, 0) 0 (2, 1)
@@ -22,55 +22,59 @@ boxD = makePhysicalObj (0, 0) 0 (-5, -4) 0 (1, 0)
 staticBoxD :: PhysicalObj
 staticBoxD = makePhysicalObj (0, 0) 0 (-5, -4) 0 (0, 0)
 
-boxA' :: usr -> WorldObj usr
+boxA' :: label -> WorldObj label
 boxA' = makeWorldObj boxA 0.2 $ makeRectangleHull 4 4
 
-boxB' :: usr -> WorldObj usr
+boxB' :: label -> WorldObj label
 boxB' = makeWorldObj boxB 0.2 $ makeRectangleHull 2 2
 
-boxC' :: usr -> WorldObj usr
+boxC' :: label -> WorldObj label
 boxC' = makeWorldObj boxC 0.2 $ makeRectangleHull 18 1
 
-boxD' :: usr -> WorldObj usr
+boxD' :: label -> WorldObj label
 boxD' = makeWorldObj boxD 0.2 $ makeRectangleHull 0.4 3
 
-staticBoxD' :: usr -> WorldObj usr
+staticBoxD' :: label -> WorldObj label
 staticBoxD' = makeWorldObj staticBoxD 0.2 $ makeRectangleHull 0.4 3
 
 world
-  :: usr
-  -> usr
-  -> usr
-  -> usr
-  -> World usr
+  :: label
+  -> label
+  -> label
+  -> label
+  -> ST s (World s label)
 world a b c d = makeWorld [boxA' a, boxB' b, boxC' c, boxD' d]
 
 world'
-  :: usr
-  -> usr
-  -> usr
-  -> usr
-  -> World usr
+  :: label
+  -> label
+  -> label
+  -> label
+  -> ST s (World s label)
 world' a b c d = makeWorld [boxA' a, boxB' b, boxC' c, staticBoxD' d]
 
-externals :: [External]
-externals = [makeConstantAccel (0, -2)]
+externals :: External
+externals = makeConstantAccel (0, -2)
 
 contactBehavior :: ContactBehavior
 contactBehavior = ContactBehavior 0.01 0.02
 
 scene
-  :: usr
-  -> usr
-  -> usr
-  -> usr
-  -> Scene usr
-scene a b c d = Scene (world a b c d) externals contactBehavior
+  :: label
+  -> label
+  -> label
+  -> label
+  -> ST s (Scene s label)
+scene a b c d = do
+  w <- world a b c d
+  return $ Scene w externals contactBehavior
 
 scene'
-  :: usr
-  -> usr
-  -> usr
-  -> usr
-  -> Scene usr
-scene' a b c d = Scene (world' a b c d) externals contactBehavior
+  :: label
+  -> label
+  -> label
+  -> label
+  -> ST s (Scene s label)
+scene' a b c d = do
+  w <- world' a b c d
+  return $ Scene w externals contactBehavior
