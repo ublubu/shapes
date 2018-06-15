@@ -21,7 +21,7 @@ bench0 = do
   s <- Stacks.makeScene (30, 30) 0 ()
   OM.runWorld 0.01 s 10
 
--- | 228ms
+-- | 200ms
 main :: IO ()
 main = defaultMain [ bench "opt updateWorld 10" $ nfIO (stToIO bench0)]
 --main = BB.main

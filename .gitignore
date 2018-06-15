@@ -3,6 +3,7 @@
 *.sosrc
 *.prof
 *.prof.html
+report.html
 .stack-work
 dist
 result
