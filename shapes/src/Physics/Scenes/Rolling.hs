@@ -14,11 +14,11 @@ shapeB :: PhysicalObj
 shapeB = makePhysicalObj (0, 0) (-3) (-7, 12) 0 (1, 0.5)
 
 shapeA' :: label -> WorldObj label
-shapeA' = makeWorldObj shapeA 0.5 $ makeHull [(9, -0.5), (-9, 10), (-9, -0.5)]
+shapeA' = makeWorldObj shapeA 0.5 0 $ makeHull [(9, -0.5), (-9, 10), (-9, -0.5)]
 
 shapeB' :: label -> WorldObj label
 shapeB' =
-  makeWorldObj shapeB 0.5 $
+  makeWorldObj shapeB 0.5 0 $
   makeHull
     [(2, 1), (1, 2), (-1, 2), (-2, 1), (-2, -1), (-1, -2), (1, -2), (2, -1)]
 

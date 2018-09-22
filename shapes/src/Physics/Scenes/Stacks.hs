@@ -25,11 +25,11 @@ box' :: (Double, Double)
      -> label
      -> WorldObj label
 box' (w, h) center velocity =
-  makeWorldObj (box center velocity) 0.2 (makeRectangleHull w h)
+  makeWorldObj (box center velocity) 0.2 0 (makeRectangleHull w h)
 
 boxFloor' :: label -> WorldObj label
 boxFloor' =
-  makeWorldObj boxFloor 0.2 (makeRectangleHull 18 1)
+  makeWorldObj boxFloor 0.2 0 (makeRectangleHull 18 1)
 
 boxStack :: (Double, Double)
          -> (Double, Double)

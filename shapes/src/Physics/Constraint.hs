@@ -46,6 +46,7 @@ derivingUnbox "InvMass2"
   [| \InvMass2{..} -> (D# _imLin, D# _imRot) |]
   [| \(D# linMass, D# rotMass) -> InvMass2 linMass rotMass |]
 
+-- TODO: create a velocity-only type for the constraint solving step
 -- | The state of motion for a physical body.
 -- Rotation is measured in the Z direction (right-handed coordinates).
 data PhysicalObj = PhysicalObj { _physObjVel     :: !V2
@@ -86,11 +87,6 @@ toInvMass2 (D# ml, D# mr) = InvMass2 (invert ml) (invert mr)
 data Constraint = Constraint { _constraintJ :: !V6 -- ^ Jacobian - coordinate transform to the constraint space
                              , _constraintB :: !Double -- ^ extra term
                              } deriving Show
--- | Generates a constraint equation from a pair of objects
-type Constraint' p = (p, p) -> Constraint
--- | Are these two different motion states?
--- Used to determine whether the constraint solver has converged.
-type PhysObjChanged = PhysicalObj -> PhysicalObj -> Bool
 
 derivingUnbox "Constraint"
   [t| Constraint -> (V6, Double) |]

@@ -16,10 +16,10 @@ boxB :: PhysicalObj
 boxB = makePhysicalObj (-4, 0) 0 (5, 2) 0 (1, 0.5)
 
 boxA' :: label -> WorldObj label
-boxA' = makeWorldObj boxA 0.2 $ makeRectangleHull 4 4
+boxA' = makeWorldObj boxA 0.2 0 $ makeRectangleHull 4 4
 
 boxB' :: label -> WorldObj label
-boxB' = makeWorldObj boxB 0.2 $ makeRectangleHull 2 2
+boxB' = makeWorldObj boxB 0.2 0 $ makeRectangleHull 2 2
 
 world
   :: label

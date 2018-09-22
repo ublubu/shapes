@@ -33,13 +33,15 @@ import           Utils.Utils
 type External = Double -> PhysicalObj -> PhysicalObj
 
 data Material = Material
-  { _mMu :: Double
+  { _mMu     :: Double
+  , _mBounce :: Double
   } deriving (Show, Generic, NFData)
 
-derivingUnbox "Material"
-  [t|Material -> Double|]
-  [|\Material {..} -> _mMu|]
-  [|\mu -> Material {_mMu = mu}|]
+derivingUnbox
+  "Material"
+  [t|Material -> (Double, Double)|]
+  [|\Material {..} -> (_mMu, _mBounce)|]
+  [|\(mu, bounce) -> Material {_mMu = mu, _mBounce = bounce}|]
 
 data World s label = World
   { _wPhysObjs  :: U.MVector s PhysicalObj
@@ -137,12 +139,12 @@ moveShapes World {..} = E.mapM_ f _wEmpties
           physObj <- U.read _wPhysObjs i
           V.modify _wShapes (moveShape physObj) i
 
-makeWorldObj :: PhysicalObj -> Double -> Shape -> label -> WorldObj label
-makeWorldObj physObj mu shape label =
+makeWorldObj :: PhysicalObj -> Double -> Double -> Shape -> label -> WorldObj label
+makeWorldObj physObj mu bounce shape label =
   WorldObj
   { _woPhysObj = physObj
   , _woLabel = label
-  , _woMaterial = Material {_mMu = mu}
+  , _woMaterial = Material {_mMu = mu, _mBounce = bounce}
   , _woShape = moveShape physObj shape
   }
 
@@ -190,9 +192,8 @@ modifyPhysObjPair world f ij = do
   ab <- readPhysObjPair world ij
   updatePhysObjPair world ij (f ab)
 
--- TODO: change to readMaterialPair
-readMuPair :: World s label -> (Int, Int) -> ST s (Double, Double)
-readMuPair world (i, j) = do
-  u_i <- _mMu <$> readMaterial world i
-  u_j <- _mMu <$> readMaterial world j
-  return (u_i, u_j)
+readMaterialPair :: World s label -> (Int, Int) -> ST s (Material, Material)
+readMaterialPair world (i, j) = do
+  a <- readMaterial world i
+  b <- readMaterial world j
+  return (a, b)

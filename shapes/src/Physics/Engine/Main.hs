@@ -29,12 +29,12 @@ import           Physics.World
 import           Physics.Engine
 import           Physics.Scenes.Scene
 
-type EngineCache s = V.MVector s (ObjectFeatureKey Int, ContactResult Lagrangian)
+type EngineCache s = V.MVector s (ObjectFeatureKey Int, ContactLagrangian)
 type EngineState label s = (World s label, EngineCache s, External)
-data EngineConfig =
-  EngineConfig { _engineTimestep   :: Double
-               , _engineContactBeh :: ContactBehavior
-               } deriving Show
+data EngineConfig = EngineConfig
+  { _engineTimestep :: Double
+  , _engineContactBeh :: ContactBehavior
+  } deriving (Show)
 type EngineST label s = ReaderT EngineConfig (StateT (EngineState label s) (ST s))
 
 gridAxes :: (G.GridAxis, G.GridAxis)
@@ -50,17 +50,18 @@ changeScene scene = do
   eState <- lift . lift $ initEngine scene
   put eState
 
-wrapUpdater :: V.Vector (ContactResult Constraint)
-            -> (EngineCache s -> V.Vector (ContactResult Constraint) -> World s label -> ST s ())
-            -> EngineST label s ()
+wrapUpdater ::
+     V.Vector ContactConstraint
+  -> (EngineCache s -> V.Vector ContactConstraint -> World s label -> ST s ())
+  -> EngineST label s ()
 wrapUpdater constraints f = do
   (world, cache, externals) <- get
   lift . lift $ f cache constraints world
 
 wrapInitializer ::
      (EngineCache s -> World s label -> ST s ( EngineCache s
-                                             , V.Vector (ContactResult Constraint)))
-  -> EngineST label s (V.Vector (ContactResult Constraint))
+                                             , V.Vector ContactConstraint))
+  -> EngineST label s (V.Vector ContactConstraint)
 wrapInitializer f = do
   (world, cache, externals) <- get
   (cache', constraints) <- lift . lift $ f cache world

@@ -19,7 +19,7 @@ circle' :: Double
      -> label
      -> WorldObj label
 circle' radius center velocity =
-  makeWorldObj (box center velocity) 0.2 (makeCircle radius)
+  makeWorldObj (box center velocity) 0.2 0.5 (makeCircle radius)
 
 circleStack :: Double -- ^ radius
          -> (Double, Double) -- ^ bottom position
@@ -82,10 +82,10 @@ circleB :: PhysicalObj
 circleB = makePhysicalObj (-4, 0) 0 (5, 1.5) 0 (1, 0.5)
 
 circleA' :: label -> WorldObj label
-circleA' = makeWorldObj circleA 0.2 $ makeCircle 2
+circleA' = makeWorldObj circleA 0.2 1 $ makeCircle 2
 
 circleB' :: label -> WorldObj label
-circleB' = makeWorldObj circleB 0.2 $ makeCircle 1
+circleB' = makeWorldObj circleB 0.2 1 $ makeCircle 1
 
 twoCircles :: label -> label -> ST s (Scene s label)
 twoCircles a b = do

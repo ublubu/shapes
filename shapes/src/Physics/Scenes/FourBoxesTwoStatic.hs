@@ -23,19 +23,19 @@ staticBoxD :: PhysicalObj
 staticBoxD = makePhysicalObj (0, 0) 0 (-5, -4) 0 (0, 0)
 
 boxA' :: label -> WorldObj label
-boxA' = makeWorldObj boxA 0.2 $ makeRectangleHull 4 4
+boxA' = makeWorldObj boxA 0.2 0 $ makeRectangleHull 4 4
 
 boxB' :: label -> WorldObj label
-boxB' = makeWorldObj boxB 0.2 $ makeRectangleHull 2 2
+boxB' = makeWorldObj boxB 0.2 0 $ makeRectangleHull 2 2
 
 boxC' :: label -> WorldObj label
-boxC' = makeWorldObj boxC 0.2 $ makeRectangleHull 18 1
+boxC' = makeWorldObj boxC 0.2 0 $ makeRectangleHull 18 1
 
 boxD' :: label -> WorldObj label
-boxD' = makeWorldObj boxD 0.2 $ makeRectangleHull 0.4 3
+boxD' = makeWorldObj boxD 0.2 0 $ makeRectangleHull 0.4 3
 
 staticBoxD' :: label -> WorldObj label
-staticBoxD' = makeWorldObj staticBoxD 0.2 $ makeRectangleHull 0.4 3
+staticBoxD' = makeWorldObj staticBoxD 0.2 0 $ makeRectangleHull 0.4 3
 
 world
   :: label
